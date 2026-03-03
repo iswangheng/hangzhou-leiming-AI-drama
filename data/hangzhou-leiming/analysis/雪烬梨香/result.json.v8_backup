@@ -1,0 +1,147 @@
+{
+  "projectName": "雪烬梨香",
+  "highlights": [
+    {
+      "timestamp": 25,
+      "episode": 1,
+      "type": "开篇高光",
+      "confidence": 7.5,
+      "description": "剧情开始，交代了母亲在坟前哭泣，预示着悲惨的开端，吸引观众了解故事背景。"
+    }
+  ],
+  "hooks": [
+    {
+      "timestamp": 54,
+      "episode": 1,
+      "type": "情节转折",
+      "confidence": 8.0,
+      "description": "母亲自杀，主角重生，情节出现重大转折，留下悬念，吸引观众想知道主角重生后会发生什么。"
+    },
+    {
+      "timestamp": 403,
+      "episode": 1,
+      "type": "情节转折",
+      "confidence": 7.5,
+      "description": "门外传来男人的声音，表明是爹回来了，之前女主还很绝望，这里是一个转折，想知道后续发生了什么。"
+    },
+    {
+      "timestamp": 78,
+      "episode": 1,
+      "type": "情感爆发时刻",
+      "confidence": 7.0,
+      "description": "女主看到肉被丢掉，情绪激动，说出“我想做梦食的”，情感爆发，观众想知道女主后续反应。"
+    },
+    {
+      "timestamp": 172,
+      "episode": 1,
+      "type": "情节出现转折",
+      "confidence": 7.0,
+      "description": "女主说“周家媒婆来了”，暗示着剧情即将发生重要转折，观众会想知道接下来会发生什么。"
+    },
+    {
+      "timestamp": 53,
+      "episode": 2,
+      "type": "情节转折",
+      "confidence": 7.5,
+      "description": "父亲听到村民抢粮后，又起了要救济村民的念头，情节出现转折，让人想知道后续发展。"
+    },
+    {
+      "timestamp": 29,
+      "episode": 2,
+      "type": "信息截断",
+      "confidence": 7.0,
+      "description": "对话停留在“我爹成的海人入秦民 后得爱管显示”，关键信息被截断，引发观众好奇"
+    },
+    {
+      "timestamp": 53,
+      "episode": 3,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "院子里的雪越来越厚，对话戛然而止，让人想知道接下来会发生什么。"
+    },
+    {
+      "timestamp": 29,
+      "episode": 4,
+      "type": "情节出现转折",
+      "confidence": 7.0,
+      "description": "周语带着一家老小头笨我来了，是谁？为什么来？发生了什么？"
+    },
+    {
+      "timestamp": 26,
+      "episode": 5,
+      "type": "情节转折",
+      "confidence": 7.0,
+      "description": "老妇人突然说要退婚，情节出现转折，想知道后续发展"
+    },
+    {
+      "timestamp": 53,
+      "episode": 5,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "老妇人正要说出什么，但话被打断，留下悬念，观众想知道她要说什么。"
+    },
+    {
+      "timestamp": 29,
+      "episode": 6,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "男主周运突然出现并呼喊女主的名字，对话戛然而止，留下悬念，观众想知道接下来会发生什么。"
+    },
+    {
+      "timestamp": 27,
+      "episode": 7,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "男主话说到一半，突然停顿，暗示有重要信息未说完，引发观众好奇。"
+    },
+    {
+      "timestamp": 53,
+      "episode": 7,
+      "type": "情感爆发",
+      "confidence": 7.0,
+      "description": "女主被威胁后狂笑，情绪达到高点，留下悬念，观众想知道后续如何发展"
+    },
+    {
+      "timestamp": 53,
+      "episode": 9,
+      "type": "对话突然中断",
+      "confidence": 7.5,
+      "description": "在外面的人说出“李头住的是我兄弟承海德”后，对话戛然而止，让人想知道接下来会发生什么。"
+    },
+    {
+      "timestamp": 15,
+      "episode": 9,
+      "type": "情感爆发时刻",
+      "confidence": 7.0,
+      "description": "周遇说出“我周遇从今日起 绝不会再多看你一眼 就是饿死 也绝不会为你讨办厉民”，情感决绝，此处结束会让人想知道女主的反应和后续发展。"
+    },
+    {
+      "timestamp": 72,
+      "episode": 9,
+      "type": "悬念反转",
+      "confidence": 7.0,
+      "description": "村民们准备抢夺富商的粮食和肉，预示着接下来可能会发生冲突，留下悬念。"
+    },
+    {
+      "timestamp": 29,
+      "episode": 10,
+      "type": "冲突爆发",
+      "confidence": 7.5,
+      "description": "大博带头砸东西，冲突爆发，想知道后续如何发展"
+    },
+    {
+      "timestamp": 54,
+      "episode": 10,
+      "type": "冲突爆发时刻",
+      "confidence": 7.5,
+      "description": "在砸门的关键时刻结束，预示着冲突即将爆发，留下悬念，吸引观众想知道后续发展"
+    }
+  ],
+  "clips": [],
+  "statistics": {
+    "totalHighlights": 1,
+    "totalHooks": 18,
+    "totalClips": 0,
+    "averageConfidence": 7.2105263157894735
+  }
+}

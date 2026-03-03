@@ -1,0 +1,98 @@
+{
+  "projectName": "恋爱综艺，匹配到心动男友",
+  "highlights": [
+    {
+      "timestamp": 25,
+      "episode": 1,
+      "type": "开篇高光",
+      "confidence": 8.0,
+      "description": "第一集开头，交代女主和男主剧组夫妻，为后续剧情发展埋下伏笔，吸引观众。"
+    },
+    {
+      "timestamp": 0,
+      "episode": 1,
+      "type": "开篇高光点",
+      "confidence": 7.5,
+      "description": "第一集开头，交代女主和男主离婚以及男主和女演员的绯闻，引发观众对剧情发展的好奇。"
+    }
+  ],
+  "hooks": [
+    {
+      "timestamp": 54,
+      "episode": 1,
+      "type": "情感爆发顶点",
+      "confidence": 8.5,
+      "description": "女主发现男主出轨，决定离婚，情绪爆发，观众想知道后续发展。"
+    },
+    {
+      "timestamp": 28,
+      "episode": 1,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主回忆自己还在等男主回家，男主却以忙为借口挂电话，直到一次...这里被打断，观众想知道发生了什么，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 152,
+      "episode": 1,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主说出“这个离婚综艺的台本不是你想的那种”，暗示了台本背后有隐情，信息被截断，观众想知道到底是什么样的台本。"
+    },
+    {
+      "timestamp": 296,
+      "episode": 1,
+      "type": "情节重大转折",
+      "confidence": 8.0,
+      "description": "男主握住女主的手，手表传来警报声，女主数值直接爆掉，情节突变，观众想知道发生了什么。"
+    },
+    {
+      "timestamp": 64,
+      "episode": 2,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主正要说出陆决的缺点，话没说完被人打断，观众想知道陆决到底有什么缺点。"
+    },
+    {
+      "timestamp": 25,
+      "episode": 3,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主回忆中，将建威拿着红绳，镜头前说着什么被打断，观众想知道他说什么，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 65,
+      "episode": 4,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主正要说出从别人口中得知的关于男主前女友的信息，信息关键，被打断，观众想知道具体是什么信息。"
+    },
+    {
+      "timestamp": 75,
+      "episode": 5,
+      "type": "情节重大转折",
+      "confidence": 7.5,
+      "description": "女主突然爽快答应，与之前铺垫的“要闹”形成反差，观众想知道后续发展。"
+    },
+    {
+      "timestamp": 24,
+      "episode": 6,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主说“陆决下 想晚回我 这些手段可不够看的 他想刺激我 让我当中崩潰发风 这样他就能顺利成章的成为受害者”，在“受害者”这里结束，想知道男主会如何反击，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 53,
+      "episode": 8,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主问男主喜欢火锅还是蛋糕，男主回答“火锅 好的”，然后画面结束，观众想知道男主为什么突然说这个，以及后面的剧情发展。"
+    }
+  ],
+  "clips": [],
+  "statistics": {
+    "totalHighlights": 2,
+    "totalHooks": 10,
+    "totalClips": 0,
+    "averageConfidence": 7.958333333333333
+  }
+}

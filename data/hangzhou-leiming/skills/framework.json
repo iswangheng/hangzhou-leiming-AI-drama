@@ -1,0 +1,8 @@
+{
+  "highlightTypes": [],
+  "hookTypes": [],
+  "editingRules": {
+    "minDuration": 30,
+    "maxDuration": 300
+  }
+}

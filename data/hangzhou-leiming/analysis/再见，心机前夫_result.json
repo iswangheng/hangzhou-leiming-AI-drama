@@ -1,0 +1,809 @@
+{
+  "project": "再见，心机前夫",
+  "ai_hooks": 98,
+  "ai_highlights": 102,
+  "hooks": [
+    {
+      "time": 0,
+      "episode": 1
+    },
+    {
+      "time": 1,
+      "episode": 1
+    },
+    {
+      "time": 2,
+      "episode": 1
+    },
+    {
+      "time": 3,
+      "episode": 1
+    },
+    {
+      "time": 4,
+      "episode": 1
+    },
+    {
+      "time": 5,
+      "episode": 1
+    },
+    {
+      "time": 6,
+      "episode": 1
+    },
+    {
+      "time": 7,
+      "episode": 1
+    },
+    {
+      "time": 8,
+      "episode": 1
+    },
+    {
+      "time": 9,
+      "episode": 1
+    },
+    {
+      "time": 10,
+      "episode": 1
+    },
+    {
+      "time": 12,
+      "episode": 1
+    },
+    {
+      "time": 13,
+      "episode": 1
+    },
+    {
+      "time": 14,
+      "episode": 1
+    },
+    {
+      "time": 16,
+      "episode": 1
+    },
+    {
+      "time": 17,
+      "episode": 1
+    },
+    {
+      "time": 18,
+      "episode": 1
+    },
+    {
+      "time": 19,
+      "episode": 1
+    },
+    {
+      "time": 20,
+      "episode": 1
+    },
+    {
+      "time": 21,
+      "episode": 1
+    },
+    {
+      "time": 22,
+      "episode": 1
+    },
+    {
+      "time": 23,
+      "episode": 1
+    },
+    {
+      "time": 24,
+      "episode": 1
+    },
+    {
+      "time": 25,
+      "episode": 1
+    },
+    {
+      "time": 26,
+      "episode": 1
+    },
+    {
+      "time": 27,
+      "episode": 1
+    },
+    {
+      "time": 28,
+      "episode": 1
+    },
+    {
+      "time": 30,
+      "episode": 1
+    },
+    {
+      "time": 31,
+      "episode": 1
+    },
+    {
+      "time": 32,
+      "episode": 1
+    },
+    {
+      "time": 33,
+      "episode": 1
+    },
+    {
+      "time": 34,
+      "episode": 1
+    },
+    {
+      "time": 35,
+      "episode": 1
+    },
+    {
+      "time": 36,
+      "episode": 1
+    },
+    {
+      "time": 37,
+      "episode": 1
+    },
+    {
+      "time": 38,
+      "episode": 1
+    },
+    {
+      "time": 39,
+      "episode": 1
+    },
+    {
+      "time": 40,
+      "episode": 1
+    },
+    {
+      "time": 41,
+      "episode": 1
+    },
+    {
+      "time": 42,
+      "episode": 1
+    },
+    {
+      "time": 43,
+      "episode": 1
+    },
+    {
+      "time": 44,
+      "episode": 1
+    },
+    {
+      "time": 45,
+      "episode": 1
+    },
+    {
+      "time": 46,
+      "episode": 1
+    },
+    {
+      "time": 47,
+      "episode": 1
+    },
+    {
+      "time": 48,
+      "episode": 1
+    },
+    {
+      "time": 49,
+      "episode": 1
+    },
+    {
+      "time": 50,
+      "episode": 1
+    },
+    {
+      "time": 51,
+      "episode": 1
+    },
+    {
+      "time": 52,
+      "episode": 1
+    },
+    {
+      "time": 53,
+      "episode": 1
+    },
+    {
+      "time": 54,
+      "episode": 1
+    },
+    {
+      "time": 55,
+      "episode": 1
+    },
+    {
+      "time": 56,
+      "episode": 1
+    },
+    {
+      "time": 57,
+      "episode": 1
+    },
+    {
+      "time": 60,
+      "episode": 1
+    },
+    {
+      "time": 61,
+      "episode": 1
+    },
+    {
+      "time": 63,
+      "episode": 1
+    },
+    {
+      "time": 67,
+      "episode": 1
+    },
+    {
+      "time": 69,
+      "episode": 1
+    },
+    {
+      "time": 72,
+      "episode": 1
+    },
+    {
+      "time": 77,
+      "episode": 1
+    },
+    {
+      "time": 0,
+      "episode": 3
+    },
+    {
+      "time": 0,
+      "episode": 4
+    },
+    {
+      "time": 64,
+      "episode": 4
+    },
+    {
+      "time": 35,
+      "episode": 4
+    },
+    {
+      "time": 69,
+      "episode": 4
+    },
+    {
+      "time": 38,
+      "episode": 4
+    },
+    {
+      "time": 7,
+      "episode": 4
+    },
+    {
+      "time": 42,
+      "episode": 4
+    },
+    {
+      "time": 11,
+      "episode": 4
+    },
+    {
+      "time": 15,
+      "episode": 4
+    },
+    {
+      "time": 47,
+      "episode": 4
+    },
+    {
+      "time": 51,
+      "episode": 4
+    },
+    {
+      "time": 53,
+      "episode": 4
+    },
+    {
+      "time": 22,
+      "episode": 4
+    },
+    {
+      "time": 24,
+      "episode": 4
+    },
+    {
+      "time": 56,
+      "episode": 4
+    },
+    {
+      "time": 27,
+      "episode": 4
+    },
+    {
+      "time": 60,
+      "episode": 4
+    },
+    {
+      "time": 0,
+      "episode": 7
+    },
+    {
+      "time": 32,
+      "episode": 7
+    },
+    {
+      "time": 35,
+      "episode": 7
+    },
+    {
+      "time": 4,
+      "episode": 7
+    },
+    {
+      "time": 36,
+      "episode": 7
+    },
+    {
+      "time": 37,
+      "episode": 7
+    },
+    {
+      "time": 39,
+      "episode": 7
+    },
+    {
+      "time": 40,
+      "episode": 7
+    },
+    {
+      "time": 5,
+      "episode": 7
+    },
+    {
+      "time": 10,
+      "episode": 7
+    },
+    {
+      "time": 12,
+      "episode": 7
+    },
+    {
+      "time": 16,
+      "episode": 7
+    },
+    {
+      "time": 18,
+      "episode": 7
+    },
+    {
+      "time": 20,
+      "episode": 7
+    },
+    {
+      "time": 24,
+      "episode": 7
+    },
+    {
+      "time": 26,
+      "episode": 7
+    },
+    {
+      "time": 27,
+      "episode": 7
+    },
+    {
+      "time": 30,
+      "episode": 7
+    }
+  ],
+  "highlights": [
+    {
+      "time": 0,
+      "episode": 1
+    },
+    {
+      "time": 1,
+      "episode": 1
+    },
+    {
+      "time": 2,
+      "episode": 1
+    },
+    {
+      "time": 3,
+      "episode": 1
+    },
+    {
+      "time": 4,
+      "episode": 1
+    },
+    {
+      "time": 5,
+      "episode": 1
+    },
+    {
+      "time": 6,
+      "episode": 1
+    },
+    {
+      "time": 7,
+      "episode": 1
+    },
+    {
+      "time": 8,
+      "episode": 1
+    },
+    {
+      "time": 10,
+      "episode": 1
+    },
+    {
+      "time": 11,
+      "episode": 1
+    },
+    {
+      "time": 12,
+      "episode": 1
+    },
+    {
+      "time": 13,
+      "episode": 1
+    },
+    {
+      "time": 14,
+      "episode": 1
+    },
+    {
+      "time": 15,
+      "episode": 1
+    },
+    {
+      "time": 16,
+      "episode": 1
+    },
+    {
+      "time": 17,
+      "episode": 1
+    },
+    {
+      "time": 18,
+      "episode": 1
+    },
+    {
+      "time": 20,
+      "episode": 1
+    },
+    {
+      "time": 21,
+      "episode": 1
+    },
+    {
+      "time": 22,
+      "episode": 1
+    },
+    {
+      "time": 23,
+      "episode": 1
+    },
+    {
+      "time": 24,
+      "episode": 1
+    },
+    {
+      "time": 25,
+      "episode": 1
+    },
+    {
+      "time": 26,
+      "episode": 1
+    },
+    {
+      "time": 27,
+      "episode": 1
+    },
+    {
+      "time": 28,
+      "episode": 1
+    },
+    {
+      "time": 30,
+      "episode": 1
+    },
+    {
+      "time": 31,
+      "episode": 1
+    },
+    {
+      "time": 32,
+      "episode": 1
+    },
+    {
+      "time": 33,
+      "episode": 1
+    },
+    {
+      "time": 34,
+      "episode": 1
+    },
+    {
+      "time": 35,
+      "episode": 1
+    },
+    {
+      "time": 36,
+      "episode": 1
+    },
+    {
+      "time": 37,
+      "episode": 1
+    },
+    {
+      "time": 38,
+      "episode": 1
+    },
+    {
+      "time": 39,
+      "episode": 1
+    },
+    {
+      "time": 40,
+      "episode": 1
+    },
+    {
+      "time": 41,
+      "episode": 1
+    },
+    {
+      "time": 42,
+      "episode": 1
+    },
+    {
+      "time": 43,
+      "episode": 1
+    },
+    {
+      "time": 45,
+      "episode": 1
+    },
+    {
+      "time": 46,
+      "episode": 1
+    },
+    {
+      "time": 47,
+      "episode": 1
+    },
+    {
+      "time": 48,
+      "episode": 1
+    },
+    {
+      "time": 49,
+      "episode": 1
+    },
+    {
+      "time": 50,
+      "episode": 1
+    },
+    {
+      "time": 52,
+      "episode": 1
+    },
+    {
+      "time": 53,
+      "episode": 1
+    },
+    {
+      "time": 54,
+      "episode": 1
+    },
+    {
+      "time": 55,
+      "episode": 1
+    },
+    {
+      "time": 57,
+      "episode": 1
+    },
+    {
+      "time": 58,
+      "episode": 1
+    },
+    {
+      "time": 0,
+      "episode": 3
+    },
+    {
+      "time": 32,
+      "episode": 3
+    },
+    {
+      "time": 36,
+      "episode": 3
+    },
+    {
+      "time": 5,
+      "episode": 3
+    },
+    {
+      "time": 9,
+      "episode": 3
+    },
+    {
+      "time": 42,
+      "episode": 3
+    },
+    {
+      "time": 13,
+      "episode": 3
+    },
+    {
+      "time": 45,
+      "episode": 3
+    },
+    {
+      "time": 17,
+      "episode": 3
+    },
+    {
+      "time": 50,
+      "episode": 3
+    },
+    {
+      "time": 21,
+      "episode": 3
+    },
+    {
+      "time": 53,
+      "episode": 3
+    },
+    {
+      "time": 26,
+      "episode": 3
+    },
+    {
+      "time": 29,
+      "episode": 3
+    },
+    {
+      "time": 33,
+      "episode": 4
+    },
+    {
+      "time": 66,
+      "episode": 4
+    },
+    {
+      "time": 3,
+      "episode": 4
+    },
+    {
+      "time": 36,
+      "episode": 4
+    },
+    {
+      "time": 7,
+      "episode": 4
+    },
+    {
+      "time": 40,
+      "episode": 4
+    },
+    {
+      "time": 43,
+      "episode": 4
+    },
+    {
+      "time": 12,
+      "episode": 4
+    },
+    {
+      "time": 46,
+      "episode": 4
+    },
+    {
+      "time": 16,
+      "episode": 4
+    },
+    {
+      "time": 50,
+      "episode": 4
+    },
+    {
+      "time": 61,
+      "episode": 4
+    },
+    {
+      "time": 63,
+      "episode": 4
+    },
+    {
+      "time": 54,
+      "episode": 4
+    },
+    {
+      "time": 23,
+      "episode": 4
+    },
+    {
+      "time": 25,
+      "episode": 4
+    },
+    {
+      "time": 29,
+      "episode": 4
+    },
+    {
+      "time": 57,
+      "episode": 4
+    },
+    {
+      "time": 0,
+      "episode": 7
+    },
+    {
+      "time": 32,
+      "episode": 7
+    },
+    {
+      "time": 35,
+      "episode": 7
+    },
+    {
+      "time": 3,
+      "episode": 7
+    },
+    {
+      "time": 4,
+      "episode": 7
+    },
+    {
+      "time": 38,
+      "episode": 7
+    },
+    {
+      "time": 6,
+      "episode": 7
+    },
+    {
+      "time": 7,
+      "episode": 7
+    },
+    {
+      "time": 10,
+      "episode": 7
+    },
+    {
+      "time": 42,
+      "episode": 7
+    },
+    {
+      "time": 45,
+      "episode": 7
+    },
+    {
+      "time": 16,
+      "episode": 7
+    },
+    {
+      "time": 48,
+      "episode": 7
+    },
+    {
+      "time": 52,
+      "episode": 7
+    },
+    {
+      "time": 21,
+      "episode": 7
+    },
+    {
+      "time": 24,
+      "episode": 7
+    },
+    {
+      "time": 28,
+      "episode": 7
+    }
+  ]
+}

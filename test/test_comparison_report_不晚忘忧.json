@@ -1,0 +1,79 @@
+{
+  "project": "不晚忘忧",
+  "test_date": "2026-03-03",
+  "skill_version": "v0.5",
+  "statistics": {
+    "human_highlights": 3,
+    "human_hooks": 5,
+    "human_total": 8,
+    "ai_highlights": 1,
+    "ai_hooks": 21,
+    "ai_total": 22
+  },
+  "matches": {
+    "highlight_matches": 1,
+    "hook_matches": 0,
+    "total_matches": 1
+  },
+  "performance": {
+    "recall": 0.125,
+    "precision": 0.045454545454545456,
+    "f1_score": 0.06666666666666667
+  },
+  "unmatched_human": [
+    {
+      "timestamp": 720,
+      "episode": 1,
+      "mark_type": "highlight"
+    },
+    {
+      "timestamp": 2280,
+      "episode": 1,
+      "mark_type": "highlight"
+    },
+    {
+      "timestamp": 4740,
+      "episode": 1,
+      "mark_type": "hook"
+    },
+    {
+      "timestamp": 16140,
+      "episode": 1,
+      "mark_type": "hook"
+    },
+    {
+      "timestamp": 22440,
+      "episode": 1,
+      "mark_type": "hook"
+    },
+    {
+      "timestamp": 25140,
+      "episode": 1,
+      "mark_type": "hook"
+    },
+    {
+      "timestamp": 35460,
+      "episode": 1,
+      "mark_type": "hook"
+    }
+  ],
+  "matched_details": [
+    {
+      "ai": {
+        "timestamp": 0,
+        "episode": 1,
+        "mark_type": "highlight",
+        "type": "开篇高光",
+        "confidence": 8.0,
+        "description": "第一集开头，交代了女主和妈妈闺蜜以及男主之间的复杂关系，快速吸引观众。"
+      },
+      "human": {
+        "timestamp": 0,
+        "episode": 1,
+        "mark_type": "highlight"
+      },
+      "time_diff": 0,
+      "type_match": true
+    }
+  ]
+}

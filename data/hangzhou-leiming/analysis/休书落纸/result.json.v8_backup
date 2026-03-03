@@ -1,0 +1,154 @@
+{
+  "projectName": "休书落纸",
+  "highlights": [
+    {
+      "timestamp": 0,
+      "episode": 1,
+      "type": "开篇高光",
+      "confidence": 7.5,
+      "description": "第1集开头，交代女主悲惨身世，吸引观众。"
+    }
+  ],
+  "hooks": [
+    {
+      "timestamp": 28,
+      "episode": 1,
+      "type": "情感爆发时刻",
+      "confidence": 8.0,
+      "description": "女主回忆起过往，感受到前所未有的疲惫和业力，情感爆发，留下悬念，想知道她会如何反击。"
+    },
+    {
+      "timestamp": 75,
+      "episode": 1,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "男主说“那就请太负大人”，对话戛然而止，留下悬念，观众想知道接下来会发生什么。"
+    },
+    {
+      "timestamp": 125,
+      "episode": 1,
+      "type": "情感爆发时刻",
+      "confidence": 7.0,
+      "description": "女主说“她站得比直 大有一種要求我抗爭到底的氣勢”，暗示女主可能要开始反抗，情感有所爆发，留下悬念。"
+    },
+    {
+      "timestamp": 48,
+      "episode": 2,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "夫人正要说出重要信息，却被打断，留下悬念，观众想知道她要说什么"
+    },
+    {
+      "timestamp": 25,
+      "episode": 2,
+      "type": "情节转折",
+      "confidence": 7.0,
+      "description": "对话突然转到“原来是林老”，暗示林老身份不简单，引发观众好奇。"
+    },
+    {
+      "timestamp": 29,
+      "episode": 3,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "女主说了“我这么好语”，然后被打断，观众想知道她接下来要说什么。"
+    },
+    {
+      "timestamp": 52,
+      "episode": 4,
+      "type": "情节出现转折",
+      "confidence": 7.5,
+      "description": "男主突然说“原来，我和你们是一家人啊”，情节出现反转，观众想知道后续发展。"
+    },
+    {
+      "timestamp": 69,
+      "episode": 4,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "男主话说到一半，戛然而止，留下悬念，观众想知道男主到底要说什么。"
+    },
+    {
+      "timestamp": 54,
+      "episode": 5,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "女主正要进去看陆停松，话说到一半突然结束，留下悬念，观众想知道她会看到什么。"
+    },
+    {
+      "timestamp": 28,
+      "episode": 5,
+      "type": "情节出现转折",
+      "confidence": 7.0,
+      "description": "男主突然转变态度，说可以适你也可以是其他人，暗示女主地位不稳，想知道后续发展"
+    },
+    {
+      "timestamp": 65,
+      "episode": 5,
+      "type": "情节转折",
+      "confidence": 7.0,
+      "description": "夫人要进去看装病的丈夫，小厮阻拦不住，夫人忍下怒气，这里是一个情节转折，预示着接下来可能会发生冲突。"
+    },
+    {
+      "timestamp": 53,
+      "episode": 6,
+      "type": "情感爆发时刻",
+      "confidence": 7.0,
+      "description": "妻子质问丈夫自己得到了什么，丈夫愣住，对话戛然而止，留下悬念。"
+    },
+    {
+      "timestamp": 29,
+      "episode": 7,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "女主质问男主，男主似乎有隐情，女主正要继续追问，戛然而止，留下悬念。"
+    },
+    {
+      "timestamp": 53,
+      "episode": 7,
+      "type": "悬念反转",
+      "confidence": 7.0,
+      "description": "男主久久不说话，结尾停留在“他无法秘着良心说出来”，留下悬念，想知道他到底隐瞒了什么。"
+    },
+    {
+      "timestamp": 7,
+      "episode": 8,
+      "type": "情节出现转折",
+      "confidence": 7.5,
+      "description": "路停松突然沉下脸，情绪转变，预示着接下来会发生冲突，吸引观众想知道发生了什么。"
+    },
+    {
+      "timestamp": 53,
+      "episode": 8,
+      "type": "情感爆发",
+      "confidence": 7.0,
+      "description": "女主回忆起被欺辱的场景，情绪激动，眼泪滑落，此处结束，引发观众好奇。"
+    },
+    {
+      "timestamp": 29,
+      "episode": 9,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "族主开始指责郭国的错，但话没说完就结束，留下悬念。"
+    },
+    {
+      "timestamp": 48,
+      "episode": 10,
+      "type": "秘密揭露",
+      "confidence": 7.5,
+      "description": "路应怀质问代府不能生育的秘密，路平踪不说话，留下悬念，观众想知道真相。"
+    },
+    {
+      "timestamp": 28,
+      "episode": 10,
+      "type": "情感爆发时刻",
+      "confidence": 7.0,
+      "description": "女主质问对方“为什么”，情绪激动，留下悬念，想知道原因。"
+    }
+  ],
+  "clips": [],
+  "statistics": {
+    "totalHighlights": 1,
+    "totalHooks": 19,
+    "totalClips": 0,
+    "averageConfidence": 7.15
+  }
+}

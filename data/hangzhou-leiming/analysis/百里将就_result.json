@@ -1,0 +1,215 @@
+{
+  "project": "百里将就",
+  "total_episodes": 10,
+  "ai_hooks": 27,
+  "ai_highlights": 14,
+  "hooks": [
+    {
+      "time": 13,
+      "episode": 1,
+      "segment": "0-60"
+    },
+    {
+      "time": 26,
+      "episode": 1,
+      "segment": "0-60"
+    },
+    {
+      "time": 38,
+      "episode": 1,
+      "segment": "0-60"
+    },
+    {
+      "time": 51,
+      "episode": 1,
+      "segment": "0-60"
+    },
+    {
+      "time": 60,
+      "episode": 1,
+      "segment": "0-60"
+    },
+    {
+      "time": 71,
+      "episode": 1,
+      "segment": "60-120"
+    },
+    {
+      "time": 15,
+      "episode": 2,
+      "segment": "0-60"
+    },
+    {
+      "time": 27,
+      "episode": 2,
+      "segment": "0-60"
+    },
+    {
+      "time": 47,
+      "episode": 2,
+      "segment": "0-60"
+    },
+    {
+      "time": 61,
+      "episode": 2,
+      "segment": "60-120"
+    },
+    {
+      "time": 75,
+      "episode": 2,
+      "segment": "60-120"
+    },
+    {
+      "time": 114,
+      "episode": 2,
+      "segment": "60-120"
+    },
+    {
+      "time": 18,
+      "episode": 3,
+      "segment": "0-60"
+    },
+    {
+      "time": 55,
+      "episode": 3,
+      "segment": "0-60"
+    },
+    {
+      "time": 108,
+      "episode": 3,
+      "segment": "60-120"
+    },
+    {
+      "time": 19,
+      "episode": 4,
+      "segment": "0-60"
+    },
+    {
+      "time": 43,
+      "episode": 4,
+      "segment": "0-60"
+    },
+    {
+      "time": 11,
+      "episode": 6,
+      "segment": "0-60"
+    },
+    {
+      "time": 20,
+      "episode": 6,
+      "segment": "0-60"
+    },
+    {
+      "time": 35,
+      "episode": 6,
+      "segment": "0-60"
+    },
+    {
+      "time": 53,
+      "episode": 6,
+      "segment": "0-60"
+    },
+    {
+      "time": 7,
+      "episode": 7,
+      "segment": "0-60"
+    },
+    {
+      "time": 15,
+      "episode": 7,
+      "segment": "0-60"
+    },
+    {
+      "time": 25,
+      "episode": 7,
+      "segment": "0-60"
+    },
+    {
+      "time": 40,
+      "episode": 7,
+      "segment": "0-60"
+    },
+    {
+      "time": 45,
+      "episode": 7,
+      "segment": "0-60"
+    },
+    {
+      "time": 55,
+      "episode": 7,
+      "segment": "0-60"
+    }
+  ],
+  "highlights": [
+    {
+      "time": 0,
+      "episode": 1,
+      "segment": "0-60"
+    },
+    {
+      "time": 24,
+      "episode": 1,
+      "segment": "0-60"
+    },
+    {
+      "time": 41,
+      "episode": 1,
+      "segment": "0-60"
+    },
+    {
+      "time": 85,
+      "episode": 1,
+      "segment": "60-120"
+    },
+    {
+      "time": 10,
+      "episode": 2,
+      "segment": "0-60"
+    },
+    {
+      "time": 24,
+      "episode": 2,
+      "segment": "0-60"
+    },
+    {
+      "time": 34,
+      "episode": 2,
+      "segment": "0-60"
+    },
+    {
+      "time": 52,
+      "episode": 2,
+      "segment": "0-60"
+    },
+    {
+      "time": 13,
+      "episode": 3,
+      "segment": "0-60"
+    },
+    {
+      "time": 28,
+      "episode": 3,
+      "segment": "0-60"
+    },
+    {
+      "time": 49,
+      "episode": 3,
+      "segment": "0-60"
+    },
+    {
+      "time": 10,
+      "episode": 4,
+      "segment": "0-60"
+    },
+    {
+      "time": 22,
+      "episode": 4,
+      "segment": "0-60"
+    },
+    {
+      "time": 39,
+      "episode": 4,
+      "segment": "0-60"
+    }
+  ]
+}

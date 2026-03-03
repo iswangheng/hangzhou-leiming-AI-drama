@@ -1,0 +1,435 @@
+// ============================================
+// 关键帧提取工具
+// ============================================
+
+import { spawn } from 'child_process';
+import { mkdir } from 'fs/promises';
+import { join } from 'path';
+import { existsSync } from 'fs';
+
+/**
+ * 关键帧提取选项
+ */
+export interface ExtractKeyframesOptions {
+  /** 视频文件路径 */
+  videoPath: string;
+  /** 输出目录（默认：public/keyframes/{videoId}） */
+  outputDir?: string;
+
+  // === 模式1：固定帧数（原有逻辑，向后兼容） ===
+  /** 提取帧数（默认：30 帧，固定帧数，动态间隔） */
+  frameCount?: number;
+
+  // === 模式2：FPS模式（新增，用于训练中心） ===
+  /** 每秒提取帧数（fps，如 0.5 = 每0.5秒一帧） */
+  fps?: number;
+  /** 开始时间（毫秒，只提取指定时间段） */
+  startTimeMs?: number;
+  /** 结束时间（毫秒，只提取指定时间段） */
+  endTimeMs?: number;
+
+  /** 采样间隔（秒，已废弃，请使用 frameCount 或 fps 控制帧数） */
+  intervalSeconds?: number;
+  /** 输出文件名前缀（默认：keyframe） */
+  filenamePrefix?: string;
+}
+
+/**
+ * 关键帧提取结果
+ */
+export interface KeyframesResult {
+  /** 关键帧文件路径列表 */
+  framePaths: string[];
+  /** 每帧对应的时间戳（毫秒） */
+  timestamps: number[];
+  /** 输出目录 */
+  outputDir: string;
+}
+
+/**
+ * 从视频中均匀提取关键帧
+ *
+ * ✅ 支持两种模式：
+ *
+ * 模式1：固定帧数（原有逻辑，向后兼容）
+ * - 所有视频提取相同的帧数（默认 30 帧）
+ * - 根据视频时长自动计算间隔，保证均匀分布
+ *
+ * 模式2：FPS模式（新增，用于训练中心）
+ * - 按指定fps提取帧（如 0.5fps = 每0.5秒一帧）
+ * - 可指定时间范围（startTimeMs ~ endTimeMs）
+ * - 示例：fps=0.5, 30秒窗口 = 60帧
+ *
+ * @param options - 提取选项
+ * @returns 关键帧文件路径和时间戳
+ */
+export async function extractKeyframes(
+  options: ExtractKeyframesOptions
+): Promise<KeyframesResult> {
+  const {
+    videoPath,
+    outputDir,
+    frameCount = 30,  // ✅ 模式1：默认固定 30 帧
+    fps,              // ✅ 模式2：fps模式
+    startTimeMs = 0,  // ✅ 模式2：开始时间
+    endTimeMs,        // ✅ 模式2：结束时间
+    filenamePrefix = 'keyframe'
+  } = options;
+
+  // 验证视频文件存在
+  if (!existsSync(videoPath)) {
+    throw new Error(`视频文件不存在: ${videoPath}`);
+  }
+
+  // 创建输出目录
+  const actualOutputDir = outputDir || join(process.cwd(), 'public', 'keyframes', Date.now().toString());
+  await mkdir(actualOutputDir, { recursive: true });
+
+  // 使用 FFmpeg 获取视频时长
+  const totalDuration = await getVideoDuration(videoPath);
+
+  // ========================================
+  // ✅ 模式2：FPS模式（新增）
+  // ========================================
+  if (fps !== undefined) {
+    // 确定提取的时间范围
+    const actualEndTimeMs = endTimeMs !== undefined ? Math.min(endTimeMs, totalDuration) : totalDuration;
+    const actualStartTimeMs = Math.max(0, startTimeMs);
+    const durationMs = actualEndTimeMs - actualStartTimeMs;
+
+    if (durationMs <= 0) {
+      throw new Error(`无效的时间范围: startTimeMs=${actualStartTimeMs}, endTimeMs=${actualEndTimeMs}`);
+    }
+
+    // 计算帧数和间隔
+    const durationSeconds = durationMs / 1000;
+    const targetFrameCount = Math.floor(durationSeconds * fps);
+    const intervalMs = Math.floor(1000 / fps);
+
+    console.log(`📹 [关键帧提取-FPS模式] 时间范围: ${(actualStartTimeMs/1000).toFixed(1)}s-${(actualEndTimeMs/1000).toFixed(1)}s, fps: ${fps}, 目标帧数: ${targetFrameCount}, 间隔: ${(intervalMs/1000).toFixed(2)}秒`);
+
+    // 使用内部函数提取帧
+    return await extractFramesInternal({
+      videoPath,
+      outputDir: actualOutputDir,
+      filenamePrefix,
+      startTimeMs: actualStartTimeMs,
+      endTimeMs: actualEndTimeMs,
+      intervalMs,
+      maxFrames: targetFrameCount
+    });
+  }
+
+  // ========================================
+  // ✅ 模式1：固定帧数模式（原有逻辑）
+  // ========================================
+  const intervalMs = Math.floor(totalDuration / (frameCount + 1));
+
+  console.log(`📹 [关键帧提取-固定帧数模式] 视频时长: ${(totalDuration / 1000).toFixed(1)}秒, 目标帧数: ${frameCount}, 动态间隔: ${(intervalMs / 1000).toFixed(2)}秒`);
+
+  // 提取关键帧（调用内部函数）
+  return await extractFramesInternal({
+    videoPath,
+    outputDir: actualOutputDir,
+    filenamePrefix,
+    startTimeMs: 0,
+    endTimeMs: totalDuration,
+    intervalMs,
+    maxFrames: frameCount,
+    totalDuration
+  });
+}
+
+  // 2. 并发控制（同时提取的帧数）
+  const concurrency = 4;  // 同时提取 4 帧（可根据 CPU 核心数调整）
+
+  // 3. 分批并行执行
+  const framePaths: string[] = [];
+  const timestamps: number[] = [];
+
+  for (let i = 0; i < frameTasks.length; i += concurrency) {
+    const batch = frameTasks.slice(i, i + concurrency);
+
+    console.log(`⚡ 正在提取第 ${i + 1}-${Math.min(i + concurrency, frameTasks.length)}/${frameTasks.length} 帧...`);
+
+    // 并行执行当前批次
+    const results = await Promise.all(
+      batch.map(async (task) => {
+        // FFmpeg 命令：提取单帧
+        const ffmpegArgs = [
+          '-ss', task.timeFormat,       // 跳转到指定时间
+          '-i', videoPath,              // 输入文件
+          '-vframes', '1',              // 只提取 1 帧
+          '-q:v', '2',                  // 高质量 JPEG (1-31，越小越好)
+          '-y',                         // 覆盖已存在文件
+          task.outputPath
+        ];
+
+        await runFFmpeg(ffmpegArgs);
+
+        console.log(`  ✅ 提取第 ${task.index + 1}/${frameTasks.length} 帧: ${task.timestampMs}ms`);
+
+        return {
+          path: task.outputPath,
+          timestamp: task.timestampMs,
+          index: task.index,
+        };
+      })
+    );
+
+    // 4. 按顺序收集结果
+    results.forEach((result) => {
+      framePaths[result.index] = result.path;
+      timestamps[result.index] = result.timestamp;
+    });
+  }
+
+  console.log(`🎉 并行提取完成！共 ${framePaths.length} 帧`);
+
+  return {
+    framePaths,
+    timestamps,
+    outputDir
+  };
+}
+
+/**
+ * 获取视频时长（毫秒）
+ */
+async function getVideoDuration(videoPath: string): Promise<number> {
+  const ffprobeArgs = [
+    '-v', 'error',
+    '-show_entries', 'format=duration',
+    '-of', 'default=noprint_wrappers=1:nokey=1',
+    videoPath
+  ];
+
+  const output = await runFFprobe(ffprobeArgs);
+  const durationSeconds = parseFloat(output.trim());
+
+  if (isNaN(durationSeconds)) {
+    throw new Error(`无法获取视频时长: ${videoPath}`);
+  }
+
+  return Math.floor(durationSeconds * 1000);  // 转换为毫秒
+}
+
+/**
+ * 格式化时间戳为 HH:MM:SS.mmm
+ */
+function formatTimestamp(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const milliseconds = ms % 1000;
+  const seconds = totalSeconds % 60;
+  const minutes = Math.floor(totalSeconds / 60) % 60;
+  const hours = Math.floor(totalSeconds / 3600);
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
+}
+
+/**
+ * 运行 FFmpeg 命令
+ */
+function runFFmpeg(args: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const ffmpeg = spawn('ffmpeg', args);
+    let stdout = '';
+    let stderr = '';
+
+    ffmpeg.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    ffmpeg.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    ffmpeg.on('close', (code) => {
+      if (code === 0) {
+        resolve(stderr);  // FFmpeg 输出到 stderr
+      } else {
+        reject(new Error(`FFmpeg 错误: ${stderr}`));
+      }
+    });
+  });
+}
+
+/**
+ * 内部函数：执行帧提取（支持时间范围）
+ *
+ * @param options - 提取选项
+ * @returns 关键帧文件路径和时间戳
+ */
+async function extractFramesInternal(
+  options: {
+    videoPath: string;
+    outputDir: string;
+    filenamePrefix: string;
+    startTimeMs: number;
+    endTimeMs: number;
+    intervalMs: number;
+    maxFrames: number;
+    totalDuration: number;
+  }
+): Promise<KeyframesResult> {
+  const {
+    videoPath,
+    outputDir,
+    filenamePrefix,
+    startTimeMs,
+    endTimeMs,
+    intervalMs,
+    maxFrames,
+    totalDuration
+  } = options;
+
+  // ========================================
+  // ✅ 并行提取关键帧（性能提升 3-4 倍）
+  // ========================================
+
+  // 1. 准备所有帧的提取任务
+  const frameTasks: Array<{
+    index: number;
+    timestampMs: number;
+    timeFormat: string;
+    outputPath: string;
+  }> = [];
+
+  for (let i = 0; i < maxFrames; i++) {
+    // ✅ 计算当前帧的时间戳（毫秒）- 在指定时间范围内
+    const timestampMs = startTimeMs + Math.floor(intervalMs * (i + 1));
+
+    // 确保不超过结束时间
+    if (timestampMs >= endTimeMs) {
+      break;
+    }
+
+    // 转换为 HH:MM:SS.mmm 格式
+    const timeFormat = formatTimestamp(timestampMs);
+
+    // 输出文件路径
+    const filename = `${filenamePrefix}_${String(i + 1).padStart(3, '0')}.jpg`;
+    const outputPath = join(outputDir, filename);
+
+    frameTasks.push({
+      index: i,
+      timestampMs,
+      timeFormat,
+      outputPath,
+    });
+  }
+
+  console.log(`📋 准备并行提取 ${frameTasks.length} 帧...`);
+
+  // 2. 并发控制（同时提取的帧数）
+  const concurrency = 4;  // 同时提取 4 帧（可根据 CPU 核心数调整）
+
+  // 3. 分批并行执行
+  const framePaths: string[] = [];
+  const timestamps: number[] = [];
+
+  for (let i = 0; i < frameTasks.length; i += concurrency) {
+    const batch = frameTasks.slice(i, i + concurrency);
+
+    console.log(`⚡ 正在提取第 ${i + 1}-${Math.min(i + concurrency, frameTasks.length)}/${frameTasks.length} 帧...`);
+
+    // 并行执行当前批次
+    const results = await Promise.all(
+      batch.map(async (task) => {
+        // FFmpeg 命令：提取单帧
+        const ffmpegArgs = [
+          '-ss', task.timeFormat,       // 跳转到指定时间
+          '-i', videoPath,              // 输入文件
+          '-vframes', '1',              // 只提取 1 帧
+          '-q:v', '2',                  // 高质量 JPEG (1-31，越小越好)
+          '-y',                         // 覆盖已存在文件
+          task.outputPath
+        ];
+
+        await runFFmpeg(ffmpegArgs);
+
+        console.log(`  ✅ 提取第 ${task.index + 1}/${frameTasks.length} 帧: ${task.timestampMs}ms`);
+
+        return {
+          path: task.outputPath,
+          timestamp: task.timestampMs,
+          index: task.index,
+        };
+      })
+    );
+
+    // 4. 按顺序收集结果
+    results.forEach((result) => {
+      framePaths[result.index] = result.path;
+      timestamps[result.index] = result.timestamp;
+    });
+  }
+
+  console.log(`🎉 并行提取完成！共 ${framePaths.length} 帧`);
+
+  return {
+    framePaths,
+    timestamps,
+    outputDir
+  };
+}
+
+/**
+ * 运行 FFprobe 命令
+ */
+function runFFprobe(args: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const ffprobe = spawn('ffprobe', args);
+    let stdout = '';
+    let stderr = '';
+
+    ffprobe.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    ffprobe.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    ffprobe.on('close', (code) => {
+      if (code === 0) {
+        resolve(stdout);
+      } else {
+        reject(new Error(`FFprobe 错误: ${stderr}`));
+      }
+    });
+  });
+}
+
+/**
+ * 批量提取多个视频的关键帧
+ *
+ * @param videos - 视频路径列表
+ * @param frameCount - 每个视频提取的帧数（默认：30 帧）
+ * @returns 所有视频的关键帧结果
+ */
+export async function extractKeyframesBatch(
+  videos: Array<{ videoPath: string; videoId: number }>,
+  frameCount: number = 30
+): Promise<Map<number, KeyframesResult>> {
+  const results = new Map<number, KeyframesResult>();
+
+  for (const { videoPath, videoId } of videos) {
+    try {
+      const result = await extractKeyframes({
+        videoPath,
+        outputDir: join(process.cwd(), 'public', 'keyframes', videoId.toString()),
+        frameCount,
+        filenamePrefix: `video_${videoId}_keyframe`
+      });
+
+      results.set(videoId, result);
+      console.log(`✅ 视频 ${videoId} 关键帧提取完成: ${result.framePaths.length} 帧`);
+    } catch (error) {
+      console.error(`❌ 视频 ${videoId} 关键帧提取失败:`, error);
+      throw error;
+    }
+  }
+
+  return results;
+}

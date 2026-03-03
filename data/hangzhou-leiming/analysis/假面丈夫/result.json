@@ -1,0 +1,61 @@
+{
+  "projectName": "假面丈夫",
+  "highlights": [
+    {
+      "timestamp": 0,
+      "episode": 1,
+      "type": "开篇高光",
+      "confidence": 8.0,
+      "description": "第一集开头，交代了丈夫撕毁儿子保送证明的背景，以及儿子意外死亡，女主重生回到过去，信息量大，吸引观众。"
+    }
+  ],
+  "hooks": [
+    {
+      "timestamp": 124,
+      "episode": 1,
+      "type": "情节重大转折",
+      "confidence": 8.5,
+      "description": "父亲突然掐住儿子的脖子，情节突变，观众想知道后续发展。"
+    },
+    {
+      "timestamp": 285,
+      "episode": 1,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主威胁女主，如果女主不辞职回警局食堂，就要去女主公司闹。观众想知道男主会怎么闹，以及女主会如何应对，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 252,
+      "episode": 1,
+      "type": "情感爆发顶点",
+      "confidence": 7.5,
+      "description": "女主听到丈夫无耻的话语，情绪达到顶点，观众想知道她会如何回应。"
+    },
+    {
+      "timestamp": 43,
+      "episode": 3,
+      "type": "情感爆发顶点",
+      "confidence": 7.5,
+      "description": "女主抬高声音质问对方“狼心狗肺的东西”，情绪激动，预示冲突升级，观众想知道后续发展。"
+    }
+  ],
+  "clips": [
+    {
+      "start": 0,
+      "end": 43,
+      "duration": 43,
+      "highlight": "开篇高光",
+      "highlightDesc": "第一集开头，交代了丈夫撕毁儿子保送证明的背景，以及儿子意外死亡，女主重生回到过去，信息量大，吸引观众。",
+      "hook": "情感爆发顶点",
+      "hookDesc": "女主抬高声音质问对方“狼心狗肺的东西”，情绪激动，预示冲突升级，观众想知道后续发展。",
+      "type": "开篇高光-情感爆发顶点",
+      "episode": 1
+    }
+  ],
+  "statistics": {
+    "totalHighlights": 1,
+    "totalHooks": 4,
+    "totalClips": 1,
+    "averageConfidence": 7.9
+  }
+}

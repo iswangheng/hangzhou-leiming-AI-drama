@@ -1,0 +1,182 @@
+{
+  "projectName": "恋爱综艺，匹配到心动男友",
+  "highlights": [
+    {
+      "timestamp": 25,
+      "episode": 1,
+      "type": "开篇高光",
+      "confidence": 7.5,
+      "description": "剧集开头，交代女主和丈夫的表面关系，以及丈夫多次以忙为借口挂电话，为后续剧情发展埋下伏笔，吸引观众。"
+    },
+    {
+      "timestamp": 0,
+      "episode": 1,
+      "type": "开篇高光点",
+      "confidence": 7.5,
+      "description": "作为第一集开头，需要标记开篇高光点，交代了女主和顶流男星的离婚背景，以及男星再婚的情况，信息量较大，吸引观众。"
+    }
+  ],
+  "hooks": [
+    {
+      "timestamp": 54,
+      "episode": 1,
+      "type": "情感爆发时刻",
+      "confidence": 8.0,
+      "description": "女主得知丈夫出轨并想逼她离婚，愤怒之下决定离婚，情感爆发，引发观众期待后续发展。"
+    },
+    {
+      "timestamp": 154,
+      "episode": 1,
+      "type": "秘密揭露",
+      "confidence": 7.5,
+      "description": "男主突然说出“那个离婚综艺的台本，不是你想的那种”，暗示女主被骗，有反转，观众想知道真相。"
+    },
+    {
+      "timestamp": 178,
+      "episode": 1,
+      "type": "情节转折",
+      "confidence": 7.5,
+      "description": "剧情介绍到周思演和江建威居然上离婚综艺了，然后画面结束，让人想知道后续发展。"
+    },
+    {
+      "timestamp": 79,
+      "episode": 1,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "女主刚要说出“是你出轨剧还要拨呢”，戛然而止，留下悬念，观众想知道后续剧情。"
+    },
+    {
+      "timestamp": 53,
+      "episode": 2,
+      "type": "悬念反转",
+      "confidence": 7.0,
+      "description": "男主拦住女主，并说“怎么办能陆决下”，预示着接下来可能发生冲突或者出现新的转折，留下悬念。"
+    },
+    {
+      "timestamp": 52,
+      "episode": 3,
+      "type": "突然出现新信息",
+      "confidence": 7.5,
+      "description": "男主突然说出参加公益还有另一个隐情，观众想知道是什么隐情。"
+    },
+    {
+      "timestamp": 29,
+      "episode": 3,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "女主回忆到“现在，却在将建威的手上”，暗示红绳的转移，但话没说完，戛然而止，留下悬念。"
+    },
+    {
+      "timestamp": 79,
+      "episode": 3,
+      "type": "信息截断",
+      "confidence": 7.0,
+      "description": "女主描述晚上11点荒郊野外，但话没说完就被截断，留下悬念，观众想知道发生了什么"
+    },
+    {
+      "timestamp": 54,
+      "episode": 4,
+      "type": "悬念反转",
+      "confidence": 7.0,
+      "description": "女主回忆起男主对另一个女人的评价，暗示男主可能对女主有所隐瞒，留下悬念。"
+    },
+    {
+      "timestamp": 77,
+      "episode": 4,
+      "type": "情节转折",
+      "confidence": 7.0,
+      "description": "女主回忆车内场景，暗示有人故意踢她，但戛然而止，留下悬念，想知道后续发生了什么"
+    },
+    {
+      "timestamp": 53,
+      "episode": 5,
+      "type": "悬念反转",
+      "confidence": 7.5,
+      "description": "男主说“你还是一大局好”，暗示女主另有图谋，留下悬念，观众想知道女主的真实想法"
+    },
+    {
+      "timestamp": 75,
+      "episode": 5,
+      "type": "情节出现转折",
+      "confidence": 7.0,
+      "description": "女主说“以后都这样吧”，男主脸色微僵，暗示两人关系或计划出现变化，留下悬念。"
+    },
+    {
+      "timestamp": 10,
+      "episode": 6,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "周思言问将见未是否害怕他和某人在一起，将见未的反应很大，但对话戛然而止，留下悬念。"
+    },
+    {
+      "timestamp": 54,
+      "episode": 6,
+      "type": "情节出现转折",
+      "confidence": 7.0,
+      "description": "结尾处提到“有预感会发生点什么”，暗示接下来会有事情发生，引发观众的好奇心。"
+    },
+    {
+      "timestamp": 87,
+      "episode": 7,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "男主拿着绷带，女主问“可以帮我吗”，对话被打断，留下悬念。"
+    },
+    {
+      "timestamp": 53,
+      "episode": 8,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "女主问“有什么是我尊贵的VIP会员不能看到”，男主观灯了，对话戛然而止，留下悬念。"
+    },
+    {
+      "timestamp": 92,
+      "episode": 8,
+      "type": "秘密揭露",
+      "confidence": 7.0,
+      "description": "女主说“不止我一个人”，暗示还有其他人也想起了什么，引发观众好奇。"
+    },
+    {
+      "timestamp": 127,
+      "episode": 8,
+      "type": "悬念反转",
+      "confidence": 7.0,
+      "description": "周思眼说“我是它的出恋”，暗示了两人关系不一般，留下悬念，想知道后续。"
+    },
+    {
+      "timestamp": 53,
+      "episode": 9,
+      "type": "悬念反转",
+      "confidence": 7.0,
+      "description": "男主说女主头发味道熟悉，暗示两人关系不一般，留下悬念。"
+    },
+    {
+      "timestamp": 93,
+      "episode": 9,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "周思演看向女主，众人的目光也在两人之间寻觅，女主的回答被打断，留下悬念。"
+    },
+    {
+      "timestamp": 54,
+      "episode": 10,
+      "type": "对话突然中断",
+      "confidence": 7.0,
+      "description": "女主回答问题时，刚说到“直到同样的问题 审确回答理据”戛然而止，留下悬念，观众想知道她如何回答"
+    },
+    {
+      "timestamp": 77,
+      "episode": 10,
+      "type": "情节转折",
+      "confidence": 7.0,
+      "description": "剧情提到“他老公还割男略和核首錢 只是巧合吧 審確和他以前根本沒交集”，暗示了新的信息，可能存在反转，留下悬念。"
+    }
+  ],
+  "clips": [],
+  "statistics": {
+    "totalHighlights": 2,
+    "totalHooks": 22,
+    "totalClips": 0,
+    "averageConfidence": 7.166666666666667
+  }
+}

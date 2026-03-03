@@ -1,0 +1,140 @@
+{
+  "projectName": "小小飞梦",
+  "highlights": [
+    {
+      "timestamp": 0,
+      "episode": 1,
+      "type": "开篇高光",
+      "confidence": 8.0,
+      "description": "第一集开头，交代了女孩和哥哥好兄弟之间的特殊关系，以及后续发展成恋人的情节，吸引观众。"
+    },
+    {
+      "timestamp": 25,
+      "episode": 1,
+      "type": "开篇高光点",
+      "confidence": 7.5,
+      "description": "第一集开头，交代女主回家，并引出赫华许为女主准备生日派对，引发观众对后续剧情的好奇。"
+    },
+    {
+      "timestamp": 0,
+      "episode": 4,
+      "type": "开篇高光",
+      "confidence": 8.0,
+      "description": "开篇即是冲突场面，男人强迫女主，引发观众好奇后续发展。"
+    }
+  ],
+  "hooks": [
+    {
+      "timestamp": 23,
+      "episode": 1,
+      "type": "秘密揭露或真相揭示",
+      "confidence": 7.5,
+      "description": "女孩以为对方是不知如何跟她亲哥交代，直到见到她的出练，暗示女孩只是个替身，情节出现反转，观众想知道后续发展。"
+    },
+    {
+      "timestamp": 54,
+      "episode": 1,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主说“有没有人跟你说过，我们长得有点像啊”，暗示两人关系，但未直接说明，属于关键信息被截断，引发观众好奇。"
+    },
+    {
+      "timestamp": 353,
+      "episode": 1,
+      "type": "关键信息被截断",
+      "confidence": 8.5,
+      "description": "女主正要回复“对象”是谁，赫怀续突然回来，打断了对话，观众想知道是谁，信息被截断。"
+    },
+    {
+      "timestamp": 94,
+      "episode": 1,
+      "type": "情感爆发顶点",
+      "confidence": 7.5,
+      "description": "男主的朋友们说出当年谈恋爱的事情，男主脸色瞬间沉了下来，情感爆发，观众想知道后续发展。"
+    },
+    {
+      "timestamp": 454,
+      "episode": 1,
+      "type": "情节重大转折",
+      "confidence": 7.5,
+      "description": "男主几天没回来，女主看到动态后笑了，暗示了情节的转折，观众想知道接下来会发生什么。"
+    },
+    {
+      "timestamp": 42,
+      "episode": 2,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主刚要解释他和女主的关系，但话到嘴边又咽了回去，关键信息被截断，观众想知道他到底想解释什么。"
+    },
+    {
+      "timestamp": 77,
+      "episode": 3,
+      "type": "情节重大转折",
+      "confidence": 8.5,
+      "description": "男主突然被强吻，情节出现意外转折，观众想知道后续发展。"
+    },
+    {
+      "timestamp": 22,
+      "episode": 4,
+      "type": "情节重大转折",
+      "confidence": 9.0,
+      "description": "女主拿起花盆砸向男人后脑勺，情节发生重大转折，观众想知道后续发展。"
+    },
+    {
+      "timestamp": 45,
+      "episode": 4,
+      "type": "情感爆发顶点",
+      "confidence": 8.0,
+      "description": "女主扇了男主一巴掌，并且男主说出“是我故意找来的又怎么样”，女主再次扬起手，情绪爆发，观众想知道接下来会发生什么。"
+    },
+    {
+      "timestamp": 62,
+      "episode": 4,
+      "type": "关键信息被截断",
+      "confidence": 7.5,
+      "description": "正哥要说出满足女主的条件，话没说完被打断，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 66,
+      "episode": 5,
+      "type": "情节重大转折",
+      "confidence": 8.5,
+      "description": "女主刚走出酒店就被车撞，发生了意外，观众想知道后续会怎么样"
+    },
+    {
+      "timestamp": 79,
+      "episode": 6,
+      "type": "情节重大转折",
+      "confidence": 8.0,
+      "description": "女主彻底放下过去，离开家，预示着新的开始或重大转变，观众想知道接下来会发生什么。"
+    },
+    {
+      "timestamp": 25,
+      "episode": 8,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主说带女主见医生，但女主质疑不是去医院，男主说“可不是医院的普通医生”，关键信息被截断，观众想知道到底是什么医生。"
+    },
+    {
+      "timestamp": 27,
+      "episode": 9,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主打开车门，看到女主，正要打招呼，但被打断，观众想知道接下来会发生什么，属于关键信息被打断。"
+    },
+    {
+      "timestamp": 77,
+      "episode": 10,
+      "type": "关键信息被截断",
+      "confidence": 7.5,
+      "description": "男主收到信息“怎么人不见了”，疑似未婚妻失踪，信息被截断，引发悬念。"
+    }
+  ],
+  "clips": [],
+  "statistics": {
+    "totalHighlights": 3,
+    "totalHooks": 15,
+    "totalClips": 0,
+    "averageConfidence": 7.972222222222222
+  }
+}

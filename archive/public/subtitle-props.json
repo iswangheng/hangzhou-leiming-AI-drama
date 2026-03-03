@@ -1,0 +1,13 @@
+{
+  "src": "./example-video.mp4",
+  "subtitles": [],
+  "fontSize": 60,
+  "fontColor": "white",
+  "highlightColor": "#FFE600",
+  "outlineColor": "black",
+  "outlineSize": 5,
+  "subtitleY": 80,
+  "originalVolume": 1,
+  "subtitleBgEnabled": false,
+  "watermarkUrl": null
+}

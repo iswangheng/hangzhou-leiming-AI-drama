@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DramaGen AI - UI Prototype</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            /* 品牌色 - 靛蓝系 */
+            --primary-50: #eef2ff;
+            --primary-100: #e0e7ff;
+            --primary-200: #c7d2fe;
+            --primary-300: #a5b4fc;
+            --primary-400: #818cf8;
+            --primary-500: #6366f1;
+            --primary-600: #4f46e5;
+            --primary-700: #4338ca;
+
+            /* 中性色 - 精致灰系 */
+            --slate-50: #f8fafc;
+            --slate-100: #f1f5f9;
+            --slate-200: #e2e8f0;
+            --slate-300: #cbd5e1;
+            --slate-400: #94a3b8;
+            --slate-500: #64748b;
+            --slate-600: #475569;
+            --slate-700: #334155;
+            --slate-800: #1e293b;
+            --slate-900: #0f172a;
+
+            /* 功能色 */
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+
+            /* 阴影系统 */
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+            /* 动画 */
+            --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--slate-50);
+            color: var(--slate-900);
+            line-height: 1.6;
+            overflow: hidden;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 260px;
+            background: white;
+            border-right: 1px solid var(--slate-200);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .logo-section {
+            padding: 20px 16px;
+            border-bottom: 1px solid var(--slate-100);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--slate-900);
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        /* 项目切换器 */
+        .project-switcher {
+            margin: 16px;
+            padding: 10px 12px;
+            background: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+
+        .project-switcher:hover {
+            background: var(--slate-100);
+            border-color: var(--slate-300);
+        }
+
+        .project-switcher-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--slate-500);
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .project-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: var(--slate-700);
+        }
+
+        .project-name span {
+            font-size: 14px;
+        }
+
+        /* 导航菜单 */
+        .nav-section {
+            padding: 12px 8px;
+            flex: 1;
+        }
+
+        .nav-label {
+            padding: 0 12px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--slate-400);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            color: var(--slate-600);
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .nav-item:hover {
+            background: var(--slate-100);
+            color: var(--slate-900);
+        }
+
+        .nav-item.active {
+            background: var(--primary-50);
+            color: var(--primary-700);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 侧边栏底部 */
+        .sidebar-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--slate-100);
+        }
+
+        .nav-item-footer {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            color: var(--slate-600);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .nav-item-footer:hover {
+            background: var(--slate-100);
+            color: var(--slate-900);
+        }
+
+        /* 主内容区 */
+        .main-content {
+            margin-left: 260px;
+            height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 页面容器 */
+        .page {
+            display: none;
+            padding: 32px 40px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--slate-900);
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            font-size: 15px;
+            color: var(--slate-500);
+        }
+
+        /* 卡片 */
+        .card {
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            transition: all var(--transition-base);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        /* 网格布局 */
+        .grid {
+            display: grid;
+            gap: 24px;
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        }
+
+        /* 按钮 */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary-600);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-700);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--slate-700);
+            border: 1px solid var(--slate-200);
+        }
+
+        .btn-secondary:hover {
+            background: var(--slate-50);
+            border-color: var(--slate-300);
+        }
+
+        /* 状态标签 */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .badge-processing {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .badge-pending {
+            background: var(--slate-100);
+            color: var(--slate-600);
+        }
+
+        /* 进度条 */
+        .progress-bar {
+            height: 4px;
+            background: var(--slate-200);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-500);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        /* 浮动进度条 */
+        .floating-progress {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 12px;
+            padding: 16px 20px;
+            box-shadow: var(--shadow-xl);
+            min-width: 320px;
+            z-index: 1000;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .floating-progress-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .floating-progress-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--slate-700);
+        }
+
+        .floating-progress-percentage {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary-600);
+        }
+
+        .floating-progress-bar {
+            height: 6px;
+            background: var(--slate-200);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .floating-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-500), var(--primary-400));
+            border-radius: 3px;
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        /* 高光切片模式 - 中央舞台布局 */
+        .stage-layout {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 24px;
+            height: calc(100vh - 180px);
+        }
+
+        .stage-main {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .video-preview {
+            background: black;
+            border-radius: 12px;
+            aspect-ratio: 16/9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .video-preview::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+        }
+
+        .timeline-control {
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .control-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--slate-500);
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .control-buttons {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .control-btn {
+            padding: 8px 16px;
+            background: var(--slate-100);
+            border: 1px solid var(--slate-200);
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--slate-700);
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+
+        .control-btn:hover {
+            background: var(--slate-200);
+        }
+
+        .control-btn-primary {
+            background: var(--primary-600);
+            color: white;
+            border-color: var(--primary-600);
+        }
+
+        .control-btn-primary:hover {
+            background: var(--primary-700);
+        }
+
+        .time-input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid var(--slate-200);
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--slate-700);
+            text-align: center;
+        }
+
+        .time-input:focus {
+            outline: none;
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 3px var(--primary-100);
+        }
+
+        .stage-sidebar {
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 12px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .highlight-item {
+            padding: 12px;
+            border: 1px solid var(--slate-200);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+
+        .highlight-item:hover {
+            border-color: var(--primary-300);
+            background: var(--primary-50);
+        }
+
+        .highlight-item-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .highlight-time {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--slate-700);
+        }
+
+        .highlight-score {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary-600);
+        }
+
+        .highlight-desc {
+            font-size: 12px;
+            color: var(--slate-500);
+        }
+
+        /* 分屏布局 - 解说模式 */
+        .split-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            height: calc(100vh - 180px);
+        }
+
+        .split-panel {
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 12px;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--slate-200);
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--slate-900);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+        }
+
+        .tab {
+            padding: 8px 16px;
+            background: var(--slate-100);
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--slate-600);
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+
+        .tab:hover {
+            background: var(--slate-200);
+        }
+
+        .tab.active {
+            background: var(--primary-600);
+            color: white;
+        }
+
+        .match-card {
+            padding: 16px;
+            border: 1px solid var(--slate-200);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+
+        .match-card:hover {
+            border-color: var(--primary-300);
+            background: var(--primary-50);
+        }
+
+        .match-text {
+            font-size: 14px;
+            color: var(--slate-700);
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+
+        .match-slot {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--slate-50);
+            border-radius: 6px;
+        }
+
+        .slot-thumbnail {
+            width: 80px;
+            height: 45px;
+            background: var(--slate-200);
+            border-radius: 4px;
+        }
+
+        .slot-info {
+            flex: 1;
+        }
+
+        .slot-time {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--slate-700);
+        }
+
+        .slot-desc {
+            font-size: 11px;
+            color: var(--slate-500);
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .stage-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .split-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+        <div class="logo-section">
+            <div class="logo">
+                <div class="logo-icon">▶</div>
+                <span>DramaGen AI</span>
+            </div>
+        </div>
+
+        <!-- 项目切换器 -->
+        <div class="project-switcher">
+            <div class="project-switcher-header">当前项目</div>
+            <div class="project-name">
+                <span>霸道总裁爱上我 第3集</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                </svg>
+            </div>
+        </div>
+
+        <nav class="nav-section">
+            <div class="nav-label">工作区</div>
+            <div class="nav-item active" onclick="showPage('projects')">
+                <div class="nav-icon">📦</div>
+                <span>素材管理</span>
+            </div>
+            <div class="nav-item" onclick="showPage('highlight')">
+                <div class="nav-icon">✂️</div>
+                <span>高光切片模式</span>
+            </div>
+            <div class="nav-item" onclick="showPage('recap')">
+                <div class="nav-icon">🎙️</div>
+                <span>深度解说模式</span>
+            </div>
+
+            <div class="nav-label" style="margin-top: 24px;">系统</div>
+            <div class="nav-item" onclick="showPage('tasks')">
+                <div class="nav-icon">📋</div>
+                <span>任务管理</span>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="nav-item-footer">
+                <div class="nav-icon">⚙️</div>
+                <span>设置</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+        <!-- 页面 1: 素材管理 -->
+        <div class="page active" id="page-projects">
+            <div class="page-header">
+                <h1 class="page-title">素材管理</h1>
+                <p class="page-subtitle">管理你的短剧项目素材，查看预处理进度</p>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <button class="btn btn-primary">
+                    <span>+</span> 新建项目
+                </button>
+            </div>
+
+            <div class="grid grid-3">
+                <div class="card">
+                    <div style="display: flex; align-items: justify-content: space-between; margin-bottom: 16px;">
+                        <h3 style="font-size: 16px; font-weight: 600; color: var(--slate-900);">霸道总裁爱上我</h3>
+                        <span class="badge badge-success">已就绪</span>
+                    </div>
+                    <p style="font-size: 13px; color: var(--slate-500); margin-bottom: 12px;">
+                        12 个视频 · 总时长 2.5 小时
+                    </p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 100%"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div style="display: flex; align-items: justify-content: space-between; margin-bottom: 16px;">
+                        <h3 style="font-size: 16px; font-weight: 600; color: var(--slate-900);">重生之豪门千金</h3>
+                        <span class="badge badge-processing">处理中</span>
+                    </div>
+                    <p style="font-size: 13px; color: var(--slate-500); margin-bottom: 12px;">
+                        8 个视频 · 总时长 1.8 小时
+                    </p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 65%"></div>
+                    </div>
+                    <p style="font-size: 12px; color: var(--slate-400); margin-top: 8px;">
+                        Gemini 分析中... 65%
+                    </p>
+                </div>
+
+                <div class="card" style="border: 2px dashed var(--slate-200); background: var(--slate-50); display: flex; align-items: center; justify-content: center; min-height: 160px; cursor: pointer;">
+                    <div style="text-align: center; color: var(--slate-400);">
+                        <div style="font-size: 32px; margin-bottom: 8px;">+</div>
+                        <div style="font-size: 14px; font-weight: 500;">上传新项目</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页面 2: 高光切片模式 -->
+        <div class="page" id="page-highlight">
+            <div class="page-header">
+                <h1 class="page-title">高光切片模式</h1>
+                <p class="page-subtitle">AI 自动检测病毒传播时刻，毫秒级精确微调</p>
+            </div>
+
+            <div class="stage-layout">
+                <div class="stage-main">
+                    <div class="video-preview">
+                        <span>视频预览区 (16:9)</span>
+                    </div>
+
+                    <div class="timeline-control">
+                        <div class="control-header">毫秒级微调拨盘</div>
+                        <div class="control-buttons">
+                            <button class="control-btn">-1s</button>
+                            <button class="control-btn">-100ms</button>
+                            <input type="text" class="time-input" value="00:12:34.567">
+                            <button class="control-btn">+100ms</button>
+                            <button class="control-btn">+1s</button>
+                            <button class="control-btn control-btn-primary">加入渲染队列</button>
+                        </div>
+                        <p style="font-size: 12px; color: var(--slate-400); margin-top: 12px;">
+                            快捷键: A/D = ±100ms | Shift + A/D = ±1s
+                        </p>
+                    </div>
+                </div>
+
+                <div class="stage-sidebar">
+                    <div style="font-size: 14px; font-weight: 600; color: var(--slate-700); margin-bottom: 16px;">
+                        AI 识别的高光候选
+                    </div>
+
+                    <div class="highlight-item">
+                        <div class="highlight-item-header">
+                            <span class="highlight-time">00:12:34</span>
+                            <span class="highlight-score">98% 匹配</span>
+                        </div>
+                        <p class="highlight-desc">身份曝光 · 反转场景</p>
+                    </div>
+
+                    <div class="highlight-item">
+                        <div class="highlight-item-header">
+                            <span class="highlight-time">00:25:18</span>
+                            <span class="highlight-score">94% 匹配</span>
+                        </div>
+                        <p class="highlight-desc">打脸时刻 · 冲突爆发</p>
+                    </div>
+
+                    <div class="highlight-item">
+                        <div class="highlight-item-header">
+                            <span class="highlight-time">00:41:05</span>
+                            <span class="highlight-score">91% 匹配</span>
+                        </div>
+                        <p class="highlight-desc">感情升温 · 浪漫场景</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页面 3: 深度解说模式 -->
+        <div class="page" id="page-recap">
+            <div class="page-header">
+                <h1 class="page-title">深度解说模式</h1>
+                <p class="page-subtitle">生成多版本解说文案，智能音画匹配</p>
+            </div>
+
+            <div class="split-layout">
+                <div class="split-panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">解说文案编辑器</h3>
+                        <div class="tabs">
+                            <div class="tab active">悬念钩子版</div>
+                            <div class="tab">情绪共鸣版</div>
+                            <div class="tab">吐槽版</div>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 14px; line-height: 1.8; color: var(--slate-700);">
+                        <p style="margin-bottom: 16px;">
+                            这一天，普通女孩林晓晓意外发现自己竟然是豪门失散多年的亲生女儿...
+                        </p>
+                        <p style="margin-bottom: 16px;">
+                            当她拿着 DNA 鉴定报告站在豪门大门前，继母却冷笑着说："你以为这样就能进我们家门？"
+                        </p>
+                        <p style="color: var(--slate-400);">
+                            [继续生成...]
+                        </p>
+                    </div>
+
+                    <div style="margin-top: 24px;">
+                        <button class="btn btn-primary">生成解说配音</button>
+                    </div>
+                </div>
+
+                <div class="split-panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">音画匹配流</h3>
+                        <button class="btn btn-secondary">导出视频</button>
+                    </div>
+
+                    <div class="match-card">
+                        <p class="match-text">这一天，普通女孩林晓晓意外发现自己竟然是豪门失散多年的亲生女儿...</p>
+                        <div class="match-slot">
+                            <div class="slot-thumbnail"></div>
+                            <div class="slot-info">
+                                <div class="slot-time">00:05:12 - 00:05:45</div>
+                                <div class="slot-desc">林晓晓拿着信封的手在颤抖</div>
+                            </div>
+                            <button class="control-btn">更换</button>
+                        </div>
+                    </div>
+
+                    <div class="match-card">
+                        <p class="match-text">当她拿着 DNA 鉴定报告站在豪门大门前，继母却冷笑着说...</p>
+                        <div class="match-slot">
+                            <div class="slot-thumbnail"></div>
+                            <div class="slot-info">
+                                <div class="slot-time">00:12:34 - 00:13:02</div>
+                                <div class="slot-desc">豪门大门口，继母冷笑</div>
+                            </div>
+                            <button class="control-btn">更换</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页面 4: 任务管理 -->
+        <div class="page" id="page-tasks">
+            <div class="page-header">
+                <h1 class="page-title">任务管理</h1>
+                <p class="page-subtitle">查看所有渲染任务进度和历史记录</p>
+            </div>
+
+            <div style="display: grid; gap: 16px;">
+                <div class="card" style="display: flex; align-items: center; gap: 20px;">
+                    <div style="flex: 1;">
+                        <h4 style="font-size: 15px; font-weight: 600; color: var(--slate-900); margin-bottom: 8px;">
+                            高光切片 #1 - 身份曝光片段
+                        </h4>
+                        <p style="font-size: 13px; color: var(--slate-500); margin-bottom: 12px;">
+                            霸道总裁爱上我 · 00:12:34 - 00:14:34
+                        </p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 78%"></div>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="badge badge-processing">渲染中 78%</span>
+                    </div>
+                </div>
+
+                <div class="card" style="display: flex; align-items: center; gap: 20px;">
+                    <div style="flex: 1;">
+                        <h4 style="font-size: 15px; font-weight: 600; color: var(--slate-900); margin-bottom: 8px;">
+                            解说视频 - 悬念钩子版
+                        </h4>
+                        <p style="font-size: 13px; color: var(--slate-500); margin-bottom: 12px;">
+                            霸道总裁爱上我 · 完整解说
+                        </p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="badge badge-success">已完成</span>
+                        <button class="btn btn-secondary" style="margin-top: 8px;">下载</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 全局浮动进度条 -->
+    <div class="floating-progress">
+        <div class="floating-progress-header">
+            <span class="floating-progress-title">正在渲染: 高光切片 #1</span>
+            <span class="floating-progress-percentage">78%</span>
+        </div>
+        <div class="floating-progress-bar">
+            <div class="floating-progress-fill" style="width: 78%"></div>
+        </div>
+    </div>
+
+    <script>
+        function showPage(pageId) {
+            // 隐藏所有页面
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+
+            // 显示选中的页面
+            document.getElementById('page-' + pageId).classList.add('active');
+
+            // 更新导航状态
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+        }
+    </script>
+</body>
+</html>

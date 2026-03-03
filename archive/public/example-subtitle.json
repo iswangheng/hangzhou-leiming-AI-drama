@@ -1,0 +1,28 @@
+[
+  {
+    "startMs": 1000,
+    "endMs": 3000,
+    "timestampMs": 1000,
+    "text": "这是第一句示例字幕",
+    "words": [
+      { "text": "这是", "startMs": 1000, "endMs": 1200 },
+      { "text": "第一句", "startMs": 1200, "endMs": 1800 },
+      { "text": "示例", "startMs": 1800, "endMs": 2400 },
+      { "text": "字幕", "startMs": 2400, "endMs": 3000 }
+    ]
+  },
+  {
+    "startMs": 3500,
+    "endMs": 6000,
+    "timestampMs": 3500,
+    "text": "支持卡拉OK风格的高亮动画效果",
+    "words": [
+      { "text": "支持", "startMs": 3500, "endMs": 3900 },
+      { "text": "卡拉OK", "startMs": 3900, "endMs": 4500 },
+      { "text": "风格的", "startMs": 4500, "endMs": 4900 },
+      { "text": "高亮", "startMs": 4900, "endMs": 5300 },
+      { "text": "动画", "startMs": 5300, "endMs": 5600 },
+      { "text": "效果", "startMs": 5600, "endMs": 6000 }
+    ]
+  }
+]

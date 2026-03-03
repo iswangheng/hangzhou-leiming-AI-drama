@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>关键帧测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 20px; }
+        .test-item { text-align: center; }
+        .test-item img { width: 100%; height: 80px; object-fit: cover; border: 1px solid #ccc; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>关键帧显示测试</h1>
+    <div id="status"></div>
+    <div class="test-grid" id="grid"></div>
+
+    <script>
+        async function test() {
+            const statusEl = document.getElementById('status');
+            const gridEl = document.getElementById('grid');
+
+            try {
+                // 测试API
+                statusEl.innerHTML = '<div class="status">正在加载API数据...</div>';
+
+                const response = await fetch('/api/hangzhou-leiming/projects/1/media-data');
+                const data = await response.json();
+
+                if (data.success && data.data.videos[0].keyframes.preview.length > 0) {
+                    statusEl.innerHTML += '<div class="status success">✅ API加载成功</div>';
+
+                    // 显示前10帧
+                    const keyframes = data.data.videos[0].keyframes.preview.slice(0, 10);
+
+                    keyframes.forEach(kf => {
+                        const item = document.createElement('div');
+                        item.className = 'test-item';
+
+                        const img = document.createElement('img');
+                        img.src = kf.framePath;
+                        img.alt = `帧 ${kf.frameNumber}`;
+
+                        img.onload = () => {
+                            console.log(`✅ 图片加载成功: ${kf.framePath}`);
+                        };
+
+                        img.onerror = () => {
+                            console.error(`❌ 图片加载失败: ${kf.framePath}`);
+                            img.style.border = '2px solid red';
+                            img.alt = '加载失败';
+                        };
+
+                        const label = document.createElement('div');
+                        label.textContent = `${(kf.timestampMs / 1000).toFixed(1)}s`;
+
+                        item.appendChild(img);
+                        item.appendChild(label);
+                        gridEl.appendChild(item);
+                    });
+
+                    statusEl.innerHTML += `<div class="status success">✅ 显示了 ${keyframes.length} 个关键帧</div>`;
+                } else {
+                    statusEl.innerHTML += '<div class="status error">❌ API返回数据为空</div>';
+                }
+            } catch (error) {
+                statusEl.innerHTML += `<div class="status error">❌ 错误: ${error.message}</div>`;
+                console.error(error);
+            }
+        }
+
+        // 页面加载后自动测试
+        window.addEventListener('DOMContentLoaded', test);
+    </script>
+</body>
+</html>

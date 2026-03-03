@@ -1,0 +1,161 @@
+{
+  "projectName": "学乖的代价",
+  "highlights": [
+    {
+      "timestamp": 0,
+      "episode": 1,
+      "type": "开篇高光",
+      "confidence": 8.0,
+      "description": "第一集开头，女主讲述因充值游戏被送进特殊学校的经历，引发观众好奇，想知道后续发展。"
+    },
+    {
+      "timestamp": 25,
+      "episode": 1,
+      "type": "开篇高光点",
+      "confidence": 7.5,
+      "description": "女儿回忆父母对她的控制，引出后续剧情，作为第一集开头，可以标记为开篇高光点"
+    },
+    {
+      "timestamp": 0,
+      "episode": 2,
+      "type": "开篇高光",
+      "confidence": 7.5,
+      "description": "剧集开头，女主一系列行为诡异，试图清洗嘴边乌黑，并拿出刀，引发观众好奇。"
+    },
+    {
+      "timestamp": 25,
+      "episode": 2,
+      "type": "情感爆发顶点",
+      "confidence": 7.5,
+      "description": "女主在心底产生坚定的念头，结合画面中的哭泣表情，预示着即将发生重大转变，引发观众期待。"
+    },
+    {
+      "timestamp": 1,
+      "episode": 6,
+      "type": "开篇高光",
+      "confidence": 8.0,
+      "description": "第6集开头，女主在水中挣扎，描述痛苦感受，引发观众好奇发生了什么。"
+    },
+    {
+      "timestamp": 0,
+      "episode": 9,
+      "type": "开篇高光",
+      "confidence": 7.5,
+      "description": "剧集开头，警察发现遗书和自述，交代了女主可能遭遇不幸，引发观众好奇。"
+    }
+  ],
+  "hooks": [
+    {
+      "timestamp": 22,
+      "episode": 1,
+      "type": "情节重大转折",
+      "confidence": 7.5,
+      "description": "爸爸突然要给女主换名字，暗示着家庭关系或女主身份发生了重大变化，引发观众的好奇。"
+    },
+    {
+      "timestamp": 52,
+      "episode": 1,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主正要说出在地狱般的经历，但话没说完，留下悬念，观众想知道她经历了什么。"
+    },
+    {
+      "timestamp": 169,
+      "episode": 1,
+      "type": "关键信息被截断",
+      "confidence": 7.5,
+      "description": "女主说到“我要烂嘴里的软肉”戛然而止，观众想知道她到底想说什么，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 52,
+      "episode": 3,
+      "type": "情感爆发顶点",
+      "confidence": 7.5,
+      "description": "女主回忆起家人来看她的场景，情绪低落，眼含泪水，并说出“弟弟帮我求求爸妈接我出去好不好”，情感爆发，观众想知道后续发展。"
+    },
+    {
+      "timestamp": 54,
+      "episode": 4,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主叫女主名字，女主却没有回头，男主父母再降我了，这里被打断，观众想知道发生了什么，为什么降我了"
+    },
+    {
+      "timestamp": 79,
+      "episode": 4,
+      "type": "情感爆发顶点",
+      "confidence": 7.5,
+      "description": "女主回忆起过去，情绪低落，并对男主的出现感到疑惑，停留在“他要是知道我经历过的一切，会怎么看我呢”的疑问句上，引发观众的好奇。"
+    },
+    {
+      "timestamp": 67,
+      "episode": 6,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男人说“打断了他接下来要说的话”，说明有重要信息要透露，被打断后形成悬念。"
+    },
+    {
+      "timestamp": 27,
+      "episode": 7,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "医生正要说出死者身上的线索，身体却不受控制的飘回家，关键信息被截断，观众想知道死者身上有什么线索。"
+    },
+    {
+      "timestamp": 27,
+      "episode": 8,
+      "type": "情节重大转折",
+      "confidence": 8.5,
+      "description": "警察告知家属女儿自杀身亡，属于重大转折，观众想知道后续发展。"
+    },
+    {
+      "timestamp": 48,
+      "episode": 8,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主痛哭，警察展示遗物，并准备推开房间门，暗示房间内有重要线索或场景，观众想知道会看到什么，但画面结束。"
+    },
+    {
+      "timestamp": 22,
+      "episode": 9,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "妈妈询问女儿在哪里，警察说“你们很快就能见到他”，但被打断，观众想知道女儿到底发生了什么。"
+    },
+    {
+      "timestamp": 42,
+      "episode": 9,
+      "type": "情节重大转折",
+      "confidence": 8.0,
+      "description": "男主得知女主跳江自杀，眼中满是不肯相信的错愕，情节发生重大转折，观众想知道接下来会发生什么。"
+    },
+    {
+      "timestamp": 67,
+      "episode": 9,
+      "type": "情感爆发顶点",
+      "confidence": 7.5,
+      "description": "女主说“我在也过不了正常的人生了”，情绪崩溃，观众想知道后续发展。"
+    },
+    {
+      "timestamp": 77,
+      "episode": 9,
+      "type": "关键信息被截断",
+      "confidence": 7.5,
+      "description": "台词说到“可惜什么”被打断，观众想知道可惜的原因，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 21,
+      "episode": 10,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "警察询问女儿身上的八横是怎么来的，暗示女儿遭遇不幸，关键信息即将揭露，但戛然而止，引发观众强烈的好奇心。"
+    }
+  ],
+  "clips": [],
+  "statistics": {
+    "totalHighlights": 6,
+    "totalHooks": 15,
+    "totalClips": 0,
+    "averageConfidence": 7.785714285714286
+  }
+}

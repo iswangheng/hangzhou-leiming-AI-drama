@@ -1,0 +1,91 @@
+{
+  "projectName": "精准",
+  "highlights": [
+    {
+      "timestamp": 25,
+      "episode": 1,
+      "type": "开篇高光点",
+      "confidence": 8.0,
+      "description": "女主回忆起被陷害致死，重生回到入职当天，预示着复仇的开始，吸引观众。"
+    },
+    {
+      "timestamp": 50,
+      "episode": 1,
+      "type": "开篇高光",
+      "confidence": 8.0,
+      "description": "女主讲述自己被陷害致死，并重生回到过去，引发观众对后续剧情的期待。"
+    }
+  ],
+  "hooks": [
+    {
+      "timestamp": 39,
+      "episode": 1,
+      "type": "关键信息被截断",
+      "confidence": 8.5,
+      "description": "王总的太太冲进会场质问“是谁知道我老公的特殊癖好？”，女主刚想开口就被打断，关键信息即将揭露被打断。"
+    },
+    {
+      "timestamp": 127,
+      "episode": 1,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主正要点开王健民的备注，但停顿了一下，暗示备注里有重要信息，观众想知道备注内容，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 26,
+      "episode": 2,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主正要打开手机查看“红烧路”三个字，暗示这道菜有问题，但画面停留在手机屏幕上，观众想知道这道菜到底有什么问题，信息被截断。"
+    },
+    {
+      "timestamp": 47,
+      "episode": 3,
+      "type": "关键信息被截断",
+      "confidence": 8.5,
+      "description": "女主正要说出对骨总的看法，话没说完就结束，属于关键信息被截断，观众想知道她接下来要说什么。"
+    },
+    {
+      "timestamp": 43,
+      "episode": 4,
+      "type": "情感爆发顶点",
+      "confidence": 8.0,
+      "description": "周圍用恶毒的语气说：“李安然，你现在是不是特别嫉妒？” 情感强烈，且带有挑衅，观众想知道女主会如何回应。"
+    },
+    {
+      "timestamp": 67,
+      "episode": 4,
+      "type": "关键信息被截断",
+      "confidence": 7.5,
+      "description": "女主平靜的開口，年身體不好，還是多休息吧，年底大會，我會好好看著的。这里暗示了女主将要采取行动，但具体是什么行动被截断，引发观众的好奇。"
+    },
+    {
+      "timestamp": 48,
+      "episode": 6,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主正要说出“周总的愿望已经实现了”，但没有明确说明是什么愿望，信息被截断，引发观众好奇。"
+    },
+    {
+      "timestamp": 27,
+      "episode": 8,
+      "type": "情节重大转折",
+      "confidence": 8.5,
+      "description": "会场大门突然被撞开，王总太太拿着东西冲进来，预示着即将发生意外，情节出现重大转折。"
+    },
+    {
+      "timestamp": 69,
+      "episode": 8,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "台下的人被看向，眼神里充满怨恨，暗示着即将发生冲突或揭露秘密，观众想知道“我”是谁，以及会发生什么。"
+    }
+  ],
+  "clips": [],
+  "statistics": {
+    "totalHighlights": 2,
+    "totalHooks": 9,
+    "totalClips": 0,
+    "averageConfidence": 8.090909090909092
+  }
+}
