@@ -1,6 +1,7 @@
 """
 逐段分析模块
 使用Gemini API分析每个片段，识别高光点/钩子点
+V14: 智能关键帧过滤 - 只传"有意义"的帧（对话+画面变化）
 """
 import json
 import re
@@ -20,13 +21,13 @@ except ImportError:
     class KeyFrame:
         frame_path: str
         timestamp_ms: int
-        
+
     @dataclass
     class ASRSegment:
         text: str
         start: float
         end: float
-    
+
     @dataclass
     class VideoSegment:
         episode: int
@@ -36,7 +37,135 @@ except ImportError:
         asr_segments: List[ASRSegment]
 
 
-# 分析Prompt模板 - V11版本（类型重新定义 + 示例学习）
+# ========== V14: 智能关键帧过滤 ==========
+
+def calculate_frame_difference(frame1_path: str, frame2_path: str) -> float:
+    """
+    计算两帧画面的差异度（使用感知哈希）
+
+    Args:
+        frame1_path: 第一帧路径
+        frame2_path: 第二帧路径
+
+    Returns:
+        0-1的画面变化度
+        - 0.0-0.2：几乎相同（静态镜头）
+        - 0.2-0.4：小幅变化（人物微动）
+        - 0.4-0.6：中等变化（镜头移动）
+        - 0.6-1.0：大幅变化（场景切换、动作）
+    """
+    try:
+        from PIL import Image
+        import imagehash
+
+        img1 = Image.open(frame1_path)
+        img2 = Image.open(frame2_path)
+
+        # 计算感知哈希
+        hash1 = imagehash.phash(img1)
+        hash2 = imagehash.phash(img2)
+
+        # 计算汉明距离并归一化到0-1
+        distance = hash1 - hash2
+        max_distance = hash1.hash.size  # 64位哈希
+        similarity = 1 - (distance / max_distance)
+
+        # 返回变化度（1 - 相似度）
+        return 1 - similarity
+
+    except Exception as e:
+        print(f"⚠️  画面差异计算失败: {e}")
+        return 0.0
+
+
+def smart_select_keyframes(
+    keyframes: List[KeyFrame],
+    asr_segments: List[ASRSegment],
+    change_threshold: float = 0.4
+) -> List[KeyFrame]:
+    """
+    智能选择关键帧 - 只传"有意义"的帧给AI
+
+    策略：
+    1. 计算画面变化 → 标记"变化大"的时刻
+    2. 标记"有对话"的时刻
+    3. 合并 → 去重 → 返回所有符合条件的帧
+
+    Args:
+        keyframes: 关键帧列表（30张，每秒1帧）
+        asr_segments: ASR对话片段列表
+        change_threshold: 画面变化阈值（0-1，默认0.4）
+
+    Returns:
+        精选后的关键帧列表
+    """
+    if len(keyframes) <= 5:
+        # 帧数太少，全部返回
+        return keyframes
+
+    # ========== 步骤1：计算画面变化 ==========
+    change_scores = []
+    for i in range(len(keyframes) - 1):
+        change = calculate_frame_difference(
+            keyframes[i].frame_path,
+            keyframes[i + 1].frame_path
+        )
+        change_scores.append({
+            'index': i,
+            'change': change
+        })
+
+    # 标记"变化大"的时刻
+    significant_change_indices = [
+        item['index']
+        for item in change_scores
+        if item['change'] > change_threshold
+    ]
+
+    # ========== 步骤2：标记有对话的时刻 ==========
+    dialogue_indices = set()
+
+    # 每个ASR片段的开始时刻
+    for asr in asr_segments:
+        start_sec = int(asr.start)
+        if 0 <= start_sec < len(keyframes):
+            dialogue_indices.add(start_sec)
+
+    # ========== 步骤3：智能合并 ==========
+    selected_indices = set()
+
+    # 3.1 添加"变化大"的时刻（同时添加下一帧，确保看到变化后的画面）
+    for idx in significant_change_indices:
+        selected_indices.add(idx)
+        if idx + 1 < len(keyframes):
+            selected_indices.add(idx + 1)
+
+    # 3.2 添加"有对话"的时刻
+    selected_indices.update(dialogue_indices)
+
+    # 3.3 必选：窗口开头和结尾
+    selected_indices.add(0)
+    selected_indices.add(len(keyframes) - 1)
+
+    # ========== 步骤4：排序并返回 ==========
+    selected_indices = sorted(selected_indices)
+    selected_keyframes = [keyframes[i] for i in selected_indices]
+
+    # 打印统计信息
+    print(f"  📊 画面变化：{len(significant_change_indices)} 处")
+    print(f"  💬 对话时刻：{len(dialogue_indices)} 个")
+    print(f"  ✅ 最终选择：{len(selected_keyframes)} 张关键帧（原{len(keyframes)}张）")
+
+    # 可选：警告（如果数量异常）
+    if len(selected_keyframes) > 25:
+        print(f"  ⚠️  警告：选择了 {len(selected_keyframes)} 张关键帧，数量较多")
+    elif len(selected_keyframes) < 3:
+        print(f"  ⚠️  警告：仅选择了 {len(selected_keyframes)} 张关键帧，数量较少")
+
+    return selected_keyframes
+
+
+# ========== 原有分析Prompt ==========
 ANALYZE_PROMPT = """你是一位资深的短剧剪辑分析师。我给你展示4个真实示例，让你学会区分真钩子和假钩子。
 
 ## 📚 学习示例：区分真钩子和假钩子
@@ -259,22 +388,27 @@ def build_analyze_prompt(segment: VideoSegment, skill_framework: dict) -> dict:
         HOOK_TYPES=hook_types_text
     )
 
+    # ========== V14: 智能关键帧过滤 ==========
+    # 使用智能过滤：只传"有意义"的帧（对话 + 画面变化）
+    selected_keyframes = smart_select_keyframes(
+        keyframes=segment.keyframes,
+        asr_segments=segment.asr_segments,
+        change_threshold=0.4  # 画面变化阈值
+    )
+
     # 准备关键帧图片
     keyframe_parts = []
-    for kf in segment.keyframes[:5]:  # 最多5张
-        if segment.keyframes.index(kf) >= 5:
-            break
-        if segment.keyframes.index(kf) % 3 == 0:  # 每3张取1张，减少API调用
-            try:
-                img_base64 = encode_image(kf.frame_path)
-                keyframe_parts.append({
-                    "inline_data": {
-                        "mime_type": "image/jpeg",
-                        "data": img_base64
-                    }
-                })
-            except Exception as e:
-                print(f"警告: 无法编码图片 {kf.frame_path}: {e}")
+    for kf in selected_keyframes:
+        try:
+            img_base64 = encode_image(kf.frame_path)
+            keyframe_parts.append({
+                "inline_data": {
+                    "mime_type": "image/jpeg",
+                    "data": img_base64
+                }
+            })
+        except Exception as e:
+            print(f"  ⚠️  无法编码图片 {kf.frame_path}: {e}")
 
     # 构建请求
     parts = [{"text": prompt}]

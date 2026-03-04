@@ -38,7 +38,7 @@ except ImportError:
 
 
 # 配置参数
-MIN_CLIP_DURATION = 15   # 最短15秒
+MIN_CLIP_DURATION = 120   # 最短2分钟(120秒)
 MAX_CLIP_DURATION = 720  # 最长12分钟(720秒)
 DEDUP_WINDOW = 5  # 同集内去重时间窗口（秒）
 
