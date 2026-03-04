@@ -274,7 +274,7 @@ class ClipRenderer:
                 episode=clip.hookEpisode,
                 start=0.0,  # V13: 保持浮点数精度
                 end=end_in_last_episode,  # V13: 保持浮点数精度
-                video_path=self.video_files[clip.hook_episode].path
+                video_path=self.video_files[clip.hookEpisode].path  # V13.1: 修复属性名错误
             ))
 
         return segments

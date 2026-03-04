@@ -376,14 +376,14 @@ def parse_analysis_response(response_text: str, segment_start: int, segment_end:
             "exists": highlight_data.get("exists", False),
             "preciseSecond": hl_timestamp,
             "type": highlight_data.get("type"),
-            "confidence": highlight_data.get("confidence", 0.0),
+            "confidence": highlight_data.get("confidence") or 0.0,  # V13.1: 处理None值
             "reasoning": highlight_data.get("reasoning", "")
         },
         "hook": {
             "exists": hook_data.get("exists", False),
             "preciseSecond": hook_timestamp,
             "type": hook_data.get("type"),
-            "confidence": hook_data.get("confidence", 0.0),
+            "confidence": hook_data.get("confidence") or 0.0,  # V13.1: 处理None值
             "reasoning": hook_data.get("reasoning", "")
         }
     }
