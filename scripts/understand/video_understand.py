@@ -118,12 +118,27 @@ def load_episode_data(project_path: str, auto_extract: bool = True) -> tuple:
 
         episode_asr[episode] = asr_segments
 
-        # 获取视频时长（从关键帧估算或用ffprobe）
-        if keyframes:
-            max_ms = max(kf.timestamp_ms for kf in keyframes)
-            episode_durations[episode] = (max_ms // 1000) + 10  # 加10秒缓冲
-        else:
-            episode_durations[episode] = 0
+        # 获取视频时长（使用ffprobe获取准确时长）
+        import subprocess
+        try:
+            cmd = [
+                'ffprobe',
+                '-v', 'error',
+                '-show_entries', 'format=duration',
+                '-of', 'default=noprint_wrappers=1:nokey=1',
+                str(mp4_file)
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            duration = float(result.stdout.strip())
+            episode_durations[episode] = int(duration)  # 使用ffprobe获取的准确时长
+        except (subprocess.CalledProcessError, ValueError) as e:
+            # ffprobe失败时，回退到关键帧估算
+            if keyframes:
+                max_ms = max(kf.timestamp_ms for kf in keyframes)
+                episode_durations[episode] = (max_ms // 1000) + 10
+            else:
+                episode_durations[episode] = 0
+            print(f"  ⚠️  第{episode}集: ffprobe失败，使用关键帧估算")
 
     return episode_keyframes, episode_asr, episode_durations
 
