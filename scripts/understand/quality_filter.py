@@ -356,8 +356,13 @@ def apply_quality_pipeline(analyses: List[SegmentAnalysis],
     final_count = len(analyses)
 
     print("\n" + "=" * 80)
-    print(f"质量筛选完成: {original_count} → {final_count} "
-          f"(保留率: {final_count/original_count*100:.1f}%)")
+    # V13.1: 修复除以0错误
+    if original_count > 0:
+        print(f"质量筛选完成: {original_count} → {final_count} "
+              f"(保留率: {final_count/original_count*100:.1f}%)")
+    else:
+        print(f"质量筛选完成: {original_count} → {final_count} "
+              f"(无原始数据)")
     print("=" * 80)
 
     return analyses
