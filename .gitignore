@@ -37,7 +37,9 @@ next-env.d.ts
 data/hangzhou-leiming/cache/
 data/hangzhou-leiming/projects/
 
-# 视频文件（训练和测试素材，不应提交到Git）
+# 媒体文件（训练和测试素材，不应提交到Git）
+
+# 视频文件
 *.mp4
 *.MP4
 *.avi
@@ -51,18 +53,52 @@ data/hangzhou-leiming/projects/
 *.wmv
 *.WMV
 
+# 音频文件
+*.wav
+*.WAV
+*.mp3
+*.MP3
+*.aac
+*.AAC
+*.m4a
+*.M4A
+
+# 图片文件（关键帧、截图等）
+*.jpg
+*.JPG
+*.jpeg
+*.JPEG
+*.png
+*.PNG
+*.gif
+*.GIF
+*.webp
+*.WEBP
+*.bmp
+*.BMP
+
 # 训练和测试素材文件夹
 漫剧素材/
 漫剧参考/
 新的漫剧素材/
 
-# data目录中的视频文件
+# data目录中的媒体文件
 data/**/*.mp4
 data/**/*.MP4
 data/**/*.avi
 data/**/*.AVI
 data/**/*.mov
 data/**/*.MOV
+data/**/*.wav
+data/**/*.WAV
+data/**/*.mp3
+data/**/*.MP3
+data/**/*.jpg
+data/**/*.JPG
+data/**/*.jpeg
+data/**/*.JPEG
+data/**/*.png
+data/**/*.PNG
 
 # 测试和临时文件
 test/*.log
