@@ -1,0 +1,312 @@
+{
+  "projectName": "雪烬梨香",
+  "episodeDurations": {
+    "1": 568,
+    "10": 63,
+    "2": 81,
+    "3": 71,
+    "4": 68,
+    "5": 75,
+    "6": 69,
+    "7": 67,
+    "8": 0,
+    "9": 73
+  },
+  "highlights": [
+    {
+      "timestamp": 0,
+      "episode": 1,
+      "type": "开篇高光",
+      "confidence": 10.0,
+      "description": "每部剧第1集开头的默认高光点"
+    },
+    {
+      "timestamp": 38.86,
+      "episode": 1,
+      "type": "情节重大转折",
+      "confidence": 8.0,
+      "description": "女主回忆自己重生，命运发生重大转折，观众期待后续发展。"
+    },
+    {
+      "timestamp": 33.66,
+      "episode": 5,
+      "type": "情感爆发顶点",
+      "confidence": 8.0,
+      "description": "女主表达对周家的强烈不满和决绝，情感爆发，观众期待后续发展。"
+    }
+  ],
+  "hooks": [
+    {
+      "timestamp": 75.22,
+      "episode": 1,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主拿起肉要吃，娘说“丢在狗湾里的肉不能吃了”，观众想知道为什么不能吃，信息被截断。"
+    },
+    {
+      "timestamp": 154.22,
+      "episode": 1,
+      "type": "情感爆发顶点",
+      "confidence": 8.0,
+      "description": "女主回忆前世被卖的经历，情绪激动，并说出“杨在外面的记者”，戛然而止，观众想知道女主接下来会做什么。"
+    },
+    {
+      "timestamp": 402.62,
+      "episode": 1,
+      "type": "悬念结束时刻",
+      "confidence": 8.0,
+      "description": "女主听到门外声音，正要开门，悬念感强，观众想知道是谁。"
+    },
+    {
+      "timestamp": 453.62,
+      "episode": 1,
+      "type": "情节重大转折",
+      "confidence": 8.0,
+      "description": "爹热情冲出去要迎接大博，却被半夏一把拽回来，观众想知道为什么半夏要阻止，发生了什么转折。"
+    },
+    {
+      "timestamp": 30.02,
+      "episode": 4,
+      "type": "情节重大转折",
+      "confidence": 8.0,
+      "description": "男主周语带着一家老小突然出现，打破了女主平静的生活，这是一个意想不到的转折，观众想知道后续会发生什么。"
+    },
+    {
+      "timestamp": 24.54,
+      "episode": 5,
+      "type": "关键信息被截断",
+      "confidence": 7.5,
+      "description": "男方母亲说要退婚，并指责女方，话没说完就结束，观众想知道后续发展，以及女方会如何回应。"
+    },
+    {
+      "timestamp": 24.54,
+      "episode": 6,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主正要说出“周运一看见我两眼放光 如恶狼事的”后面是什么，被打断，观众想知道后续。"
+    },
+    {
+      "timestamp": 39.62,
+      "episode": 7,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主正要说出“这一世我没嫁他”的原因，被打断，观众想知道原因。"
+    },
+    {
+      "timestamp": 24.54,
+      "episode": 7,
+      "type": "情感爆发顶点",
+      "confidence": 7.5,
+      "description": "女主回忆起过去受到的轻视，并表达了未来复仇的决心，情绪达到顶点，观众想知道她会如何复仇。"
+    },
+    {
+      "timestamp": 53.22,
+      "episode": 9,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "村民提到富商吃的肉馒头，暗示饥荒严重，与前面铺垫的灾情形成对比，但话没说完就结束，观众想知道富商和村民的后续冲突。"
+    },
+    {
+      "timestamp": 17.34,
+      "episode": 9,
+      "type": "情感爆发顶点",
+      "confidence": 8.0,
+      "description": "男主说出“绝不会再多看你一眼，就是饿死也绝不会为你讨办”这样决绝的话，情感爆发，观众想知道女主的反应和后续发展。"
+    },
+    {
+      "timestamp": 26.66,
+      "episode": 10,
+      "type": "情节重大转折",
+      "confidence": 8.0,
+      "description": "男主举起石头要砸女主，情节发生重大转折，观众想知道后续发展"
+    }
+  ],
+  "clips": [
+    {
+      "start": 0,
+      "end": 75.22,
+      "duration": 75.22,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主拿起肉要吃，娘说“丢在狗湾里的肉不能吃了”，观众想知道为什么不能吃，信息被截断。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 0,
+      "end": 154.22,
+      "duration": 154.22,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "情感爆发顶点",
+      "hookDesc": "女主回忆前世被卖的经历，情绪激动，并说出“杨在外面的记者”，戛然而止，观众想知道女主接下来会做什么。",
+      "type": "开篇高光-情感爆发顶点",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 0,
+      "end": 402.62,
+      "duration": 402.62,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "悬念结束时刻",
+      "hookDesc": "女主听到门外声音，正要开门，悬念感强，观众想知道是谁。",
+      "type": "开篇高光-悬念结束时刻",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 0,
+      "end": 453.62,
+      "duration": 453.62,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "情节重大转折",
+      "hookDesc": "爹热情冲出去要迎接大博，却被半夏一把拽回来，观众想知道为什么半夏要阻止，发生了什么转折。",
+      "type": "开篇高光-情节重大转折",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 38.86,
+      "end": 75.22,
+      "duration": 36.36,
+      "highlight": "情节重大转折",
+      "highlightDesc": "女主回忆自己重生，命运发生重大转折，观众期待后续发展。",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主拿起肉要吃，娘说“丢在狗湾里的肉不能吃了”，观众想知道为什么不能吃，信息被截断。",
+      "type": "情节重大转折-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 38.86,
+      "end": 154.22,
+      "duration": 115.36,
+      "highlight": "情节重大转折",
+      "highlightDesc": "女主回忆自己重生，命运发生重大转折，观众期待后续发展。",
+      "hook": "情感爆发顶点",
+      "hookDesc": "女主回忆前世被卖的经历，情绪激动，并说出“杨在外面的记者”，戛然而止，观众想知道女主接下来会做什么。",
+      "type": "情节重大转折-情感爆发顶点",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 38.86,
+      "end": 402.62,
+      "duration": 363.76,
+      "highlight": "情节重大转折",
+      "highlightDesc": "女主回忆自己重生，命运发生重大转折，观众期待后续发展。",
+      "hook": "悬念结束时刻",
+      "hookDesc": "女主听到门外声音，正要开门，悬念感强，观众想知道是谁。",
+      "type": "情节重大转折-悬念结束时刻",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 38.86,
+      "end": 453.62,
+      "duration": 414.76,
+      "highlight": "情节重大转折",
+      "highlightDesc": "女主回忆自己重生，命运发生重大转折，观众期待后续发展。",
+      "hook": "情节重大转折",
+      "hookDesc": "爹热情冲出去要迎接大博，却被半夏一把拽回来，观众想知道为什么半夏要阻止，发生了什么转折。",
+      "type": "情节重大转折-情节重大转折",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 38.86,
+      "end": 750.02,
+      "duration": 711.16,
+      "highlight": "情节重大转折",
+      "highlightDesc": "女主回忆自己重生，命运发生重大转折，观众期待后续发展。",
+      "hook": "情节重大转折",
+      "hookDesc": "男主周语带着一家老小突然出现，打破了女主平静的生活，这是一个意想不到的转折，观众想知道后续会发生什么。",
+      "type": "情节重大转折-情节重大转折",
+      "episode": 1,
+      "hookEpisode": 4
+    },
+    {
+      "start": 821.66,
+      "end": 887.54,
+      "duration": 65.88,
+      "highlight": "情感爆发顶点",
+      "highlightDesc": "女主表达对周家的强烈不满和决绝，情感爆发，观众期待后续发展。",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主正要说出“周运一看见我两眼放光 如恶狼事的”后面是什么，被打断，观众想知道后续。",
+      "type": "情感爆发顶点-关键信息被截断",
+      "episode": 5,
+      "hookEpisode": 6
+    },
+    {
+      "start": 821.66,
+      "end": 956.54,
+      "duration": 134.88,
+      "highlight": "情感爆发顶点",
+      "highlightDesc": "女主表达对周家的强烈不满和决绝，情感爆发，观众期待后续发展。",
+      "hook": "情感爆发顶点",
+      "hookDesc": "女主回忆起过去受到的轻视，并表达了未来复仇的决心，情绪达到顶点，观众想知道她会如何复仇。",
+      "type": "情感爆发顶点-情感爆发顶点",
+      "episode": 5,
+      "hookEpisode": 7
+    },
+    {
+      "start": 821.66,
+      "end": 971.62,
+      "duration": 149.96,
+      "highlight": "情感爆发顶点",
+      "highlightDesc": "女主表达对周家的强烈不满和决绝，情感爆发，观众期待后续发展。",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主正要说出“这一世我没嫁他”的原因，被打断，观众想知道原因。",
+      "type": "情感爆发顶点-关键信息被截断",
+      "episode": 5,
+      "hookEpisode": 7
+    },
+    {
+      "start": 821.66,
+      "end": 1016.34,
+      "duration": 194.68,
+      "highlight": "情感爆发顶点",
+      "highlightDesc": "女主表达对周家的强烈不满和决绝，情感爆发，观众期待后续发展。",
+      "hook": "情感爆发顶点",
+      "hookDesc": "男主说出“绝不会再多看你一眼，就是饿死也绝不会为你讨办”这样决绝的话，情感爆发，观众想知道女主的反应和后续发展。",
+      "type": "情感爆发顶点-情感爆发顶点",
+      "episode": 5,
+      "hookEpisode": 9
+    },
+    {
+      "start": 821.66,
+      "end": 1052.22,
+      "duration": 230.56,
+      "highlight": "情感爆发顶点",
+      "highlightDesc": "女主表达对周家的强烈不满和决绝，情感爆发，观众期待后续发展。",
+      "hook": "关键信息被截断",
+      "hookDesc": "村民提到富商吃的肉馒头，暗示饥荒严重，与前面铺垫的灾情形成对比，但话没说完就结束，观众想知道富商和村民的后续冲突。",
+      "type": "情感爆发顶点-关键信息被截断",
+      "episode": 5,
+      "hookEpisode": 9
+    },
+    {
+      "start": 821.66,
+      "end": 1098.66,
+      "duration": 277.0,
+      "highlight": "情感爆发顶点",
+      "highlightDesc": "女主表达对周家的强烈不满和决绝，情感爆发，观众期待后续发展。",
+      "hook": "情节重大转折",
+      "hookDesc": "男主举起石头要砸女主，情节发生重大转折，观众想知道后续发展",
+      "type": "情感爆发顶点-情节重大转折",
+      "episode": 5,
+      "hookEpisode": 10
+    }
+  ],
+  "statistics": {
+    "totalHighlights": 3,
+    "totalHooks": 12,
+    "totalClips": 15,
+    "averageConfidence": 8.066666666666666
+  }
+}

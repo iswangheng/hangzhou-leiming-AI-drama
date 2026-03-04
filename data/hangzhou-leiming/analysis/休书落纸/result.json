@@ -1,0 +1,276 @@
+{
+  "projectName": "休书落纸",
+  "highlights": [
+    {
+      "timestamp": 0,
+      "episode": 1,
+      "type": "开篇高光",
+      "confidence": 10.0,
+      "description": "每部剧第1集开头的默认高光点"
+    }
+  ],
+  "hooks": [
+    {
+      "timestamp": 29.7,
+      "episode": 1,
+      "type": "情节重大转折",
+      "confidence": 8.0,
+      "description": "女主回忆自己二十年来的付出，以及成婚大日丈夫的举动，正要争辩时突然感觉不对劲，预示着即将发生重大转折，观众想知道女主会发生什么。"
+    },
+    {
+      "timestamp": 154.98,
+      "episode": 1,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主质问对方，对方即将说出原因，但戛然而止，留下悬念，观众想知道原因。"
+    },
+    {
+      "timestamp": 49.3,
+      "episode": 2,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主质问林郎，林郎说“您说什么呢，您可是这个家的主母啊”，女主反驳“你心中可以于是办刻 将我是做当家主武”，这里有潜在的冲突和秘密，但被打断，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 29.7,
+      "episode": 3,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主说到“我这么好语...”被打断，虽然是场景切换，但结合台词，感觉女主想表达什么重要信息，被打断，有悬念，观众想知道她想说什么。"
+    },
+    {
+      "timestamp": 69.3,
+      "episode": 4,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主说完“你当真要如此”后结束，男主会如何选择，是合理还是休妻，观众想知道，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 54.1,
+      "episode": 4,
+      "type": "情节重大转折",
+      "confidence": 8.0,
+      "description": "女主得知和对方是一家人，两人面面相觑，停在“路平松的脸色铁青”处，暗示后续有重大转折，观众想知道接下来会发生什么。"
+    },
+    {
+      "timestamp": 66.98,
+      "episode": 5,
+      "type": "悬念结束时刻",
+      "confidence": 8.5,
+      "description": "女主说要进去看看男主病成什么样子，观众想知道她会看到什么，行动关键，画面停在高潮。"
+    },
+    {
+      "timestamp": 25.74,
+      "episode": 5,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主质问男主，话说到一半被打断，观众想知道她要说什么，以及男主会如何回应。"
+    },
+    {
+      "timestamp": 25.74,
+      "episode": 6,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主说到“夫人你到底是怎么了”，被打断，观众想知道夫人怎么了，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 54.1,
+      "episode": 6,
+      "type": "情感爆发顶点",
+      "confidence": 8.0,
+      "description": "女主质问男主，情绪激动，在“那我呢，我得到了什么”处结束，引发观众对后续剧情的期待。"
+    },
+    {
+      "timestamp": 54.1,
+      "episode": 7,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主正要说出女主父亲不愿和离的原因，但最终没有说出口，留下悬念，观众想知道原因。"
+    },
+    {
+      "timestamp": 6.9,
+      "episode": 8,
+      "type": "情节重大转折",
+      "confidence": 8.0,
+      "description": "男主突然沉下脸，摔碎了定情信物，情节发生突变，观众想知道发生了什么。"
+    },
+    {
+      "timestamp": 22.66,
+      "episode": 9,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主指责对方逼迫丈夫致死，话说到一半，族主说这又不是郭国的错，被打断，观众想知道女主接下来会说什么。"
+    },
+    {
+      "timestamp": 43.7,
+      "episode": 10,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "路应怀问到关于生育的问题，涉及代府的秘密，在路平踪回答之前结束，观众想知道答案。"
+    }
+  ],
+  "clips": [
+    {
+      "start": 0,
+      "end": 29.7,
+      "duration": 29.7,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "情节重大转折",
+      "hookDesc": "女主回忆自己二十年来的付出，以及成婚大日丈夫的举动，正要争辩时突然感觉不对劲，预示着即将发生重大转折，观众想知道女主会发生什么。",
+      "type": "开篇高光-情节重大转折",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 0,
+      "end": 154.98,
+      "duration": 154.98,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主质问对方，对方即将说出原因，但戛然而止，留下悬念，观众想知道原因。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 0,
+      "end": 238.3,
+      "duration": 238.3,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主质问林郎，林郎说“您说什么呢，您可是这个家的主母啊”，女主反驳“你心中可以于是办刻 将我是做当家主武”，这里有潜在的冲突和秘密，但被打断，属于关键信息被截断。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 2
+    },
+    {
+      "start": 0,
+      "end": 287.7,
+      "duration": 287.7,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主说到“我这么好语...”被打断，虽然是场景切换，但结合台词，感觉女主想表达什么重要信息，被打断，有悬念，观众想知道她想说什么。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 3
+    },
+    {
+      "start": 0,
+      "end": 382.1,
+      "duration": 382.1,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "情节重大转折",
+      "hookDesc": "女主得知和对方是一家人，两人面面相觑，停在“路平松的脸色铁青”处，暗示后续有重大转折，观众想知道接下来会发生什么。",
+      "type": "开篇高光-情节重大转折",
+      "episode": 1,
+      "hookEpisode": 4
+    },
+    {
+      "start": 0,
+      "end": 397.3,
+      "duration": 397.3,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主说完“你当真要如此”后结束，男主会如何选择，是合理还是休妻，观众想知道，属于关键信息被截断。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 4
+    },
+    {
+      "start": 0,
+      "end": 423.74,
+      "duration": 423.74,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主质问男主，话说到一半被打断，观众想知道她要说什么，以及男主会如何回应。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 5
+    },
+    {
+      "start": 0,
+      "end": 464.98,
+      "duration": 464.98,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "悬念结束时刻",
+      "hookDesc": "女主说要进去看看男主病成什么样子，观众想知道她会看到什么，行动关键，画面停在高潮。",
+      "type": "开篇高光-悬念结束时刻",
+      "episode": 1,
+      "hookEpisode": 5
+    },
+    {
+      "start": 0,
+      "end": 493.74,
+      "duration": 493.74,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "男主说到“夫人你到底是怎么了”，被打断，观众想知道夫人怎么了，属于关键信息被截断。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 6
+    },
+    {
+      "start": 0,
+      "end": 522.1,
+      "duration": 522.1,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "情感爆发顶点",
+      "hookDesc": "女主质问男主，情绪激动，在“那我呢，我得到了什么”处结束，引发观众对后续剧情的期待。",
+      "type": "开篇高光-情感爆发顶点",
+      "episode": 1,
+      "hookEpisode": 6
+    },
+    {
+      "start": 0,
+      "end": 594.1,
+      "duration": 594.1,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "男主正要说出女主父亲不愿和离的原因，但最终没有说出口，留下悬念，观众想知道原因。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 7
+    },
+    {
+      "start": 0,
+      "end": 621.9,
+      "duration": 621.9,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "情节重大转折",
+      "hookDesc": "男主突然沉下脸，摔碎了定情信物，情节发生突变，观众想知道发生了什么。",
+      "type": "开篇高光-情节重大转折",
+      "episode": 1,
+      "hookEpisode": 8
+    },
+    {
+      "start": 0,
+      "end": 706.66,
+      "duration": 706.66,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主指责对方逼迫丈夫致死，话说到一半，族主说这又不是郭国的错，被打断，观众想知道女主接下来会说什么。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 9
+    }
+  ],
+  "statistics": {
+    "totalHighlights": 1,
+    "totalHooks": 14,
+    "totalClips": 13,
+    "averageConfidence": 8.166666666666666
+  }
+}

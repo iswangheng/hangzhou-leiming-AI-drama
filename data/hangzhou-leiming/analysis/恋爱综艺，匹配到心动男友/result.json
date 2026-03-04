@@ -1,0 +1,169 @@
+{
+  "projectName": "恋爱综艺，匹配到心动男友",
+  "highlights": [
+    {
+      "timestamp": 0,
+      "episode": 1,
+      "type": "开篇高光",
+      "confidence": 10.0,
+      "description": "每部剧第1集开头的默认高光点"
+    }
+  ],
+  "hooks": [
+    {
+      "timestamp": 47.94,
+      "episode": 1,
+      "type": "秘密揭露或真相揭示",
+      "confidence": 8.0,
+      "description": "女主发现丈夫出轨，并且丈夫想逼她离婚，这是关键信息暴露，观众想知道女主会如何反击。"
+    },
+    {
+      "timestamp": 75.7,
+      "episode": 1,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主正要说出“是你出轨剧还要拨呢”，暗示男主出轨，但话没说完就结束，留下悬念，观众想知道后续。"
+    },
+    {
+      "timestamp": 67.46,
+      "episode": 2,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主正要说出“陆决下”的秘密，被人打断，属于关键信息被截断，观众想知道陆决下怎么了。"
+    },
+    {
+      "timestamp": 22.74,
+      "episode": 3,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主回忆起男主给自己求红绳，但现在红绳却在别人手上，情绪激动，将建威还在镜头前说话被打断，观众想知道后续发展。"
+    },
+    {
+      "timestamp": 78.82,
+      "episode": 3,
+      "type": "情节重大转折",
+      "confidence": 8.0,
+      "description": "结尾处突然出现车辆，暗示意外即将发生，形成悬念。"
+    },
+    {
+      "timestamp": 63.22,
+      "episode": 4,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主回忆起从别人口中得知男主前女友的事情，正要说出具体内容时结束，观众想知道得知了什么，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 42.82,
+      "episode": 5,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主问女主今晚选谁，女主扫过“我”的脸后靠在男主身上，停在女主回答“这还用选吗”这里，观众想知道女主最终选择，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 54.42,
+      "episode": 8,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主问男主喜欢火锅还是蛋糕，男主回答“火锅 好的”，但“好的”之后的内容被截断，观众想知道男主接下来会说什么，以及为什么会说“好的”。"
+    },
+    {
+      "timestamp": 51.78,
+      "episode": 10,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主说“我希望他不要太讨厌我”，但实际想说的可能并非如此，存在信息被截断的可能，引发观众好奇。"
+    }
+  ],
+  "clips": [
+    {
+      "start": 0,
+      "end": 47.94,
+      "duration": 47.94,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "秘密揭露或真相揭示",
+      "hookDesc": "女主发现丈夫出轨，并且丈夫想逼她离婚，这是关键信息暴露，观众想知道女主会如何反击。",
+      "type": "开篇高光-秘密揭露或真相揭示",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 0,
+      "end": 75.7,
+      "duration": 75.7,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主正要说出“是你出轨剧还要拨呢”，暗示男主出轨，但话没说完就结束，留下悬念，观众想知道后续。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 0,
+      "end": 365.46,
+      "duration": 365.46,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主正要说出“陆决下”的秘密，被人打断，属于关键信息被截断，观众想知道陆决下怎么了。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 2
+    },
+    {
+      "start": 0,
+      "end": 393.74,
+      "duration": 393.74,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主回忆起男主给自己求红绳，但现在红绳却在别人手上，情绪激动，将建威还在镜头前说话被打断，观众想知道后续发展。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 3
+    },
+    {
+      "start": 0,
+      "end": 449.82,
+      "duration": 449.82,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "情节重大转折",
+      "hookDesc": "结尾处突然出现车辆，暗示意外即将发生，形成悬念。",
+      "type": "开篇高光-情节重大转折",
+      "episode": 1,
+      "hookEpisode": 3
+    },
+    {
+      "start": 0,
+      "end": 527.22,
+      "duration": 527.22,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主回忆起从别人口中得知男主前女友的事情，正要说出具体内容时结束，观众想知道得知了什么，属于关键信息被截断。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 4
+    },
+    {
+      "start": 0,
+      "end": 603.82,
+      "duration": 603.82,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "男主问女主今晚选谁，女主扫过“我”的脸后靠在男主身上，停在女主回答“这还用选吗”这里，观众想知道女主最终选择，属于关键信息被截断。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 5
+    }
+  ],
+  "statistics": {
+    "totalHighlights": 1,
+    "totalHooks": 9,
+    "totalClips": 7,
+    "averageConfidence": 8.2
+  }
+}

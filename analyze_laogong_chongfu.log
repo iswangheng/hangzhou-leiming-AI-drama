@@ -1,0 +1,385 @@
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'scripts.understand.video_understand' found in sys.modules after import of package 'scripts.understand', but prior to execution of 'scripts.understand.video_understand'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Users/weilingkeji/Library/Python/3.9/lib/python/site-packages/whisper/transcribe.py:132: UserWarning: FP16 is not supported on CPU; using FP32 instead
+  warnings.warn("FP16 is not supported on CPU; using FP32 instead")
+/Users/weilingkeji/Library/Python/3.9/lib/python/site-packages/whisper/transcribe.py:132: UserWarning: FP16 is not supported on CPU; using FP32 instead
+  warnings.warn("FP16 is not supported on CPU; using FP32 instead")
+/Users/weilingkeji/Library/Python/3.9/lib/python/site-packages/whisper/transcribe.py:132: UserWarning: FP16 is not supported on CPU; using FP32 instead
+  warnings.warn("FP16 is not supported on CPU; using FP32 instead")
+/Users/weilingkeji/Library/Python/3.9/lib/python/site-packages/whisper/transcribe.py:132: UserWarning: FP16 is not supported on CPU; using FP32 instead
+  warnings.warn("FP16 is not supported on CPU; using FP32 instead")
+/Users/weilingkeji/Library/Python/3.9/lib/python/site-packages/whisper/transcribe.py:132: UserWarning: FP16 is not supported on CPU; using FP32 instead
+  warnings.warn("FP16 is not supported on CPU; using FP32 instead")
+/Users/weilingkeji/Library/Python/3.9/lib/python/site-packages/whisper/transcribe.py:132: UserWarning: FP16 is not supported on CPU; using FP32 instead
+  warnings.warn("FP16 is not supported on CPU; using FP32 instead")
+
+==================================================
+开始视频理解: 老公成为首富那天我重生了
+==================================================
+
+[1/5] 理解技能文件...
+技能框架加载完成
+
+[2/5] 加载项目数据（自动检查并提取缺失数据）...
+  ⚠️  第1集关键帧不存在，开始自动提取...
+     提取参数: fps=1.0 (每秒1帧)
+开始提取关键帧: 晓红姐-3.4剧目/老公成为首富那天我重生了/1.mp4
+参数: fps=1.0, quality=2
+关键帧提取完成
+提取了 220 帧
+  ✅ 第1集关键帧提取完成 (220帧)
+  ⚠️  第1集ASR不存在，开始自动转录...
+     步骤1/2: 提取音频...
+音频提取完成: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/1.wav
+     步骤2/2: Whisper转录...
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/1.wav
+参数: model=tiny, language=zh
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/1.wav
+参数: model=tiny, language=zh
+音频转录完成
+加载了 88 个ASR片段
+  ✅ 第1集ASR转录完成 (88片段)
+  ⚠️  第10集关键帧不存在，开始自动提取...
+     提取参数: fps=1.0 (每秒1帧)
+开始提取关键帧: 晓红姐-3.4剧目/老公成为首富那天我重生了/10.mp4
+参数: fps=1.0, quality=2
+关键帧提取完成
+提取了 183 帧
+  ✅ 第10集关键帧提取完成 (183帧)
+  ⚠️  第10集ASR不存在，开始自动转录...
+     步骤1/2: 提取音频...
+音频提取完成: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/10.wav
+     步骤2/2: Whisper转录...
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/10.wav
+参数: model=tiny, language=zh
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/10.wav
+参数: model=tiny, language=zh
+音频转录完成
+加载了 64 个ASR片段
+  ✅ 第10集ASR转录完成 (64片段)
+  ⚠️  第2集关键帧不存在，开始自动提取...
+     提取参数: fps=1.0 (每秒1帧)
+开始提取关键帧: 晓红姐-3.4剧目/老公成为首富那天我重生了/2.mp4
+参数: fps=1.0, quality=2
+关键帧提取完成
+提取了 155 帧
+  ✅ 第2集关键帧提取完成 (155帧)
+  ⚠️  第2集ASR不存在，开始自动转录...
+     步骤1/2: 提取音频...
+音频提取完成: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/2.wav
+     步骤2/2: Whisper转录...
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/2.wav
+参数: model=tiny, language=zh
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/2.wav
+参数: model=tiny, language=zh
+音频转录完成
+加载了 58 个ASR片段
+  ✅ 第2集ASR转录完成 (58片段)
+  ⚠️  第3集关键帧不存在，开始自动提取...
+     提取参数: fps=1.0 (每秒1帧)
+开始提取关键帧: 晓红姐-3.4剧目/老公成为首富那天我重生了/3.mp4
+参数: fps=1.0, quality=2
+关键帧提取完成
+提取了 149 帧
+  ✅ 第3集关键帧提取完成 (149帧)
+  ⚠️  第3集ASR不存在，开始自动转录...
+     步骤1/2: 提取音频...
+音频提取完成: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/3.wav
+     步骤2/2: Whisper转录...
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/3.wav
+参数: model=tiny, language=zh
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/3.wav
+参数: model=tiny, language=zh
+音频转录完成
+加载了 56 个ASR片段
+  ✅ 第3集ASR转录完成 (56片段)
+  ⚠️  第4集关键帧不存在，开始自动提取...
+     提取参数: fps=1.0 (每秒1帧)
+开始提取关键帧: 晓红姐-3.4剧目/老公成为首富那天我重生了/4.mp4
+参数: fps=1.0, quality=2
+关键帧提取完成
+提取了 128 帧
+  ✅ 第4集关键帧提取完成 (128帧)
+  ⚠️  第4集ASR不存在，开始自动转录...
+     步骤1/2: 提取音频...
+音频提取完成: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/4.wav
+     步骤2/2: Whisper转录...
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/4.wav
+参数: model=tiny, language=zh
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/4.wav
+参数: model=tiny, language=zh
+音频转录完成
+加载了 57 个ASR片段
+  ✅ 第4集ASR转录完成 (57片段)
+  ⚠️  第5集关键帧不存在，开始自动提取...
+     提取参数: fps=1.0 (每秒1帧)
+开始提取关键帧: 晓红姐-3.4剧目/老公成为首富那天我重生了/5.mp4
+参数: fps=1.0, quality=2
+关键帧提取完成
+提取了 182 帧
+  ✅ 第5集关键帧提取完成 (182帧)
+  ⚠️  第5集ASR不存在，开始自动转录...
+     步骤1/2: 提取音频...
+音频提取完成: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/5.wav
+     步骤2/2: Whisper转录...
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/5.wav
+参数: model=tiny, language=zh
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/5.wav
+参数: model=tiny, language=zh
+音频转录完成
+加载了 62 个ASR片段
+  ✅ 第5集ASR转录完成 (62片段)
+  ⚠️  第6集关键帧不存在，开始自动提取...
+     提取参数: fps=1.0 (每秒1帧)
+开始提取关键帧: 晓红姐-3.4剧目/老公成为首富那天我重生了/6.mp4
+参数: fps=1.0, quality=2
+关键帧提取完成
+提取了 115 帧
+  ✅ 第6集关键帧提取完成 (115帧)
+  ⚠️  第6集ASR不存在，开始自动转录...
+     步骤1/2: 提取音频...
+音频提取完成: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/6.wav
+     步骤2/2: Whisper转录...
+/Users/weilingkeji/Library/Python/3.9/lib/python/site-packages/whisper/transcribe.py:132: UserWarning: FP16 is not supported on CPU; using FP32 instead
+  warnings.warn("FP16 is not supported on CPU; using FP32 instead")
+/Users/weilingkeji/Library/Python/3.9/lib/python/site-packages/whisper/transcribe.py:132: UserWarning: FP16 is not supported on CPU; using FP32 instead
+  warnings.warn("FP16 is not supported on CPU; using FP32 instead")
+/Users/weilingkeji/Library/Python/3.9/lib/python/site-packages/whisper/transcribe.py:132: UserWarning: FP16 is not supported on CPU; using FP32 instead
+  warnings.warn("FP16 is not supported on CPU; using FP32 instead")
+/Users/weilingkeji/Library/Python/3.9/lib/python/site-packages/whisper/transcribe.py:132: UserWarning: FP16 is not supported on CPU; using FP32 instead
+  warnings.warn("FP16 is not supported on CPU; using FP32 instead")
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/6.wav
+参数: model=tiny, language=zh
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/6.wav
+参数: model=tiny, language=zh
+音频转录完成
+加载了 51 个ASR片段
+  ✅ 第6集ASR转录完成 (51片段)
+  ⚠️  第7集关键帧不存在，开始自动提取...
+     提取参数: fps=1.0 (每秒1帧)
+开始提取关键帧: 晓红姐-3.4剧目/老公成为首富那天我重生了/7.mp4
+参数: fps=1.0, quality=2
+关键帧提取完成
+提取了 101 帧
+  ✅ 第7集关键帧提取完成 (101帧)
+  ⚠️  第7集ASR不存在，开始自动转录...
+     步骤1/2: 提取音频...
+音频提取完成: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/7.wav
+     步骤2/2: Whisper转录...
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/7.wav
+参数: model=tiny, language=zh
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/7.wav
+参数: model=tiny, language=zh
+音频转录完成
+加载了 42 个ASR片段
+  ✅ 第7集ASR转录完成 (42片段)
+  ⚠️  第8集关键帧不存在，开始自动提取...
+     提取参数: fps=1.0 (每秒1帧)
+开始提取关键帧: 晓红姐-3.4剧目/老公成为首富那天我重生了/8.mp4
+参数: fps=1.0, quality=2
+关键帧提取完成
+提取了 126 帧
+  ✅ 第8集关键帧提取完成 (126帧)
+  ⚠️  第8集ASR不存在，开始自动转录...
+     步骤1/2: 提取音频...
+音频提取完成: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/8.wav
+     步骤2/2: Whisper转录...
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/8.wav
+参数: model=tiny, language=zh
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/8.wav
+参数: model=tiny, language=zh
+音频转录完成
+加载了 57 个ASR片段
+  ✅ 第8集ASR转录完成 (57片段)
+  ⚠️  第9集关键帧不存在，开始自动提取...
+     提取参数: fps=1.0 (每秒1帧)
+开始提取关键帧: 晓红姐-3.4剧目/老公成为首富那天我重生了/9.mp4
+参数: fps=1.0, quality=2
+关键帧提取完成
+提取了 167 帧
+  ✅ 第9集关键帧提取完成 (167帧)
+  ⚠️  第9集ASR不存在，开始自动转录...
+     步骤1/2: 提取音频...
+音频提取完成: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/9.wav
+     步骤2/2: Whisper转录...
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/9.wav
+参数: model=tiny, language=zh
+开始转录音频: /Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/data/hangzhou-leiming/cache/audio/老公成为首富那天我重生了/9.wav
+参数: model=tiny, language=zh
+音频转录完成
+加载了 67 个ASR片段
+  ✅ 第9集ASR转录完成 (67片段)
+
+数据加载完成: 10集, 1526关键帧, 602ASR片段
+
+[3/5] 提取分析片段...
+第1集: 生成了10个片段
+第2集: 生成了7个片段
+第3集: 生成了7个片段
+第4集: 生成了6个片段
+第5集: 生成了8个片段
+第6集: 生成了5个片段
+第7集: 生成了5个片段
+第8集: 生成了6个片段
+第9集: 生成了8个片段
+第10集: 生成了8个片段
+生成了 70 个分析片段
+
+[4/5] 逐段分析（可能需要几分钟）...
+[1/70] 25-55秒: 无
+[2/70] 0-30秒: 无
+[3/70] 100-130秒: 无
+[4/70] 75-105秒: 无
+[5/70] 125-155秒: 无
+[6/70] 175-205秒: 无
+[7/70] 150-180秒: 钩子:关键信息被截断
+[8/70] 225-229秒: 无
+[9/70] 200-229秒: 无
+[10/70] 0-30秒: 无
+[11/70] 25-55秒: 无
+[12/70] 50-80秒: 无
+[13/70] 75-105秒: 无
+[14/70] 100-130秒: 无
+[15/70] 125-155秒: 无
+[16/70] 150-164秒: 无
+[17/70] 0-30秒: 无
+[18/70] 25-55秒: 无
+分析片段 50-80秒失败，5秒后重试...
+[19/70] 50-80秒: 无
+[20/70] 75-105秒: 无
+[21/70] 100-130秒: 钩子:关键信息被截断
+[22/70] 150-158秒: 无
+[23/70] 125-155秒: 无
+[24/70] 50-80秒: 无
+[25/70] 50-80秒: 钩子:情感爆发顶点
+[26/70] 25-55秒: 无
+[27/70] 0-30秒: 钩子:关键信息被截断
+[28/70] 125-137秒: 无
+[29/70] 75-105秒: 钩子:情感爆发顶点
+[30/70] 100-130秒: 钩子:关键信息被截断
+[31/70] 0-30秒: 无
+[32/70] 50-80秒: 钩子:关键信息被截断
+[33/70] 25-55秒: 钩子:关键信息被截断
+[34/70] 75-105秒: 无
+[35/70] 100-130秒: 无
+[36/70] 125-155秒: 无
+[37/70] 150-180秒: 钩子:关键信息被截断
+[38/70] 175-191秒: 钩子:关键信息被截断
+[39/70] 50-80秒: 无
+[40/70] 25-55秒: 钩子:关键信息被截断
+[41/70] 0-30秒: 无
+[42/70] 0-30秒: 无
+[43/70] 100-124秒: 钩子:悬念结束时刻
+[44/70] 75-105秒: 无
+[45/70] 25-55秒: 无
+[46/70] 75-105秒: 钩子:关键信息被截断
+[47/70] 50-80秒: 无
+[48/70] 100-110秒: 无
+[49/70] 25-55秒: 钩子:关键信息被截断
+[50/70] 0-30秒: 钩子:关键信息被截断
+[51/70] 50-80秒: 钩子:关键信息被截断
+[52/70] 75-105秒: 钩子:关键信息被截断
+[53/70] 100-130秒: 无
+[54/70] 125-135秒: 无
+[55/70] 0-30秒: 无
+[56/70] 25-55秒: 无
+[57/70] 50-80秒: 无
+[58/70] 75-105秒: 无
+[59/70] 100-130秒: 无
+[60/70] 125-155秒: 无
+[61/70] 150-176秒: 无
+[62/70] 175-176秒: 无
+[63/70] 50-80秒: 无
+[64/70] 0-30秒: 无
+[65/70] 25-55秒: 无
+[66/70] 100-130秒: 无
+[67/70] 75-105秒: 无
+[68/70] 125-155秒: 钩子:关键信息被截断
+[69/70] 150-180秒: 无
+[70/70] 175-192秒: 无
+识别到 0 个高光点, 18 个钩子点
+
+[5/5] 质量筛选...
+================================================================================
+开始质量筛选流程
+================================================================================
+
+[步骤1/5] 置信度筛选
+
+置信度筛选(7.0): 70 → 18
+
+[步骤2/5] 去重
+  [去重] 第5集 179.0秒 (置信度7.5) 与 第5集 176.0秒 (置信度8.0) 过近，移除
+第5集: 0高光+4钩子 → 0高光+3钩子 (移除1个)
+总体去重(10秒): 移除1个标记
+
+[步骤3/5] 类型多样性限制
+  [类型限制] 第4集钩子点'情感爆发顶点': 2个→1个
+  [类型限制] 第4集钩子点'关键信息被截断': 2个→1个
+  [类型限制] 第5集钩子点'关键信息被截断': 3个→1个
+  [类型限制] 第8集钩子点'关键信息被截断': 4个→1个
+
+类型多样性限制(每集同类型最多1个): 移除7个标记
+
+[步骤4/5] 动态数量限制(按时长比例)
+
+动态数量限制(每分钟1高光+6钩子): 移除0个标记
+
+[步骤5/5] 添加第1集开篇高光点
+已添加第1集开篇高光点(0秒)
+
+================================================================================
+质量筛选完成: 70 → 11 (保留率: 15.7%)
+================================================================================
+
+筛选后: 1 个高光点, 10 个钩子点
+
+[5.5/6] 添加固定的开篇高光点...
+  第1集已有开篇高光点,跳过
+
+生成剪辑组合...
+已收集 602 个ASR片段，用于时间戳精度优化
+原始高光点: 1, 钩子点: 10
+
+[时间戳优化] 启用ASR辅助的毫秒级精度优化...
+
+================================================================================
+开始ASR辅助时间戳优化（毫秒级精度）
+================================================================================
+缓冲时间: 100.0ms
+ASR片段数: 602
+
+优化 10 个钩子点...
+  🔧 钩子点优化: 156.0秒 → 157.260秒（+100.0ms缓冲，ASR: '否则我立可报避身王王...'）
+  🔧 钩子点优化: 114.0秒 → 115.260秒（+100.0ms缓冲，ASR: '她的公司成功上是当亲...'）
+  🔧 钩子点优化: 87.0秒 → 87.260秒（+100.0ms缓冲，ASR: '新天一来记住...'）
+  🔧 钩子点优化: 10.0秒 → 11.180秒（+100.0ms缓冲，ASR: '我也等着跟我老婆再去千元...'）
+  🔧 钩子点优化: 78.0秒 → 78.260秒（+100.0ms缓冲，ASR: '新城科体天日于大四达科成功上去...'）
+  🔧 钩子点优化: 41.0秒 → 41.460秒（+100.0ms缓冲，ASR: '都快要泡胖圍啊...'）
+  🔧 钩子点优化: 123.0秒 → 126.260秒（+100.0ms缓冲，ASR: '别人你接近人靠过...'）
+  🔧 钩子点优化: 97.0秒 → 115.260秒（+100.0ms缓冲，ASR: '她的公司成功上是当亲...'）
+  🔧 钩子点优化: 49.0秒 → 52.260秒（+100.0ms缓冲，ASR: '傻傻...'）
+  🔧 钩子点优化: 154.0秒 → 154.260秒（+100.0ms缓冲，ASR: '可千万不能主动掉马...'）
+
+优化 1 个高光点...
+  🔧 高光点优化: 0秒 → 0.000秒（-100.0ms缓冲，ASR: '你对副总的演示习惯...'）
+
+================================================================================
+时间戳优化完成！
+================================================================================
+去重后高光点: 1, 钩子点: 10
+
+开始生成剪辑组合（笛卡尔积: 1 × 10 = 10种组合）...
+  [1] 第1集 0.0s → 第1集 157.26s = 157.26s [开篇高光-关键信息被截断]
+  [2] 第1集0.0s → 第3集115.25999999999999s = 508.26s (跨集) [开篇高光-关键信息被截断]
+  [3] 第1集0.0s → 第4集11.18s = 562.18s (跨集) [开篇高光-关键信息被截断]
+  [4] 第1集0.0s → 第4集87.25999999999999s = 638.26s (跨集) [开篇高光-情感爆发顶点]
+
+✅ 共生成 4 个有效剪辑组合（共检查10种组合，有效率40.0%）
+
+保存结果...
+
+结果已保存: data/hangzhou-leiming/analysis/老公成为首富那天我重生了/result.json
+高光点: 1
+钩子点: 10
+剪辑组合: 4

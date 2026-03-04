@@ -1,0 +1,100 @@
+{
+  "projectName": "欺我年迈抢祖宅，和贫道仙法说吧",
+  "episodeDurations": {
+    "1": 151,
+    "10": 119,
+    "2": 194,
+    "3": 150,
+    "4": 117,
+    "5": 119,
+    "6": 175,
+    "7": 108,
+    "8": 132,
+    "9": 138
+  },
+  "highlights": [
+    {
+      "timestamp": 0,
+      "episode": 1,
+      "type": "开篇高光",
+      "confidence": 10.0,
+      "description": "每部剧第1集开头的默认高光点"
+    }
+  ],
+  "hooks": [
+    {
+      "timestamp": 38.1,
+      "episode": 2,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主质问“你们是东流家的”，男方回应“好一个似”，话没说完就被切断，暗示对方身份或行为有问题，引发悬念。"
+    },
+    {
+      "timestamp": 148.1,
+      "episode": 3,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "线人身份即将揭晓，关键信息“您是”被打断，引发观众好奇。"
+    },
+    {
+      "timestamp": 178.38,
+      "episode": 6,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男人话说到一半，关于“大学生”的话题被打断，观众想知道他到底要说什么，是否会发生什么意外。"
+    },
+    {
+      "timestamp": 46.1,
+      "episode": 8,
+      "type": "关键信息被截断",
+      "confidence": 7.5,
+      "description": "男主正要说出当年和谁上床，话没说完就结束，属于关键信息被截断，引发观众好奇。"
+    },
+    {
+      "timestamp": 139.1,
+      "episode": 9,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "老祖座正要说出要男主生孩子的原因，话没说完就结束，观众想知道为什么。"
+    },
+    {
+      "timestamp": 49.1,
+      "episode": 10,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "ASR文本中，老祖宗的“最好的办法”即将揭晓，但被截断，观众想知道是什么办法。"
+    }
+  ],
+  "clips": [
+    {
+      "start": 0,
+      "end": 189.1,
+      "duration": 189.1,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主质问“你们是东流家的”，男方回应“好一个似”，话没说完就被切断，暗示对方身份或行为有问题，引发悬念。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 2
+    },
+    {
+      "start": 0,
+      "end": 493.1,
+      "duration": 493.1,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "线人身份即将揭晓，关键信息“您是”被打断，引发观众好奇。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 3
+    }
+  ],
+  "statistics": {
+    "totalHighlights": 1,
+    "totalHooks": 6,
+    "totalClips": 2,
+    "averageConfidence": 8.214285714285714
+  }
+}

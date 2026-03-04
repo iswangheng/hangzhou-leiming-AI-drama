@@ -1,0 +1,1 @@
+/Library/Developer/CommandLineTools/usr/bin/python3: Error while finding module specification for 'scripts.understand.video_understand' (ModuleNotFoundError: No module named 'scripts')

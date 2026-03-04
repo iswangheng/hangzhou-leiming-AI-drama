@@ -1,0 +1,133 @@
+{
+  "projectName": "飒爽女友不好惹",
+  "episodeDurations": {
+    "1": 126,
+    "10": 146,
+    "2": 117,
+    "3": 142,
+    "4": 200,
+    "5": 61,
+    "6": 105,
+    "7": 118,
+    "8": 182,
+    "9": 86
+  },
+  "highlights": [
+    {
+      "timestamp": 0,
+      "episode": 1,
+      "type": "开篇高光",
+      "confidence": 10.0,
+      "description": "每部剧第1集开头的默认高光点"
+    }
+  ],
+  "hooks": [
+    {
+      "timestamp": 122.1,
+      "episode": 4,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主说到“再来给我付个房子的手...”被打断，观众想知道是谁付房子的首付，以及后续会发生什么，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 54.1,
+      "episode": 5,
+      "type": "关键信息被截断",
+      "confidence": 7.5,
+      "description": "男主质问女主“你又干嘛呀”，语气略带质问，但被打断，观众想知道女主做了什么。"
+    },
+    {
+      "timestamp": 54.1,
+      "episode": 6,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主正要说出“你让我”，被打断，观众想知道男主想让对方做什么，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 112.1,
+      "episode": 6,
+      "type": "情感爆发顶点",
+      "confidence": 8.0,
+      "description": "男主被打后愤怒质问“你敢打我”，情绪达到顶点，戛然而止，引发观众好奇后续发展。"
+    },
+    {
+      "timestamp": 46.1,
+      "episode": 7,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主质问女主结婚，女主否认，男主追问“你干嘛”，女主回答“我完全”，此时被打断，观众想知道女主“完全”要说什么，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 49.1,
+      "episode": 8,
+      "type": "关键信息被截断",
+      "confidence": 8.5,
+      "description": "母亲告知女主婚约的事情，女主明确表示“绝对不行”，预示着女主会采取行动，但具体行动是什么被打断，观众想知道后续发展。"
+    },
+    {
+      "timestamp": 81.1,
+      "episode": 8,
+      "type": "情感爆发顶点",
+      "confidence": 8.0,
+      "description": "女主威胁对方，情绪激动，最后一句“听懂吗”带有压迫感，停在这里让观众想知道对方的反应。"
+    },
+    {
+      "timestamp": 81.1,
+      "episode": 9,
+      "type": "关键信息被截断",
+      "confidence": 7.5,
+      "description": "男主说“这下车礼是老规矩了，得给了钱我才能下车”，暗示了某种交易或者潜规则，观众想知道后续会发生什么，信息被截断。"
+    },
+    {
+      "timestamp": 146.1,
+      "episode": 10,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主质问对方给错钱，并追问“你们家什么意思”，话没说完结束，观众想知道对方的意图和后续发展。"
+    }
+  ],
+  "clips": [
+    {
+      "start": 0,
+      "end": 507.1,
+      "duration": 507.1,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "男主说到“再来给我付个房子的手...”被打断，观众想知道是谁付房子的首付，以及后续会发生什么，属于关键信息被截断。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 4
+    },
+    {
+      "start": 0,
+      "end": 639.1,
+      "duration": 639.1,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "男主质问女主“你又干嘛呀”，语气略带质问，但被打断，观众想知道女主做了什么。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 5
+    },
+    {
+      "start": 0,
+      "end": 700.1,
+      "duration": 700.1,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "男主正要说出“你让我”，被打断，观众想知道男主想让对方做什么，属于关键信息被截断。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 6
+    }
+  ],
+  "statistics": {
+    "totalHighlights": 1,
+    "totalHooks": 9,
+    "totalClips": 3,
+    "averageConfidence": 8.15
+  }
+}

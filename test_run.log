@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'scripts.understand.video_understand' found in sys.modules after import of package 'scripts.understand', but prior to execution of 'scripts.understand.video_understand'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))

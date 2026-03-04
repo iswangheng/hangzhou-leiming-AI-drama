@@ -1,0 +1,176 @@
+{
+  "projectName": "老公成为首富那天我重生了",
+  "episodeDurations": {
+    "1": 220,
+    "10": 182,
+    "2": 155,
+    "3": 148,
+    "4": 128,
+    "5": 182,
+    "6": 115,
+    "7": 101,
+    "8": 126,
+    "9": 167
+  },
+  "highlights": [
+    {
+      "timestamp": 0,
+      "episode": 1,
+      "type": "开篇高光",
+      "confidence": 10.0,
+      "description": "每部剧第1集开头的默认高光点"
+    }
+  ],
+  "hooks": [
+    {
+      "timestamp": 157.26,
+      "episode": 1,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主警告女主不要主动掉马，但话没说完就被截断，观众想知道掉马后会发生什么，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 126.26,
+      "episode": 2,
+      "type": "关键信息被截断",
+      "confidence": 7.5,
+      "description": "ASR文本显示，有人正要说出重要信息，但被打断，符合“关键信息被截断”的特征，观众想知道被打断的内容是什么。"
+    },
+    {
+      "timestamp": 129.26,
+      "episode": 3,
+      "type": "关键信息被截断",
+      "confidence": 7.5,
+      "description": "女主问“新包木找到了吗”，紧接着问“到了”，像是要发生什么，但戛然而止，观众想知道后续发生了什么。"
+    },
+    {
+      "timestamp": 11.18,
+      "episode": 4,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主质问女主换身体什么意思，女主正要解释，话被打断，观众想知道真相。"
+    },
+    {
+      "timestamp": 84.26,
+      "episode": 4,
+      "type": "情感爆发顶点",
+      "confidence": 7.5,
+      "description": "男主情绪崩溃，哀求女主不要离开，情感达到顶点，观众想知道女主是否会离开。"
+    },
+    {
+      "timestamp": 41.46,
+      "episode": 5,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "女主说到“等完丑虚命让我”，话没说完，被打断，观众想知道她要做什么，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 41.46,
+      "episode": 6,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主正要说出“负总的夫人”是谁，但被打断，观众想知道是谁。"
+    },
+    {
+      "timestamp": 115.26,
+      "episode": 7,
+      "type": "关键信息被截断",
+      "confidence": 7.5,
+      "description": "男主突然被叫住，且女主问“你到底是谁”，身份即将揭晓时被打断，观众想知道男主是谁。"
+    },
+    {
+      "timestamp": 7.16,
+      "episode": 8,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主质问女主“你到底是谁”，并要求回答，问题关键，有追问的意味，被打断，观众想知道女主的真实身份。"
+    },
+    {
+      "timestamp": 154.26,
+      "episode": 9,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男主指责女主装病，最后一句“狗都不吃”语气强烈，话未说完被打断，暗示了更深层矛盾，观众想知道后续冲突。"
+    }
+  ],
+  "clips": [
+    {
+      "start": 0,
+      "end": 157.26,
+      "duration": 157.26,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "男主警告女主不要主动掉马，但话没说完就被截断，观众想知道掉马后会发生什么，属于关键信息被截断。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 0,
+      "end": 346.26,
+      "duration": 346.26,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "ASR文本显示，有人正要说出重要信息，但被打断，符合“关键信息被截断”的特征，观众想知道被打断的内容是什么。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 2
+    },
+    {
+      "start": 0,
+      "end": 504.26,
+      "duration": 504.26,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主问“新包木找到了吗”，紧接着问“到了”，像是要发生什么，但戛然而止，观众想知道后续发生了什么。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 3
+    },
+    {
+      "start": 0,
+      "end": 534.18,
+      "duration": 534.18,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "男主质问女主换身体什么意思，女主正要解释，话被打断，观众想知道真相。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 4
+    },
+    {
+      "start": 0,
+      "end": 607.26,
+      "duration": 607.26,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "情感爆发顶点",
+      "hookDesc": "男主情绪崩溃，哀求女主不要离开，情感达到顶点，观众想知道女主是否会离开。",
+      "type": "开篇高光-情感爆发顶点",
+      "episode": 1,
+      "hookEpisode": 4
+    },
+    {
+      "start": 0,
+      "end": 692.46,
+      "duration": 692.46,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主说到“等完丑虚命让我”，话没说完，被打断，观众想知道她要做什么，属于关键信息被截断。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 5
+    }
+  ],
+  "statistics": {
+    "totalHighlights": 1,
+    "totalHooks": 10,
+    "totalClips": 6,
+    "averageConfidence": 8.0
+  }
+}

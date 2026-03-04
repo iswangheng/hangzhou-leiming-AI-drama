@@ -1,0 +1,20 @@
+{
+  "projectName": "no-videos-project",
+  "highlights": [
+    {
+      "timestamp": 0,
+      "episode": 1,
+      "type": "开篇高光",
+      "confidence": 10.0,
+      "description": "每部剧第1集开头的默认高光点"
+    }
+  ],
+  "hooks": [],
+  "clips": [],
+  "statistics": {
+    "totalHighlights": 1,
+    "totalHooks": 0,
+    "totalClips": 0,
+    "averageConfidence": 10.0
+  }
+}

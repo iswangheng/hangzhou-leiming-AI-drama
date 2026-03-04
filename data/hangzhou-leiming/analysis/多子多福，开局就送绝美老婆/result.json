@@ -1,0 +1,112 @@
+{
+  "projectName": "多子多福，开局就送绝美老婆",
+  "episodeDurations": {
+    "1": 262,
+    "10": 74,
+    "2": 192,
+    "3": 108,
+    "4": 63,
+    "5": 101,
+    "6": 140,
+    "7": 119,
+    "8": 117,
+    "9": 151
+  },
+  "highlights": [
+    {
+      "timestamp": 0,
+      "episode": 1,
+      "type": "开篇高光",
+      "confidence": 10.0,
+      "description": "每部剧第1集开头的默认高光点"
+    }
+  ],
+  "hooks": [
+    {
+      "timestamp": 16.18,
+      "episode": 1,
+      "type": "情感爆发顶点",
+      "confidence": 7.5,
+      "description": "男主突然惊醒，大喊“我不要”，情绪激动，观众想知道发生了什么，为什么不要。"
+    },
+    {
+      "timestamp": 81.5,
+      "episode": 2,
+      "type": "情节重大转折",
+      "confidence": 8.0,
+      "description": "女主说“完了 这个家是真的要完了”，预示着即将发生重大变故，引发观众的好奇心和紧张感，想知道接下来会发生什么。"
+    },
+    {
+      "timestamp": 42.5,
+      "episode": 3,
+      "type": "关键信息被截断",
+      "confidence": 7.5,
+      "description": "男主说到“难道说各位嫂嫂”，话没说完，留下悬念，观众想知道他要说什么。"
+    },
+    {
+      "timestamp": 96.5,
+      "episode": 7,
+      "type": "关键信息被截断",
+      "confidence": 7.5,
+      "description": "大姐正要说出“因…”，但话被打断，观众想知道她要说什么，属于关键信息被截断。"
+    },
+    {
+      "timestamp": 55.5,
+      "episode": 8,
+      "type": "关键信息被截断",
+      "confidence": 7.5,
+      "description": "台词说到“你他们找死来 看想了 老子调事 杀人不家也得分败 是笑”，在“笑”字戛然而止，想表达什么关键信息被打断，引发观众好奇。"
+    },
+    {
+      "timestamp": 124.5,
+      "episode": 9,
+      "type": "关键信息被截断",
+      "confidence": 8.0,
+      "description": "男子说到“这辈子做了多多”时，被突然闯入的人打断，观众想知道他到底做了什么，属于关键信息被截断。"
+    }
+  ],
+  "clips": [
+    {
+      "start": 0,
+      "end": 16.18,
+      "duration": 16.18,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "情感爆发顶点",
+      "hookDesc": "男主突然惊醒，大喊“我不要”，情绪激动，观众想知道发生了什么，为什么不要。",
+      "type": "开篇高光-情感爆发顶点",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 0,
+      "end": 343.5,
+      "duration": 343.5,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "情节重大转折",
+      "hookDesc": "女主说“完了 这个家是真的要完了”，预示着即将发生重大变故，引发观众的好奇心和紧张感，想知道接下来会发生什么。",
+      "type": "开篇高光-情节重大转折",
+      "episode": 1,
+      "hookEpisode": 2
+    },
+    {
+      "start": 0,
+      "end": 496.5,
+      "duration": 496.5,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "男主说到“难道说各位嫂嫂”，话没说完，留下悬念，观众想知道他要说什么。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 3
+    }
+  ],
+  "statistics": {
+    "totalHighlights": 1,
+    "totalHooks": 6,
+    "totalClips": 3,
+    "averageConfidence": 8.0
+  }
+}
