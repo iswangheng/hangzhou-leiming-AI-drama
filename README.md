@@ -30,6 +30,7 @@
 
 **详细文档**：
 - [V12实现报告](./docs/V12_CARTESIAN_PRODUCT.md) - 笛卡尔积实现详情
+- [剪辑渲染指南](./docs/CLIP_RENDER_GUIDE.md) - FFmpeg剪辑渲染使用指南
 
 ### V11 - 类型重新定义策略 (2026-03-03)
 
