@@ -457,17 +457,17 @@ def analyze_segment(
 
                 # 高光点（V13: 转换为浮点数支持毫秒精度）
                 is_highlight=hl_data.get("exists", False),
-                highlight_timestamp=float(hl_data.get("preciseSecond", segment.start_time)),
+                highlight_timestamp=float(hl_data.get("preciseSecond") or segment.start_time),  # V13.1: 处理None值
                 highlight_type=hl_data.get("type"),
                 highlight_desc=hl_data.get("reasoning", ""),
-                highlight_confidence=hl_data.get("confidence", 0.0),
+                highlight_confidence=hl_data.get("confidence") or 0.0,  # V13.1: 处理None值
 
                 # 钩子点（V13: 转换为浮点数支持毫秒精度）
                 is_hook=hook_data.get("exists", False),
-                hook_timestamp=float(hook_data.get("preciseSecond", segment.start_time)),
+                hook_timestamp=float(hook_data.get("preciseSecond") or segment.start_time),  # V13.1: 处理None值
                 hook_type=hook_data.get("type"),
                 hook_desc=hook_data.get("reasoning", ""),
-                hook_confidence=hook_data.get("confidence", 0.0)
+                hook_confidence=hook_data.get("confidence") or 0.0  # V13.1: 处理None值
             )
             
         except Exception as e:
