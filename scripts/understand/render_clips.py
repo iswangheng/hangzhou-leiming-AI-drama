@@ -348,7 +348,10 @@ class ClipRenderer:
         concat_file = self.output_dir / "concat_list.txt"
         with open(concat_file, 'w') as f:
             for segment_file in segment_files:
-                f.write(f"file '{segment_file}'\n")
+                # V13.1: 使用相对路径，避免路径重复问题
+                segment_path = Path(segment_file)
+                relative_path = segment_path.relative_to(self.output_dir)
+                f.write(f"file '{relative_path}'\n")
 
         # FFmpeg命令
         cmd = [
