@@ -493,7 +493,11 @@ class ClipRenderer:
         for idx, clip_data in enumerate(clips_data, 1):
             clip = Clip(**clip_data)
 
+            # V13.1: 修复progress变量未定义的bug
+            last_progress = [0.0]  # 使用列表来在闭包中存储进度
+
             def clip_progress(progress: float):
+                last_progress[0] = progress  # 更新进度值
                 if on_clip_progress:
                     on_clip_progress(idx, total_clips, progress)
 
@@ -501,9 +505,9 @@ class ClipRenderer:
                 output_path = self.render_clip(clip, on_progress=clip_progress)
                 output_paths.append(output_path)
 
-                # 总体进度
+                # 总体进度 (V13.1: 修复progress变量作用域问题)
                 if on_clip_progress:
-                    overall_progress = (idx - 1 + progress) / total_clips
+                    overall_progress = (idx - 1 + last_progress[0]) / total_clips
                     on_clip_progress(idx, total_clips, overall_progress)
 
             except Exception as e:
