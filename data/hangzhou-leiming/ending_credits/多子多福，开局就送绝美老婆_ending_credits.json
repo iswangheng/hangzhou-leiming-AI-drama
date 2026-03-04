@@ -1,0 +1,213 @@
+{
+  "project_name": "多子多福，开局就送绝美老婆",
+  "project_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/晓红姐-3.4剧目/多子多福，开局就送绝美老婆",
+  "episodes": [
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/晓红姐-3.4剧目/多子多福，开局就送绝美老婆/1.mp4",
+      "episode": 1,
+      "total_duration": 262.22,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 1.900000000000034,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              1.900000000000034
+            ]
+          ]
+        }
+      },
+      "effective_duration": 260.32
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/晓红姐-3.4剧目/多子多福，开局就送绝美老婆/2.mp4",
+      "episode": 2,
+      "total_duration": 192.680998,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 0.0,
+        "method": "none",
+        "features": {
+          "methods_used": [],
+          "features_found": []
+        }
+      },
+      "effective_duration": 192.680998
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/晓红姐-3.4剧目/多子多福，开局就送绝美老婆/3.mp4",
+      "episode": 3,
+      "total_duration": 108.905011,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 0.0,
+        "method": "none",
+        "features": {
+          "methods_used": [],
+          "features_found": []
+        }
+      },
+      "effective_duration": 108.905011
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/晓红姐-3.4剧目/多子多福，开局就送绝美老婆/4.mp4",
+      "episode": 4,
+      "total_duration": 63.06,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 0.0,
+        "method": "none",
+        "features": {
+          "methods_used": [],
+          "features_found": []
+        }
+      },
+      "effective_duration": 63.06
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/晓红姐-3.4剧目/多子多福，开局就送绝美老婆/5.mp4",
+      "episode": 5,
+      "total_duration": 101.74,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 1.8799999999999955,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              1.8799999999999955
+            ]
+          ]
+        }
+      },
+      "effective_duration": 99.86
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/晓红姐-3.4剧目/多子多福，开局就送绝美老婆/6.mp4",
+      "episode": 6,
+      "total_duration": 140.265011,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 0.0,
+        "method": "none",
+        "features": {
+          "methods_used": [],
+          "features_found": []
+        }
+      },
+      "effective_duration": 140.265011
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/晓红姐-3.4剧目/多子多福，开局就送绝美老婆/7.mp4",
+      "episode": 7,
+      "total_duration": 119.272993,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 0.0,
+        "method": "none",
+        "features": {
+          "methods_used": [],
+          "features_found": []
+        }
+      },
+      "effective_duration": 119.272993
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/晓红姐-3.4剧目/多子多福，开局就送绝美老婆/8.mp4",
+      "episode": 8,
+      "total_duration": 117.63068,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 0.0,
+        "method": "none",
+        "features": {
+          "methods_used": [],
+          "features_found": []
+        }
+      },
+      "effective_duration": 117.63068
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/晓红姐-3.4剧目/多子多福，开局就送绝美老婆/9.mp4",
+      "episode": 9,
+      "total_duration": 151.04,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 1.8799999999999955,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              1.8799999999999955
+            ]
+          ]
+        }
+      },
+      "effective_duration": 149.16
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/晓红姐-3.4剧目/多子多福，开局就送绝美老婆/10.mp4",
+      "episode": 10,
+      "total_duration": 74.96,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 1.8799999999999955,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              1.8799999999999955
+            ]
+          ]
+        }
+      },
+      "effective_duration": 73.08
+    }
+  ],
+  "summary": {
+    "total_episodes": 10,
+    "episodes_with_ending": 4,
+    "total_ending_duration": 7.5400000000000205,
+    "total_effective_duration": 1324.234693,
+    "average_ending_duration": 1.8850000000000051
+  }
+}
