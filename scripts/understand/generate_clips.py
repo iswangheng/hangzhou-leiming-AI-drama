@@ -284,6 +284,12 @@ def generate_clips(
     # 按起始时间和集数排序
     clips = sorted(clips, key=lambda x: (x.start, x.episode))
 
+    # V13.1: 修复除以0错误，当没有高光点或钩子点时
+    if total_combinations == 0:
+        print(f"\n⚠️  无法生成剪辑组合：高光点={len(highlights)}, 钩子点={len(hooks)}")
+        print(f"      需要至少1个高光点和1个钩子点才能生成剪辑")
+        return clips
+
     print(f"\n✅ 共生成 {len(clips)} 个有效剪辑组合（共检查{total_combinations}种组合，有效率{len(clips)/total_combinations*100:.1f}%）")
 
     return clips
