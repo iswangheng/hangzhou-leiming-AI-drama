@@ -291,6 +291,7 @@ def video_understand(
 
     result = {
         "projectName": project_name,
+        "episodeDurations": {ep: duration for ep, duration in episode_durations.items()},  # V13.1: 保存每集时长
         "highlights": [
             {
                 "timestamp": format_timestamp(a.highlight_timestamp),  # V13: 保留精度
