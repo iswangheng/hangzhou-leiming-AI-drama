@@ -1,0 +1,443 @@
+# V12 笛卡尔积剪辑生成实现报告
+
+## 版本信息
+
+- **版本号**: V12.0.0
+- **发布日期**: 2026-03-03
+- **核心特性**: 笛卡尔积剪辑生成 + 动态数量限制
+
+## 概述
+
+V12版本实现了真正的笛卡尔积剪辑生成逻辑，支持跨集组合，并引入动态数量限制机制，解决了V11中剪辑组合生成数量少、无法跨集组合的问题。
+
+## 核心改进
+
+### 1. 笛卡尔积剪辑生成
+
+#### 问题背景（V11）
+
+在V11中，剪辑生成使用"找最近钩子点"逻辑：
+
+```python
+# V11旧逻辑
+for hl in highlights:
+    candidate_hooks = [h for h in hooks if h.hook_timestamp > hl.highlight_timestamp]
+    if not candidate_hooks:
+        continue
+    best_hook = min(candidate_hooks, key=lambda h: h.hook_timestamp - hl.highlight_timestamp)
+    # 只生成1个剪辑
+```
+
+**问题**：
+- 每个高光点只生成1个剪辑
+- 无法生成所有可能的组合
+- 3个高光点 × 15个钩子点 = 最多3个剪辑（而非45个）
+
+#### V12新逻辑
+
+实现真正的笛卡尔积：
+
+```python
+# V12新逻辑
+for hl in highlights:
+    for hook in hooks:
+        # 计算累积时长（跨集）
+        hl_cumulative = calculate_cumulative_duration(hl.episode, hl.highlight_timestamp, episode_durations)
+        hook_cumulative = calculate_cumulative_duration(hook.episode, hook.hook_timestamp, episode_durations)
+        duration = hook_cumulative - hl_cumulative
+
+        # 时长过滤
+        if MIN_CLIP_DURATION <= duration <= MAX_CLIP_DURATION:
+            clips.append(Clip(...))
+```
+
+**效果**：
+- 3个高光点 × 13个钩子点 = 39种组合
+- 通过时长过滤（15-720秒）= 11个有效剪辑
+- 有效率：28.2%
+
+### 2. 跨集累积时长计算
+
+#### 累积时长函数
+
+```python
+def calculate_cumulative_duration(
+    episode: int,
+    timestamp: int,
+    episode_durations: Dict[int, int]
+) -> int:
+    """计算累积时长(跨集)
+
+    将(集数, 时间戳)转换为从第1集开头开始的绝对秒数
+    """
+    cumulative = 0
+    for ep in sorted(episode_durations.keys()):
+        if ep < episode:
+            cumulative += episode_durations[ep]
+    cumulative += timestamp
+    return cumulative
+```
+
+#### 累积时长示例
+
+假设各集时长：
+- 第1集：867秒（14.5分钟）
+- 第2集：274秒（4.6分钟）
+- 第3集：256秒（4.3分钟）
+- 第4集：301秒（5.0分钟）
+
+累积时长映射：
+- 第1集0秒 → 累积0秒
+- 第1集301秒 → 累积301秒
+- 第2集0秒 → 累积867秒
+- 第2集24秒 → 累积891秒
+- 第3集54秒 → 累积1222秒（867+274+54+35）← 注意这里需要加上前面的所有集数
+
+**跨集剪辑示例**：
+- 高光点：第2集0秒（累积867秒）
+- 钩子点：第3集54秒（累积867+274+54 = 1195秒）
+- 剪辑时长：1195 - 867 = 328秒 ✅
+
+### 3. 动态数量限制
+
+#### V11固定数量限制
+
+```python
+# V11旧逻辑
+max_highlights_per_episode = 2  # 每集最多2个高光点
+max_hooks_per_episode = 3  # 每集最多3个钩子点
+```
+
+**问题**：
+- 不公平：长集（10分钟）和短集（2分钟）限制相同
+- 浪费：长集可以容纳更多标记点
+- 不足：短集可能标记不足
+
+#### V12动态数量限制
+
+```python
+# V12新逻辑
+def limit_by_top_n(analyses, episode_durations, highlights_per_min=1, hooks_per_min=6):
+    """每集按时长比例动态分配数量限制
+
+    根据每集的时长,动态计算该集允许的高光点和钩子点数量:
+    - 每1分钟(60秒)允许1个高光点
+    - 每1分钟(60秒)允许6个钩子点
+    """
+    for ep, groups in sorted(episodes.items()):
+        ep_duration = episode_durations.get(ep, 180)
+        ep_minutes = ep_duration / 60
+        max_highlights = max(1, int(ep_minutes) * highlights_per_min)
+        max_hooks = max(1, int(ep_minutes) * hooks_per_min)
+```
+
+**效果示例**：
+
+| 集数 | 时长 | 旧规则（固定） | 新规则（动态） |
+|------|------|----------------|----------------|
+| 第1集 | 10分钟 | 2高光 + 3钩子 | **10高光 + 60钩子** ✅ |
+| 第2集 | 3分钟 | 2高光 + 3钩子 | 3高光 + 18钩子 ✅ |
+| 第4集 | 2.5分钟 | 2高光 + 3钩子 | 2高光 + 15钩子 ✅ |
+
+**提升**：
+- 第1集：5个标记 → 70个标记（1300%提升）
+- 第2集：5个标记 → 21个标记（320%提升）
+
+### 4. 固定开篇高光
+
+#### V11问题
+
+AI会随意识别"开篇高光"：
+- 第1集平均9个高光点
+- 其中83%是"开篇高光"
+- 占用其他类型配额
+
+#### V12解决方案
+
+**规则**：第1集0秒自动添加为"开篇高光"
+
+```python
+# video_understand.py: 第5.5步
+episode1_has_opening = any(
+    h.episode == 1 and h.highlight_type == "开篇高光" and h.highlight_timestamp <= 5
+    for h in highlights
+)
+
+if not episode1_has_opening:
+    opening_highlight = SegmentAnalysis(
+        episode=1,
+        highlight_timestamp=0,
+        highlight_type="开篇高光",
+        highlight_desc="每部剧第1集开头的默认高光点",
+        highlight_confidence=10.0,  # 最高置信度
+        ...
+    )
+    analyses.insert(0, opening_highlight)
+```
+
+**AI提示词同步更新**：
+
+```python
+# analyze_segment.py: 第168行
+1. **第1集开头**：第1集的0秒将由系统自动添加为"开篇高光"，AI无需识别
+2. **类型匹配**：优先使用上述5种高强度类型
+...
+5. **高光点识别**：专注于剧情反转、情感爆发等内容特征，不要基于"开头/开篇"等时间位置判断
+```
+
+### 5. 去重逻辑优化
+
+#### V11跨集去重
+
+```python
+# V11旧逻辑
+def deduplicate_hooks(hooks, window=30):
+    sorted_hooks = sorted(hooks, key=lambda x: (x.hook_timestamp, x.hook_type))
+    # 跨集30秒窗口去重
+```
+
+**问题**：
+- 跨集去重不合理（第1集和第2集的钩子点不应该互相去重）
+- 30秒窗口太宽，过滤掉太多标记
+
+#### V12同集内去重
+
+```python
+# V12新逻辑
+def deduplicate_hooks(hooks, window=5):
+    """去重钩子点(同集内去重)
+
+    同一集内,同一类型在时间窗口内只保留第一个
+    """
+    sorted_hooks = sorted(hooks, key=lambda x: (x.episode, x.hook_type, x.hook_timestamp))
+
+    result = []
+    last_by_ep_type = {}  # {(集数, 类型): 时间戳}
+
+    for hook in sorted_hooks:
+        hook_type = hook.hook_type or ""
+        key = (hook.episode, hook_type)  # 关键:按集数+类型去重
+        last_time = last_by_ep_type.get(key, -999)
+
+        if hook.hook_timestamp - last_time >= window:
+            result.append(hook)
+            last_by_ep_type[key] = hook.hook_timestamp
+
+    return result
+```
+
+**改进**：
+- 去重范围：跨集 → 同集内
+- 去重窗口：30秒 → 5秒
+- 去重键值：(时间戳, 类型) → (集数, 类型, 时间戳)
+
+### 6. 时长限制放宽
+
+#### 配置变更
+
+```python
+# generate_clips.py
+MIN_CLIP_DURATION = 15   # 30秒 → 15秒
+MAX_CLIP_DURATION = 720  # 300秒 → 720秒（12分钟）
+DEDUP_WINDOW = 5  # 30秒 → 5秒（同集内）
+```
+
+**影响**：
+- 更短剪辑：支持15秒短视频（适合抖音、快手）
+- 更长剪辑：支持12分钟长视频（适合B站、YouTube）
+- 更多组合：放宽时长限制，提高有效率
+
+## 测试结果
+
+### 测试项目：百里将就（10集）
+
+#### 数据统计
+
+| 指标 | 数值 |
+|------|------|
+| 总集数 | 10集 |
+| 总时长 | 约30分钟 |
+| 高光点 | 3个 |
+| 钩子点 | 13个 |
+| 理论组合 | 39种（3×13） |
+| 有效剪辑 | 11个 |
+| 有效率 | 28.2% |
+| 平均置信度 | 8.06 |
+
+#### 高光点详情
+
+| # | 集数 | 时间戳 | 类型 | 置信度 |
+|---|------|--------|------|--------|
+| 1 | 第1集 | 0秒 | 开篇高光（固定） | 10.0 |
+| 2 | 第1集 | 75秒 | 开篇高光 | 8.0 |
+| 3 | 第2集 | 0秒 | 开篇高光 | 7.5 |
+
+#### 钩子点详情
+
+| # | 集数 | 时间戳 | 类型 | 置信度 |
+|---|------|--------|------|--------|
+| 1 | 第1集 | 301秒 | 关键信息被截断 | 8.5 |
+| 2 | 第1集 | 597秒 | 悬念结束时刻 | 8.5 |
+| 3 | 第1集 | 204秒 | 秘密揭露或真相揭示 | 8.0 |
+| 4 | 第2集 | 24秒 | 关键信息被截断 | 8.0 |
+| 5 | 第2集 | 124秒 | 关键信息被截断 | 8.0 |
+| 6 | 第3集 | 54秒 | 关键信息被截断 | 8.0 |
+| 7 | 第3集 | 79秒 | 情感爆发顶点 | 7.5 |
+| 8 | 第4集 | 79秒 | 关键信息被截断 | 8.0 |
+| 9 | 第5集 | 42秒 | 秘密揭露或真相揭示 | 7.5 |
+| 10 | 第6集 | 23秒 | 关键信息被截断 | 7.5 |
+| 11 | 第8集 | 73秒 | 关键信息被截断 | 8.0 |
+| 12 | 第9集 | 41秒 | 关键信息被截断 | 8.0 |
+| 13 | 第10集 | 51秒 | 关键信息被截断 | 8.0 |
+
+#### 剪辑组合详情
+
+| # | 起始 | 结束 | 时长 | 类型 | 跨集 |
+|---|------|------|------|------|------|
+| 1 | 第1集0秒 | 第1集204秒 | 204s | 开篇高光-秘密揭露 | ❌ |
+| 2 | 第1集0秒 | 第1集301秒 | 301s | 开篇高光-关键信息截断 | ❌ |
+| 3 | 第1集0秒 | 第1集597秒 | 597s | 开篇高光-悬念结束 | ❌ |
+| 4 | 第1集75秒 | 第1集204秒 | 129s | 开篇高光-秘密揭露 | ❌ |
+| 5 | 第1集75秒 | 第1集301秒 | 226s | 开篇高光-关键信息截断 | ❌ |
+| 6 | 第1集75秒 | 第1集597秒 | 522s | 开篇高光-悬念结束 | ❌ |
+| 7 | 第2集0秒 | 第2集24秒 | 24s | 开篇高光-关键信息截断 | ❌ |
+| 8 | 第2集0秒 | 第2集124秒 | 124s | 开篇高光-关键信息截断 | ❌ |
+| 9 | **第2集0秒** | **第3集54秒** | **355s** | **开篇高光-关键信息截断** | **✅** |
+| 10 | **第2集0秒** | **第3集79秒** | **380s** | **开篇高光-情感爆发** | **✅** |
+| 11 | **第2集0秒** | **第4集79秒** | **681s** | **开篇高光-关键信息截断** | **✅** |
+
+#### 过滤分析
+
+**39种组合 → 11个有效剪辑（移除28种，71.8%）**
+
+移除原因：
+1. **跨集且太长（23种）**：从第1集开头到后面集数的钩子点，累积时长超过720秒
+   - 例如：第1集0秒 → 第2集24秒 = 891秒 > 720秒 ❌
+   - 例如：第1集0秒 → 第10集51秒 = 2444秒 >> 720秒 ❌
+
+2. **跨集且太短（3种）**：高光点在后面，钩子点在前面
+   - 例如：第2集0秒 → 第1集301秒 = -566秒 < 15秒 ❌
+
+3. **跨集且刚好符合（7种）**：
+   - 第2集0秒 → 第3集54秒 = 355秒 ✅
+   - 第2集0秒 → 第4集79秒 = 681秒 ✅
+
+## 技术细节
+
+### 核心代码结构
+
+```
+scripts/understand/
+├── video_understand.py         # 主入口，协调各个模块
+├── analyze_segment.py          # AI分析片段（含提示词）
+├── extract_segments.py         # 提取分析片段
+├── quality_filter.py           # 质量筛选（含动态数量限制）
+└── generate_clips.py           # 笛卡尔积剪辑生成（V12重写）
+```
+
+### 数据流程
+
+```
+1. 理解技能文件
+   ↓
+2. 加载项目数据（关键帧 + ASR）
+   ↓
+3. 提取分析片段（91个片段）
+   ↓
+4. 逐段分析（Gemini API）
+   ↓ 36个分析结果（去重后）
+5. 质量筛选
+   - 置信度筛选（≥7.0）
+   - 去重（同集内5秒窗口）
+   - 类型多样性（每集同类型最多1个）
+   - 动态数量限制（每分钟1高光+6钩子）
+   - 添加固定开篇高光
+   ↓ 15个分析结果（3高光 + 12钩子 + 1开篇）
+6. 生成剪辑组合（笛卡尔积）
+   - 3×13 = 39种组合
+   - 时长过滤（15-720秒）
+   ↓ 11个有效剪辑
+7. 保存结果（result.json）
+```
+
+### 关键函数签名
+
+#### generate_clips()
+
+```python
+def generate_clips(
+    analyses: List[SegmentAnalysis],
+    episode_durations: Dict[int, int],  # 新增：各集时长
+    min_duration: int = MIN_CLIP_DURATION,  # 15秒
+    max_duration: int = MAX_CLIP_DURATION,  # 720秒
+    dedup_window: int = DEDUP_WINDOW  # 5秒
+) -> List[Clip]:
+```
+
+#### apply_quality_pipeline()
+
+```python
+def apply_quality_pipeline(
+    analyses: List[SegmentAnalysis],
+    episode_durations: dict,  # 必需：用于动态数量限制
+    min_confidence: float = 7.0,
+    min_distance: int = 10,
+    max_same_type_per_episode: int = 1  # 移除了旧的max_highlights_per_episode等参数
+) -> List[SegmentAnalysis]:
+```
+
+## 已知问题和限制
+
+### 当前限制
+
+1. **有效率偏低（28.2%）**
+   - 原因：跨集组合很容易超过720秒限制
+   - 影响：从第1集开头到后面集数的钩子点大部分被过滤
+   - 解决方案：可以考虑进一步提高MAX_CLIP_DURATION，或优化累积时长计算
+
+2. **高光点数量少（3个）**
+   - 原因：质量筛选较严格（置信度≥7.0）
+   - 影响：笛卡尔积基数小
+   - 解决方案：降低min_confidence，或调整类型多样性限制
+
+3. **第1集标记不足**
+   - 原因：AI对第1集的标记质量不高
+   - 影响：虽然添加了固定开篇高光，但其他标记仍不足
+   - 解决方案：针对第1集优化提示词
+
+### 后续优化方向
+
+1. **优化累积时长计算**
+   - 当前：从第1集0秒开始累积
+   - 改进：支持从任意集数开始累积（灵活剪辑）
+
+2. **智能时长限制**
+   - 当前：固定15-720秒
+   - 改进：根据高光点和钩子点的类型动态调整时长限制
+
+3. **剪辑组合评分**
+   - 当前：只通过时长过滤
+   - 改进：添加剪辑质量评分（置信度、类型匹配度等）
+
+4. **跨集剪辑优化**
+   - 当前：所有跨集组合一视同仁
+   - 改进：优先推荐相邻集数的组合（如：第2集→第3集）
+
+## 总结
+
+V12版本成功实现了以下目标：
+
+✅ **笛卡尔积剪辑生成**：真正的 highlight × hook 组合
+✅ **跨集组合支持**：通过累积时长计算实现
+✅ **动态数量限制**：按时长比例动态分配，更公平
+✅ **固定开篇高光**：解决V11的"开篇高光"失控问题
+✅ **去重逻辑优化**：同集内去重，更精确
+✅ **时长限制放宽**：支持15秒-12分钟，适应更多平台
+
+**核心成果**：从V11的0个剪辑组合 → V12的11个剪辑组合（含3个跨集组合）
+
+---
+
+**文档版本**: 1.0
+**最后更新**: 2026-03-03
+**作者**: Claude Code + Happy

@@ -215,8 +215,6 @@ def video_understand(
         episode_durations,
         min_confidence=7.0,  # 测试7.0
         min_distance=10,  # 缩短到10秒
-        max_highlights_per_episode=2,
-        max_hooks_per_episode=3,
         max_same_type_per_episode=1  # 每集同类型最多1个
     )
 
@@ -225,9 +223,41 @@ def video_understand(
     hooks = [a for a in analyses if a.is_hook]
     print(f"\n筛选后: {len(highlights)} 个高光点, {len(hooks)} 个钩子点")
 
+    # 5.5. 添加固定的开篇高光点(第1集0秒)
+    print("\n[5.5/6] 添加固定的开篇高光点...")
+    episode1_has_opening = any(
+        h.episode == 1 and h.highlight_type == "开篇高光" and h.highlight_timestamp <= 5
+        for h in highlights
+    )
+
+    if not episode1_has_opening:
+        print("  第1集没有开篇高光,自动添加固定开篇高光点(第1集0秒)")
+        # 创建一个固定的高光点对象
+        from scripts.understand.analyze_segment import SegmentAnalysis
+        opening_highlight = SegmentAnalysis(
+            episode=1,
+            start_time=0,
+            end_time=30,  # 分析窗口30秒
+            is_highlight=True,
+            highlight_timestamp=0,  # 第0秒
+            highlight_type="开篇高光",
+            highlight_desc="第1集固定开篇高光点",
+            highlight_confidence=10.0,  # 最高置信度
+            is_hook=False,
+            hook_timestamp=0,
+            hook_type="",
+            hook_desc="",
+            hook_confidence=0.0
+        )
+        analyses.insert(0, opening_highlight)  # 插入到列表开头
+        highlights.insert(0, opening_highlight)
+        print("  ✅ 已添加开篇高光点")
+    else:
+        print("  第1集已有开篇高光点,跳过")
+
     # 6. 生成剪辑组合
     print("\n生成剪辑组合...")
-    clips = generate_clips(analyses)
+    clips = generate_clips(analyses, episode_durations)
 
     # 7. 保存结果
     print("\n保存结果...")

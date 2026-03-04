@@ -5,6 +5,81 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V12.0.0] - 2026-03-03
+
+### 新增 (Added)
+- **笛卡尔积剪辑生成** - 实现真正的 highlight × hook 笛卡尔积组合
+  - `scripts/understand/generate_clips.py`: 完全重写，支持笛卡尔积
+  - `calculate_cumulative_duration()`: 跨集累积时长计算函数
+  - 支持跨集剪辑组合（如：第2集开头 → 第3集钩子）
+- **动态数量限制** - 按集时长动态分配高光点和钩子点数量
+  - 每分钟1个高光点、6个钩子点
+  - 替代之前的固定数量（2高光+3钩子）
+- **固定开篇高光** - 第1集0秒自动添加为"开篇高光"
+  - 置信度10.0（最高）
+  - 不依赖AI识别，确保每部剧都有开篇高光
+
+### 改进 (Changed)
+- **去重逻辑优化** (scripts/understand/generate_clips.py)
+  - 从跨集30秒窗口 → 同集内5秒窗口
+  - 按（集数，类型）去重，更精确
+- **时长限制放宽** (scripts/understand/generate_clips.py)
+  - 最短：30秒 → 15秒
+  - 最长：5分钟 → 12分钟（720秒）
+- **AI提示词优化** (scripts/understand/analyze_segment.py)
+  - 移除"开篇高光"类型，专注内容特征
+  - 第168行：明确说明第1集0秒由系统自动添加
+- **函数签名修正** (scripts/understand/video_understand.py)
+  - `apply_quality_pipeline()`: 移除错误的参数（max_highlights_per_episode等）
+  - `generate_clips()`: 正确传递episode_durations参数
+
+### 移除 (Removed)
+- **"找最近钩子点"逻辑** - 替换为真正的笛卡尔积
+  - 旧逻辑：每个高光点只找最近的钩子点
+  - 新逻辑：每个高光点 × 每个钩子点 = 所有可能组合
+- **固定数量限制** - 移除每集2高光+3钩子的硬性限制
+  - 替换为动态数量限制（按时长比例）
+
+### 测试结果 (Testing)
+**测试范围**：百里将就（10集）
+
+| 指标 | 数值 |
+|------|------|
+| 高光点 | 3个（含第1集0秒固定开篇） |
+| 钩子点 | 13个 |
+| 理论组合 | 39种（3×13） |
+| 有效剪辑 | 11个（28.2%有效率） |
+| 跨集组合 | 3个 |
+| 平均置信度 | 8.06 |
+
+**剪辑组合示例**：
+- 第1集0秒 → 第1集301秒 = 301秒（同集）
+- 第1集75秒 → 第1集204秒 = 129秒（同集）
+- 第2集0秒 → 第3集54秒 = 355秒（跨集）✅
+- 第2集0秒 → 第4集79秒 = 681秒（跨集）✅
+
+### 技术细节 (Technical Details)
+**核心算法**：
+```python
+# 笛卡尔积生成
+for hl in highlights:
+    for hook in hooks:
+        # 计算累积时长（跨集）
+        hl_cumulative = calculate_cumulative_duration(hl.episode, hl.timestamp, episode_durations)
+        hook_cumulative = calculate_cumulative_duration(hook.episode, hook.timestamp, episode_durations)
+        duration = hook_cumulative - hl_cumulative
+
+        # 时长过滤
+        if 15 <= duration <= 720:
+            clips.append(Clip(...))
+```
+
+**累积时长计算**：
+- 第1集：0-867秒
+- 第2集：867-1141秒（867+274）
+- 第3集：1141-1397秒
+- 第N集：sum(第1集到第N-1集时长) + 当前集时间戳
+
 ## [V11.0.0] - 2026-03-03
 
 ### 新增 (Added)

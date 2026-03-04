@@ -1,9 +1,9 @@
 """
 生成剪辑组合模块
-根据高光点/钩子点生成剪辑片段
+根据高光点/钩子点生成剪辑片段（笛卡尔积）
 """
 import json
-from typing import List
+from typing import List, Dict
 from dataclasses import dataclass
 
 try:
@@ -30,27 +30,28 @@ except ImportError:
 
 
 # 配置参数
-MIN_CLIP_DURATION = 30   # 最短30秒
-MAX_CLIP_DURATION = 300  # 最长5分钟
-DEDUP_WINDOW = 30  # 去重时间窗口（秒）
+MIN_CLIP_DURATION = 15   # 最短15秒
+MAX_CLIP_DURATION = 720  # 最长12分钟(720秒)
+DEDUP_WINDOW = 5  # 同集内去重时间窗口（秒）
 
 
 @dataclass
 class Clip:
     """剪辑组合"""
-    start: int           # 起始秒
-    end: int           # 结束秒
+    start: int           # 起始累积秒（相对于第1集开头）
+    end: int           # 结束累积秒（相对于第1集开头）
     duration: int      # 时长（秒）
     highlight_type: str  # 高光类型
     highlight_desc: str  # 高光描述
     hook_type: str      # 钩子类型
     hook_desc: str      # 钩子描述
-    episode: int        # 集数
-    
+    episode: int        # 起始集数
+    hook_episode: int   # 结束集数
+
     @property
     def clip_type(self) -> str:
         return f"{self.highlight_type}-{self.hook_type}"
-    
+
     def to_dict(self) -> dict:
         return {
             "start": self.start,
@@ -61,18 +62,44 @@ class Clip:
             "hook": self.hook_type,
             "hookDesc": self.hook_desc,
             "type": self.clip_type,
-            "episode": self.episode
+            "episode": self.episode,
+            "hookEpisode": self.hook_episode
         }
 
 
-def deduplicate_highlights(highlights: List[SegmentAnalysis], window: int = DEDUP_WINDOW) -> List[SegmentAnalysis]:
-    """去重高光点
+def calculate_cumulative_duration(
+    episode: int,
+    timestamp: int,
+    episode_durations: Dict[int, int]
+) -> int:
+    """计算累积时长(跨集)
 
-    同一类型在时间窗口内只保留第一个
+    将(集数, 时间戳)转换为从第1集开头开始的绝对秒数
+
+    Args:
+        episode: 集数
+        timestamp: 该集内的时间戳（秒）
+        episode_durations: 各集时长字典 {集数: 时长秒数}
+
+    Returns:
+        从第1集0秒开始的累积秒数
+    """
+    cumulative = 0
+    for ep in sorted(episode_durations.keys()):
+        if ep < episode:
+            cumulative += episode_durations[ep]
+    cumulative += timestamp
+    return cumulative
+
+
+def deduplicate_highlights(highlights: List[SegmentAnalysis], window: int = DEDUP_WINDOW) -> List[SegmentAnalysis]:
+    """去重高光点(同集内去重)
+
+    同一集内,同一类型在时间窗口内只保留第一个
 
     Args:
         highlights: 高光点列表
-        window: 去重时间窗口
+        window: 去重时间窗口（秒）
 
     Returns:
         去重后的高光点
@@ -80,29 +107,32 @@ def deduplicate_highlights(highlights: List[SegmentAnalysis], window: int = DEDU
     if not highlights:
         return []
 
-    # 按类型和精确时间戳排序
-    sorted_hl = sorted(highlights, key=lambda x: (x.highlight_timestamp, x.highlight_type or ""))
+    # 按集数、类型和精确时间戳排序
+    sorted_hl = sorted(highlights, key=lambda x: (x.episode, x.highlight_type or "", x.highlight_timestamp))
 
     result = []
-    last_by_type = {}  # 记录每个类型最后出现的时间
+    last_by_ep_type = {}  # {(集数, 类型): 时间戳}
 
     for hl in sorted_hl:
         hl_type = hl.highlight_type or ""
-        last_time = last_by_type.get(hl_type, -999)
+        key = (hl.episode, hl_type)
+        last_time = last_by_ep_type.get(key, -999)
 
         if hl.highlight_timestamp - last_time >= window:
             result.append(hl)
-            last_by_type[hl_type] = hl.highlight_timestamp
+            last_by_ep_type[key] = hl.highlight_timestamp
 
     return result
 
 
 def deduplicate_hooks(hooks: List[SegmentAnalysis], window: int = DEDUP_WINDOW) -> List[SegmentAnalysis]:
-    """去重钩子点
+    """去重钩子点(同集内去重)
+
+    同一集内,同一类型在时间窗口内只保留第一个
 
     Args:
         hooks: 钩子点列表
-        window: 去重时间窗口
+        window: 去重时间窗口（秒）
 
     Returns:
         去重后的钩子点
@@ -110,99 +140,122 @@ def deduplicate_hooks(hooks: List[SegmentAnalysis], window: int = DEDUP_WINDOW) 
     if not hooks:
         return []
 
-    sorted_hooks = sorted(hooks, key=lambda x: (x.hook_timestamp, x.hook_type or ""))
+    # 按集数、类型和精确时间戳排序
+    sorted_hooks = sorted(hooks, key=lambda x: (x.episode, x.hook_type or "", x.hook_timestamp))
 
     result = []
-    last_by_type = {}
+    last_by_ep_type = {}  # {(集数, 类型): 时间戳}
 
     for hook in sorted_hooks:
         hook_type = hook.hook_type or ""
-        last_time = last_by_type.get(hook_type, -999)
+        key = (hook.episode, hook_type)
+        last_time = last_by_ep_type.get(key, -999)
 
         if hook.hook_timestamp - last_time >= window:
             result.append(hook)
-            last_by_type[hook_type] = hook.hook_timestamp
+            last_by_ep_type[key] = hook.hook_timestamp
 
     return result
 
 
 def generate_clips(
     analyses: List[SegmentAnalysis],
+    episode_durations: Dict[int, int],
     min_duration: int = MIN_CLIP_DURATION,
     max_duration: int = MAX_CLIP_DURATION,
     dedup_window: int = DEDUP_WINDOW
 ) -> List[Clip]:
-    """生成剪辑组合
-    
-    遍历每个高光点，找后续最近的钩子点，生成剪辑
-    
+    """生成剪辑组合（笛卡尔积）
+
+    每个高光点 × 每个钩子点 = 所有可能的组合
+    支持跨集组合，使用累积时长计算
+
     Args:
         analyses: 所有分析结果
-        min_duration: 最短时长
-        max_duration: 最长时长
-        dedup_window: 去重时间窗口
-        
+        episode_durations: 各集时长字典 {集数: 时长秒数}
+        min_duration: 最短时长（秒）
+        max_duration: 最长时长（秒）
+        dedup_window: 去重时间窗口（秒）
+
     Returns:
         剪辑组合列表
     """
     # 分离高光点和钩子点
     highlights = [a for a in analyses if a.is_highlight]
     hooks = [a for a in analyses if a.is_hook]
-    
+
     print(f"原始高光点: {len(highlights)}, 钩子点: {len(hooks)}")
-    
-    # 去重
+
+    # 去重（同集内）
     highlights = deduplicate_highlights(highlights, dedup_window)
     hooks = deduplicate_hooks(hooks, dedup_window)
-    
+
     print(f"去重后高光点: {len(highlights)}, 钩子点: {len(hooks)}")
-    
-    # 按精确时间戳排序
-    highlights = sorted(highlights, key=lambda x: x.highlight_timestamp)
-    hooks = sorted(hooks, key=lambda x: x.hook_timestamp)
+
+    # 按累积时间排序
+    highlights_with_cumulative = []
+    for hl in highlights:
+        cum = calculate_cumulative_duration(hl.episode, hl.highlight_timestamp, episode_durations)
+        highlights_with_cumulative.append((hl, cum))
+
+    hooks_with_cumulative = []
+    for hook in hooks:
+        cum = calculate_cumulative_duration(hook.episode, hook.hook_timestamp, episode_durations)
+        hooks_with_cumulative.append((hook, cum))
+
+    # 按累积时间排序
+    highlights_with_cumulative.sort(key=lambda x: x[1])
+    hooks_with_cumulative.sort(key=lambda x: x[1])
 
     clips = []
+    total_combinations = len(highlights) * len(hooks)
+    valid_count = 0
 
-    for hl in highlights:
-        # 找该高光点后面的钩子点
-        candidate_hooks = [
-            h for h in hooks
-            if h.hook_timestamp > hl.highlight_timestamp
-        ]
+    print(f"\n开始生成剪辑组合（笛卡尔积: {len(highlights)} × {len(hooks)} = {total_combinations}种组合）...")
 
-        if not candidate_hooks:
-            continue
+    # 生成笛卡尔积: 每个高光点 × 每个钩子点
+    for hl, hl_cumulative in highlights_with_cumulative:
+        for hook, hook_cumulative in hooks_with_cumulative:
 
-        # 找最近的钩子点
-        best_hook = min(candidate_hooks, key=lambda h: h.hook_timestamp - hl.highlight_timestamp)
+            # 计算时长（使用累积时间）
+            duration = hook_cumulative - hl_cumulative
 
-        # 检查时长（使用精确时间戳）
-        duration = best_hook.hook_timestamp - hl.highlight_timestamp
+            # 检查时长范围
+            if min_duration <= duration <= max_duration:
+                clip = Clip(
+                    start=hl_cumulative,
+                    end=hook_cumulative,
+                    duration=duration,
+                    highlight_type=hl.highlight_type or "未知",
+                    highlight_desc=hl.highlight_desc,
+                    hook_type=hook.hook_type or "未知",
+                    hook_desc=hook.hook_desc,
+                    episode=hl.episode,
+                    hook_episode=hook.episode
+                )
+                clips.append(clip)
+                valid_count += 1
 
-        if min_duration <= duration <= max_duration:
-            clip = Clip(
-                start=hl.highlight_timestamp,  # 使用精确时间戳
-                end=best_hook.hook_timestamp,  # 使用精确时间戳
-                duration=duration,
-                highlight_type=hl.highlight_type or "未知",
-                highlight_desc=hl.highlight_desc,
-                hook_type=best_hook.hook_type or "未知",
-                hook_desc=best_hook.hook_desc,
-                episode=hl.episode
-            )
-            clips.append(clip)
-            print(f"生成剪辑: 第{clip.episode}集 {clip.start}-{clip.end}秒 ({clip.duration}秒) [{clip.clip_type}]")
-    
-    # 按集数和时间排序
-    clips = sorted(clips, key=lambda x: (x.episode, x.start))
-    
-    print(f"\n共生成 {len(clips)} 个剪辑组合")
+                # 只打印前10个和后5个，避免刷屏
+                if valid_count <= 10 or valid_count > total_combinations - 5:
+                    if hl.episode == hook.episode:
+                        print(f"  [{valid_count}] 第{hl.episode}集 {hl.highlight_timestamp}s → 第{hook.episode}集 {hook.hook_timestamp}s = {duration}s [{clip.clip_type}]")
+                    else:
+                        print(f"  [{valid_count}] 第{hl.episode}集{hl.highlight_timestamp}s → 第{hook.episode}集{hook.hook_timestamp}s = {duration}s (跨集) [{clip.clip_type}]")
+                elif valid_count == 11:
+                    print(f"  ... (省略中间{total_combinations - 15}个组合)")
+
+    # 按起始时间和集数排序
+    clips = sorted(clips, key=lambda x: (x.start, x.episode))
+
+    print(f"\n✅ 共生成 {len(clips)} 个有效剪辑组合（共检查{total_combinations}种组合，有效率{len(clips)/total_combinations*100:.1f}%）")
+
     return clips
 
 
 def save_clips(clips: List[Clip], output_path: str):
     """保存剪辑组合到文件
-    
+
     Args:
         clips: 剪辑列表
         output_path: 输出路径
@@ -211,10 +264,10 @@ def save_clips(clips: List[Clip], output_path: str):
         "clips": [clip.to_dict() for clip in clips],
         "totalClips": len(clips)
     }
-    
+
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
-    
+
     print(f"剪辑组合已保存: {output_path}")
 
 
@@ -222,4 +275,5 @@ if __name__ == "__main__":
     print("generate_clips 模块已加载")
     print(f"最短剪辑: {MIN_CLIP_DURATION}秒")
     print(f"最长剪辑: {MAX_CLIP_DURATION}秒")
-    print(f"去重窗口: {DEDUP_WINDOW}秒")
+    print(f"去重窗口: {DEDUP_WINDOW}秒 (同集内)")
+    print("支持: 跨集笛卡尔积组合")

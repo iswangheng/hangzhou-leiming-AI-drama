@@ -2,76 +2,62 @@
   "projectName": "百里将就",
   "highlights": [
     {
-      "timestamp": 50,
+      "timestamp": 0,
       "episode": 1,
       "type": "开篇高光",
-      "confidence": 7.5,
-      "description": "剧情开始，交代男主需要结婚，引出后续剧情。"
+      "confidence": 10.0,
+      "description": "每部剧第1集开头的默认高光点"
     },
     {
-      "timestamp": 25,
+      "timestamp": 75,
       "episode": 1,
-      "type": "开篇高光点",
-      "confidence": 7.5,
-      "description": "开篇交代女主的特殊身份，陪世集团唯一的戒场人，引发观众对女主身份和后续剧情的好奇。"
+      "type": "开篇高光",
+      "confidence": 8.0,
+      "description": "女主打开手机，看到一条多年前的消息，引发观众好奇，想知道消息内容和背后的故事。"
     },
     {
       "timestamp": 0,
       "episode": 2,
       "type": "开篇高光",
       "confidence": 7.5,
-      "description": "第1集开头，男主面对众人窥探，暗示着某种冲突或秘密，引发观众好奇。"
+      "description": "第1集开头，男主面对众人窥探，暗示事件不简单，引发观众好奇。"
     }
   ],
   "hooks": [
-    {
-      "timestamp": 78,
-      "episode": 1,
-      "type": "关键信息被截断",
-      "confidence": 8.0,
-      "description": "女主收到一条消息，内容是“当年说的话，你还记得...”，关键信息被截断，观众想知道女主会如何回应，以及当年说了什么。"
-    },
-    {
-      "timestamp": 53,
-      "episode": 1,
-      "type": "关键信息被截断",
-      "confidence": 8.0,
-      "description": "女主打断母亲的话，说要早点回到陪家替他们分忧，但原因还没说完就被打断，观众想知道真正的原因。"
-    },
     {
       "timestamp": 301,
       "episode": 1,
       "type": "关键信息被截断",
       "confidence": 8.5,
-      "description": "男主在门外听到房间里的人议论宋瑾年的事情，正要推门进去，但听到关键对话“不会真的是来履行承诺的”，停住了，信息被截断，观众想知道宋瑾年是否真的回来履行承诺。"
+      "description": "男主在门外听到房间里的人提到“送紧年今天回来”，正要听到更多信息时结束，观众想知道送紧年是谁，回来会发生什么。"
     },
     {
-      "timestamp": 590,
+      "timestamp": 597,
       "episode": 1,
       "type": "悬念结束时刻",
       "confidence": 8.5,
-      "description": "男主正要推开门，即将看到包厢内的情景，画面结束，观众想知道会看到什么。"
+      "description": "男主正要推开门，观众想知道门后有什么，画面停在高潮"
     },
     {
       "timestamp": 204,
       "episode": 1,
       "type": "秘密揭露或真相揭示",
       "confidence": 8.0,
-      "description": "女主偷看男主手机，发现男主给前任发消息“念念不忘”，暗示男主可能出轨，观众想知道后续发展。"
+      "description": "女主偷看男主手机，发现男主给别人发“念念不忘”的信息，预示着感情危机或秘密恋情，观众想知道后续发展。"
     },
     {
-      "timestamp": 26,
+      "timestamp": 24,
       "episode": 2,
       "type": "关键信息被截断",
       "confidence": 8.0,
-      "description": "男主醉酒后对女主说“紧年不要走，留在我身边好不好”，话没说完就结束，观众想知道女主的反应以及两人关系。"
+      "description": "男主回忆中，女主说“紧年不要走，留在我身边好不好”，话没说完就结束，观众想知道为什么女主这么说，以及他们之间的关系。"
     },
     {
-      "timestamp": 79,
+      "timestamp": 124,
       "episode": 2,
       "type": "关键信息被截断",
       "confidence": 8.0,
-      "description": "女主离职的消息是否告知女朋友，男主是否会告知，关键信息被打断，观众想知道后续发展。"
+      "description": "女主正要说地址，突然听到奇怪的笑声，对话被打断，观众想知道发生了什么。"
     },
     {
       "timestamp": 54,
@@ -85,56 +71,189 @@
       "episode": 3,
       "type": "情感爆发顶点",
       "confidence": 7.5,
-      "description": "女主意识到自己只是男主的备胎，决定不再配合，情绪达到顶点，观众想知道她接下来会怎么做。"
+      "description": "女主关机前表达了对男主感情利用的不满，并决定不再做感情的配台，情感达到顶点，观众想知道后续女主会如何行动。"
     },
     {
       "timestamp": 79,
       "episode": 4,
       "type": "关键信息被截断",
       "confidence": 8.0,
-      "description": "男主喝醉酒回来，提着东西，突然闯入，让人好奇后续会发生什么，属于关键信息被打断。"
+      "description": "男主喝醉酒回来，提着东西，突然停在门口，观众想知道他要做什么，属于关键行动被打断。"
     },
     {
-      "timestamp": 43,
+      "timestamp": 42,
       "episode": 5,
       "type": "秘密揭露或真相揭示",
       "confidence": 7.5,
-      "description": "女主看到男主和新欢的照片，得知被利用的真相，这里是情感转折点，观众想知道女主后续反应"
+      "description": "女主看到男主和新欢的照片，得知真相，情绪转变，观众想知道后续发展。"
     },
     {
-      "timestamp": 25,
+      "timestamp": 23,
       "episode": 6,
       "type": "关键信息被截断",
       "confidence": 7.5,
-      "description": "女主正在看心郎服，男主突然出现并质问，被打断，观众想知道男主会做什么。"
+      "description": "女主正在看心郎服，男主突然出现并质问“你看心郎服干什么”，关键信息被打断，观众想知道女主如何解释，以及男主是否会相信。"
     },
     {
-      "timestamp": 72,
+      "timestamp": 73,
       "episode": 8,
       "type": "关键信息被截断",
       "confidence": 8.0,
-      "description": "女主刚要说出“明天就是…”，话被打断，观众想知道明天是什么，属于关键信息被截断。"
+      "description": "女主正要说出“准确来说，是温房”，但画面结束，观众想知道温房是什么，信息被截断。"
     },
     {
-      "timestamp": 40,
+      "timestamp": 41,
       "episode": 9,
       "type": "关键信息被截断",
       "confidence": 8.0,
       "description": "女主正要问对方有什么事，突然被楼上声音打断，想知道楼上发生了什么，属于关键信息被打断。"
     },
     {
-      "timestamp": 48,
+      "timestamp": 51,
       "episode": 10,
       "type": "关键信息被截断",
       "confidence": 8.0,
-      "description": "唐国本也要看人，突然想起一件事，台手搭上了他的肩膀，暗示着可能要揭露什么，但戛然而止，属于关键信息被截断。"
+      "description": "男主正要说出“要是成了...该怎么办”，属于重要决定即将揭晓时被打断，观众想知道成了之后会发生什么，因此是真钩子。"
     }
   ],
-  "clips": [],
+  "clips": [
+    {
+      "start": 0,
+      "end": 204,
+      "duration": 204,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "秘密揭露或真相揭示",
+      "hookDesc": "女主偷看男主手机，发现男主给别人发“念念不忘”的信息，预示着感情危机或秘密恋情，观众想知道后续发展。",
+      "type": "开篇高光-秘密揭露或真相揭示",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 0,
+      "end": 301,
+      "duration": 301,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "男主在门外听到房间里的人提到“送紧年今天回来”，正要听到更多信息时结束，观众想知道送紧年是谁，回来会发生什么。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 0,
+      "end": 597,
+      "duration": 597,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "悬念结束时刻",
+      "hookDesc": "男主正要推开门，观众想知道门后有什么，画面停在高潮",
+      "type": "开篇高光-悬念结束时刻",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 75,
+      "end": 204,
+      "duration": 129,
+      "highlight": "开篇高光",
+      "highlightDesc": "女主打开手机，看到一条多年前的消息，引发观众好奇，想知道消息内容和背后的故事。",
+      "hook": "秘密揭露或真相揭示",
+      "hookDesc": "女主偷看男主手机，发现男主给别人发“念念不忘”的信息，预示着感情危机或秘密恋情，观众想知道后续发展。",
+      "type": "开篇高光-秘密揭露或真相揭示",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 75,
+      "end": 301,
+      "duration": 226,
+      "highlight": "开篇高光",
+      "highlightDesc": "女主打开手机，看到一条多年前的消息，引发观众好奇，想知道消息内容和背后的故事。",
+      "hook": "关键信息被截断",
+      "hookDesc": "男主在门外听到房间里的人提到“送紧年今天回来”，正要听到更多信息时结束，观众想知道送紧年是谁，回来会发生什么。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 75,
+      "end": 597,
+      "duration": 522,
+      "highlight": "开篇高光",
+      "highlightDesc": "女主打开手机，看到一条多年前的消息，引发观众好奇，想知道消息内容和背后的故事。",
+      "hook": "悬念结束时刻",
+      "hookDesc": "男主正要推开门，观众想知道门后有什么，画面停在高潮",
+      "type": "开篇高光-悬念结束时刻",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 867,
+      "end": 891,
+      "duration": 24,
+      "highlight": "开篇高光",
+      "highlightDesc": "第1集开头，男主面对众人窥探，暗示事件不简单，引发观众好奇。",
+      "hook": "关键信息被截断",
+      "hookDesc": "男主回忆中，女主说“紧年不要走，留在我身边好不好”，话没说完就结束，观众想知道为什么女主这么说，以及他们之间的关系。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 2,
+      "hookEpisode": 2
+    },
+    {
+      "start": 867,
+      "end": 991,
+      "duration": 124,
+      "highlight": "开篇高光",
+      "highlightDesc": "第1集开头，男主面对众人窥探，暗示事件不简单，引发观众好奇。",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主正要说地址，突然听到奇怪的笑声，对话被打断，观众想知道发生了什么。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 2,
+      "hookEpisode": 2
+    },
+    {
+      "start": 867,
+      "end": 1222,
+      "duration": 355,
+      "highlight": "开篇高光",
+      "highlightDesc": "第1集开头，男主面对众人窥探，暗示事件不简单，引发观众好奇。",
+      "hook": "关键信息被截断",
+      "hookDesc": "女主质问男主为什么要隐瞒关系，男主未解释只回复日期，关键信息被截断，观众想知道日期代表什么。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 2,
+      "hookEpisode": 3
+    },
+    {
+      "start": 867,
+      "end": 1247,
+      "duration": 380,
+      "highlight": "开篇高光",
+      "highlightDesc": "第1集开头，男主面对众人窥探，暗示事件不简单，引发观众好奇。",
+      "hook": "情感爆发顶点",
+      "hookDesc": "女主关机前表达了对男主感情利用的不满，并决定不再做感情的配台，情感达到顶点，观众想知道后续女主会如何行动。",
+      "type": "开篇高光-情感爆发顶点",
+      "episode": 2,
+      "hookEpisode": 3
+    },
+    {
+      "start": 867,
+      "end": 1548,
+      "duration": 681,
+      "highlight": "开篇高光",
+      "highlightDesc": "第1集开头，男主面对众人窥探，暗示事件不简单，引发观众好奇。",
+      "hook": "关键信息被截断",
+      "hookDesc": "男主喝醉酒回来，提着东西，突然停在门口，观众想知道他要做什么，属于关键行动被打断。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 2,
+      "hookEpisode": 4
+    }
+  ],
   "statistics": {
     "totalHighlights": 3,
-    "totalHooks": 15,
-    "totalClips": 0,
-    "averageConfidence": 7.888888888888889
+    "totalHooks": 13,
+    "totalClips": 11,
+    "averageConfidence": 8.0625
   }
 }
