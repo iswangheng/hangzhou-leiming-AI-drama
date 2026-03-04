@@ -207,14 +207,14 @@ class SegmentAnalysis:
 
     # 高光点数据
     is_highlight: bool
-    highlight_timestamp: int  # 精确时间戳
+    highlight_timestamp: float  # V13: 支持毫秒精度（精确时间戳）
     highlight_type: Optional[str]
     highlight_desc: str
     highlight_confidence: float  # 置信度 0-10
 
     # 钩子点数据
     is_hook: bool
-    hook_timestamp: int  # 精确时间戳
+    hook_timestamp: float  # V13: 支持毫秒精度（精确时间戳）
     hook_type: Optional[str]
     hook_desc: str
     hook_confidence: float  # 置信度 0-10
@@ -455,16 +455,16 @@ def analyze_segment(
                 start_time=segment.start_time,
                 end_time=segment.end_time,
 
-                # 高光点
+                # 高光点（V13: 转换为浮点数支持毫秒精度）
                 is_highlight=hl_data.get("exists", False),
-                highlight_timestamp=hl_data.get("preciseSecond", segment.start_time),
+                highlight_timestamp=float(hl_data.get("preciseSecond", segment.start_time)),
                 highlight_type=hl_data.get("type"),
                 highlight_desc=hl_data.get("reasoning", ""),
                 highlight_confidence=hl_data.get("confidence", 0.0),
 
-                # 钩子点
+                # 钩子点（V13: 转换为浮点数支持毫秒精度）
                 is_hook=hook_data.get("exists", False),
-                hook_timestamp=hook_data.get("preciseSecond", segment.start_time),
+                hook_timestamp=float(hook_data.get("preciseSecond", segment.start_time)),
                 hook_type=hook_data.get("type"),
                 hook_desc=hook_data.get("reasoning", ""),
                 hook_confidence=hook_data.get("confidence", 0.0)
@@ -482,11 +482,15 @@ def analyze_segment(
                     start_time=segment.start_time,
                     end_time=segment.end_time,
                     is_highlight=False,
+                    highlight_timestamp=0.0,  # V13: 浮点数
                     highlight_type=None,
                     highlight_desc="分析失败",
+                    highlight_confidence=0.0,
                     is_hook=False,
+                    hook_timestamp=0.0,  # V13: 浮点数
                     hook_type=None,
-                    hook_desc="分析失败"
+                    hook_desc="分析失败",
+                    hook_confidence=0.0
                 )
 
 

@@ -31,9 +31,9 @@ def format_time(seconds: int) -> str:
 @dataclass
 class Clip:
     """剪辑组合"""
-    start: int           # 起始累积秒（相对于第1集开头）
-    end: int           # 结束累积秒（相对于第1集开头）
-    duration: int      # 时长（秒）
+    start: float           # 起始累积秒（相对于第1集开头）V13: 支持毫秒精度
+    end: float           # 结束累积秒（相对于第1集开头）V13: 支持毫秒精度
+    duration: float      # 时长（秒）V13: 支持毫秒精度
     highlight: str      # 高光类型
     highlightDesc: str  # 高光描述
     hook: str          # 钩子类型
@@ -64,8 +64,8 @@ class VideoFile:
 class ClipSegment:
     """剪辑片段"""
     episode: int
-    start: int      # 开始秒（在该集内）
-    end: int        # 结束秒（在该集内）
+    start: float      # 开始秒（在该集内）V13: 支持毫秒精度
+    end: float        # 结束秒（在该集内）V13: 支持毫秒精度
     video_path: str
 
 
@@ -213,6 +213,7 @@ class ClipRenderer:
         处理两种情况：
         1. 同集剪辑：episode == hook_episode，返回1个片段
         2. 跨集剪辑：episode != hook_episode，返回多个片段
+        V13: 支持毫秒精度（浮点数时间戳）
         """
         segments = []
 
@@ -221,33 +222,33 @@ class ClipRenderer:
             raise ValueError(f"找不到第{clip.episode}集视频文件")
 
         # 计算起始集的开始时间
-        start_cumulative = clip.start
+        start_cumulative = float(clip.start)
 
         # 从start累积时间推算在该集内的开始时间
-        cumulative_before = 0
+        cumulative_before = 0.0
         for ep in sorted(self.episode_durations.keys()):
             if ep < clip.episode:
-                cumulative_before += self.episode_durations[ep]
+                cumulative_before += float(self.episode_durations[ep])
 
         start_in_episode = start_cumulative - cumulative_before
 
         # 如果是同集剪辑
         if clip.episode == clip.hookEpisode:
-            end_in_episode = start_in_episode + clip.duration
+            end_in_episode = start_in_episode + float(clip.duration)
             segments.append(ClipSegment(
                 episode=clip.episode,
-                start=int(start_in_episode),
-                end=int(end_in_episode),
+                start=start_in_episode,  # V13: 保持浮点数精度
+                end=end_in_episode,      # V13: 保持浮点数精度
                 video_path=self.video_files[clip.episode].path
             ))
         else:
             # 跨集剪辑：第一集片段
-            first_ep_duration = self.episode_durations[clip.episode]
+            first_ep_duration = float(self.episode_durations[clip.episode])
             first_segment_end = first_ep_duration - start_in_episode
             segments.append(ClipSegment(
                 episode=clip.episode,
-                start=int(start_in_episode),
-                end=int(first_ep_duration),
+                start=start_in_episode,  # V13: 保持浮点数精度
+                end=first_ep_duration,   # V13: 保持浮点数精度
                 video_path=self.video_files[clip.episode].path
             ))
 
@@ -256,23 +257,23 @@ class ClipRenderer:
                 if clip.episode < ep < clip.hookEpisode:
                     segments.append(ClipSegment(
                         episode=ep,
-                        start=0,
-                        end=self.episode_durations[ep],
+                        start=0.0,  # V13: 保持浮点数精度
+                        end=float(self.episode_durations[ep]),  # V13: 保持浮点数精度
                         video_path=self.video_files[ep].path
                     ))
 
             # 最后一集片段
-            end_cumulative = clip.end
-            cumulative_before_last = 0
+            end_cumulative = float(clip.end)
+            cumulative_before_last = 0.0
             for ep in sorted(self.episode_durations.keys()):
                 if ep < clip.hookEpisode:
-                    cumulative_before_last += self.episode_durations[ep]
+                    cumulative_before_last += float(self.episode_durations[ep])
 
             end_in_last_episode = end_cumulative - cumulative_before_last
             segments.append(ClipSegment(
                 episode=clip.hookEpisode,
-                start=0,
-                end=int(end_in_last_episode),
+                start=0.0,  # V13: 保持浮点数精度
+                end=end_in_last_episode,  # V13: 保持浮点数精度
                 video_path=self.video_files[clip.hook_episode].path
             ))
 
@@ -291,13 +292,17 @@ class ClipRenderer:
             output_path: 输出文件路径
             on_progress: 进度回调函数（0.0-1.0）
         """
-        # FFmpeg命令
+        # V13: 支持毫秒精度（浮点数时间戳）
+        start_time = segment.start if isinstance(segment.start, float) else float(segment.start)
+        duration = segment.end - segment.start
+
+        # FFmpeg命令（使用毫秒精度）
         cmd = [
             'ffmpeg',
             '-y',  # 覆盖输出文件
-            '-ss', str(segment.start),  # 开始时间
+            '-ss', f"{start_time:.3f}",  # V13: 毫秒精度开始时间
             '-i', segment.video_path,  # 输入文件
-            '-t', str(segment.end - segment.start),  # 持续时间
+            '-t', f"{duration:.3f}",  # V13: 毫秒精度持续时间
             '-c:v', 'libx264',  # 视频编码器
             '-c:a', 'aac',  # 音频编码器
             '-crf', str(self.crf),  # 质量
@@ -428,7 +433,7 @@ class ClipRenderer:
         print(f"\n渲染剪辑: {filename}")
         print(f"  起始: 第{clip.episode}集{format_time(int(start_in_episode))}")
         print(f"  结束: 第{clip.hookEpisode}集{format_time(int(end_in_episode))}")
-        print(f"  时长: {clip.duration}秒")
+        print(f"  时长: {clip.duration:.3f}秒")  # V13: 显示毫秒精度
         print(f"  跨集: {'是' if clip.is_cross_episode else '否'}")
 
         # 转换为视频片段
@@ -436,7 +441,7 @@ class ClipRenderer:
 
         print(f"  片段数: {len(segments)}")
         for i, seg in enumerate(segments, 1):
-            print(f"    {i}. 第{seg.episode}集 {seg.start}-{seg.end}秒")
+            print(f"    {i}. 第{seg.episode}集 {seg.start:.3f}-{seg.end:.3f}秒")  # V13: 显示毫秒精度
 
         # 如果只有1个片段且不是跨集，直接裁剪
         if len(segments) == 1:

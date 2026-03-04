@@ -239,12 +239,12 @@ def video_understand(
             start_time=0,
             end_time=30,  # 分析窗口30秒
             is_highlight=True,
-            highlight_timestamp=0,  # 第0秒
+            highlight_timestamp=0.0,  # V13: 浮点数精度
             highlight_type="开篇高光",
             highlight_desc="第1集固定开篇高光点",
             highlight_confidence=10.0,  # 最高置信度
             is_hook=False,
-            hook_timestamp=0,
+            hook_timestamp=0.0,  # V13: 浮点数精度
             hook_type="",
             hook_desc="",
             hook_confidence=0.0
@@ -255,9 +255,22 @@ def video_understand(
     else:
         print("  第1集已有开篇高光点,跳过")
 
-    # 6. 生成剪辑组合
+    # 6. 生成剪辑组合（V13: 传入ASR数据进行时间戳优化）
     print("\n生成剪辑组合...")
-    clips = generate_clips(analyses, episode_durations)
+
+    # 收集所有ASR片段（用于时间戳优化）
+    all_asr_segments = []
+    for asr_list in episode_asr.values():
+        all_asr_segments.extend(asr_list)
+
+    print(f"已收集 {len(all_asr_segments)} 个ASR片段，用于时间戳精度优化")
+
+    clips = generate_clips(
+        analyses,
+        episode_durations,
+        asr_segments=all_asr_segments,  # V13: 传入ASR数据
+        enable_timestamp_optimization=True  # V13: 启用时间戳优化
+    )
 
     # 7. 保存结果
     print("\n保存结果...")
@@ -267,12 +280,20 @@ def video_understand(
     os.makedirs(output_dir, exist_ok=True)
     result_path = os.path.join(output_dir, "result.json")
 
-    # 构建结果数据结构
+    # 构建结果数据结构（V13: 保留毫秒精度）
+    def format_timestamp(ts):
+        """格式化时间戳：整数值返回整数，浮点数保留3位小数"""
+        if isinstance(ts, int):
+            return ts
+        if isinstance(ts, float) and ts.is_integer():
+            return int(ts)
+        return round(ts, 3)
+
     result = {
         "projectName": project_name,
         "highlights": [
             {
-                "timestamp": a.highlight_timestamp,  # 使用精确时间戳
+                "timestamp": format_timestamp(a.highlight_timestamp),  # V13: 保留精度
                 "episode": a.episode,
                 "type": a.highlight_type,
                 "confidence": a.highlight_confidence,
@@ -282,7 +303,7 @@ def video_understand(
         ],
         "hooks": [
             {
-                "timestamp": a.hook_timestamp,  # 使用精确时间戳
+                "timestamp": format_timestamp(a.hook_timestamp),  # V13: 保留精度
                 "episode": a.episode,
                 "type": a.hook_type,
                 "confidence": a.hook_confidence,

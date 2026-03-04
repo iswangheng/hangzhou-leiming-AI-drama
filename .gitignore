@@ -36,6 +36,10 @@ next-env.d.ts
 # 数据和缓存文件（不应提交到Git）
 data/hangzhou-leiming/cache/
 data/hangzhou-leiming/projects/
+data/hangzhou-leiming/analysis/  # 分析结果和剪辑数据
+
+# 剪辑输出（不应提交到Git）
+clips/  # 渲染后的视频剪辑文件
 
 # 媒体文件（训练和测试素材，不应提交到Git）
 

@@ -1,16 +1,24 @@
 """
 生成剪辑组合模块
 根据高光点/钩子点生成剪辑片段（笛卡尔积）
+V13: 支持ASR辅助的时间戳精度优化（毫秒级）
 """
 import json
-from typing import List, Dict
+from typing import List, Dict, Union
 from dataclasses import dataclass
 
 try:
     from scripts.understand.analyze_segment import SegmentAnalysis
+    from scripts.data_models import ASRSegment
 except ImportError:
     from dataclasses import dataclass
     from typing import Optional
+
+    @dataclass
+    class ASRSegment:
+        text: str
+        start: float
+        end: float
 
     @dataclass
     class SegmentAnalysis:
@@ -18,12 +26,12 @@ except ImportError:
         start_time: int
         end_time: int
         is_highlight: bool
-        highlight_timestamp: int = 0  # 精确时间戳
+        highlight_timestamp: Union[int, float] = 0  # V13: 支持毫秒精度
         highlight_type: Optional[str] = None
         highlight_desc: str = ""
         highlight_confidence: float = 0.0
         is_hook: bool = False
-        hook_timestamp: int = 0  # 精确时间戳
+        hook_timestamp: Union[int, float] = 0  # V13: 支持毫秒精度
         hook_type: Optional[str] = None
         hook_desc: str = ""
         hook_confidence: float = 0.0
@@ -34,13 +42,21 @@ MIN_CLIP_DURATION = 15   # 最短15秒
 MAX_CLIP_DURATION = 720  # 最长12分钟(720秒)
 DEDUP_WINDOW = 5  # 同集内去重时间窗口（秒）
 
+# V13: 导入时间戳优化模块
+try:
+    from scripts.understand.timestamp_optimizer import optimize_clips_timestamps
+    TIMESTAMP_OPTIMIZATION_ENABLED = True
+except ImportError:
+    TIMESTAMP_OPTIMIZATION_ENABLED = False
+    print("警告: 时间戳优化模块不可用，将使用原始时间戳")
+
 
 @dataclass
 class Clip:
     """剪辑组合"""
-    start: int           # 起始累积秒（相对于第1集开头）
-    end: int           # 结束累积秒（相对于第1集开头）
-    duration: int      # 时长（秒）
+    start: Union[int, float]           # 起始累积秒（相对于第1集开头）V13: 支持浮点数
+    end: Union[int, float]           # 结束累积秒（相对于第1集开头）V13: 支持浮点数
+    duration: Union[int, float]      # 时长（秒）V13: 支持浮点数
     highlight_type: str  # 高光类型
     highlight_desc: str  # 高光描述
     hook_type: str      # 钩子类型
@@ -54,9 +70,9 @@ class Clip:
 
     def to_dict(self) -> dict:
         return {
-            "start": self.start,
-            "end": self.end,
-            "duration": self.duration,
+            "start": int(self.start) if isinstance(self.start, int) or self.start.is_integer() else round(self.start, 3),
+            "end": int(self.end) if isinstance(self.end, int) or self.end.is_integer() else round(self.end, 3),
+            "duration": int(self.duration) if isinstance(self.duration, int) or self.duration.is_integer() else round(self.duration, 3),
             "highlight": self.highlight_type,
             "highlightDesc": self.highlight_desc,
             "hook": self.hook_type,
@@ -69,26 +85,27 @@ class Clip:
 
 def calculate_cumulative_duration(
     episode: int,
-    timestamp: int,
+    timestamp: Union[int, float],
     episode_durations: Dict[int, int]
-) -> int:
+) -> float:
     """计算累积时长(跨集)
 
     将(集数, 时间戳)转换为从第1集开头开始的绝对秒数
+    V13: 支持毫秒精度（浮点数时间戳）
 
     Args:
         episode: 集数
-        timestamp: 该集内的时间戳（秒）
+        timestamp: 该集内的时间戳（秒，支持浮点数）
         episode_durations: 各集时长字典 {集数: 时长秒数}
 
     Returns:
-        从第1集0秒开始的累积秒数
+        从第1集0秒开始的累积秒数（浮点数）
     """
-    cumulative = 0
+    cumulative = 0.0
     for ep in sorted(episode_durations.keys()):
         if ep < episode:
-            cumulative += episode_durations[ep]
-    cumulative += timestamp
+            cumulative += float(episode_durations[ep])
+    cumulative += float(timestamp)
     return cumulative
 
 
@@ -163,12 +180,15 @@ def generate_clips(
     episode_durations: Dict[int, int],
     min_duration: int = MIN_CLIP_DURATION,
     max_duration: int = MAX_CLIP_DURATION,
-    dedup_window: int = DEDUP_WINDOW
+    dedup_window: int = DEDUP_WINDOW,
+    asr_segments: List[ASRSegment] = None,
+    enable_timestamp_optimization: bool = True
 ) -> List[Clip]:
     """生成剪辑组合（笛卡尔积）
 
     每个高光点 × 每个钩子点 = 所有可能的组合
     支持跨集组合，使用累积时长计算
+    V13: 支持ASR辅助的时间戳精度优化（毫秒级）
 
     Args:
         analyses: 所有分析结果
@@ -176,6 +196,8 @@ def generate_clips(
         min_duration: 最短时长（秒）
         max_duration: 最长时长（秒）
         dedup_window: 去重时间窗口（秒）
+        asr_segments: ASR语音识别数据（用于时间戳优化，可选）
+        enable_timestamp_optimization: 是否启用时间戳优化（默认True）
 
     Returns:
         剪辑组合列表
@@ -185,6 +207,20 @@ def generate_clips(
     hooks = [a for a in analyses if a.is_hook]
 
     print(f"原始高光点: {len(highlights)}, 钩子点: {len(hooks)}")
+
+    # V13: ASR辅助的时间戳优化（在去重之前进行优化）
+    if enable_timestamp_optimization and asr_segments and TIMESTAMP_OPTIMIZATION_ENABLED:
+        print("\n[时间戳优化] 启用ASR辅助的毫秒级精度优化...")
+        highlights, hooks = optimize_clips_timestamps(
+            highlights=highlights,
+            hooks=hooks,
+            asr_segments=asr_segments,
+            buffer_ms=100.0  # 100ms缓冲
+        )
+    elif not asr_segments:
+        print("\n[时间戳优化] 未提供ASR数据，跳过优化（使用原始秒级时间戳）")
+    elif not TIMESTAMP_OPTIMIZATION_ENABLED:
+        print("\n[时间戳优化] 时间戳优化模块未加载，跳过优化")
 
     # 去重（同集内）
     highlights = deduplicate_highlights(highlights, dedup_window)

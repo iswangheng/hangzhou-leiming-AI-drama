@@ -5,6 +5,57 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V13.0.0] - 2026-03-03
+
+### 新增 (Added)
+- **ASR辅助时间戳优化** - 使用语音识别数据智能调整时间戳精度
+  - `scripts/understand/timestamp_optimizer.py`: 新增时间戳优化模块
+  - `adjust_hook_point()`: 钩子点优化，确保话已说完
+  - `adjust_highlight_point()`: 高光点优化，确保话刚开始
+  - `optimize_clips_timestamps()`: 批量优化所有时间戳
+- **毫秒级精度支持** - 全面支持浮点数时间戳（秒.毫秒格式）
+  - `SegmentAnalysis`: timestamp字段从int改为float
+  - `Clip`: start/end/duration字段支持float
+  - `ClipSegment`: start/end字段支持float
+  - FFmpeg裁剪支持毫秒精度（`-ss 75.200`而非`-ss 75`）
+
+### 改进 (Changed)
+- **数据结构类型升级**
+  - `generate_clips.py`: 时间戳支持Union[int, float]
+  - `analyze_segment.py`: highlight_timestamp/hook_timestamp改为float
+  - `render_clips.py`: 所有时间戳字段支持float
+  - `video_understand.py`: 结果JSON保留毫秒精度
+- **时间戳优化集成**
+  - `generate_clips()`: 新增asr_segments参数（可选）
+  - `video_understand.py`: 自动收集ASR数据并传入generate_clips()
+  - FFmpeg命令使用`f"{timestamp:.3f}"`格式化
+- **音频优先原则**
+  - 钩子点：对齐到ASR片段结束时间+100ms缓冲
+  - 高光点：对齐到ASR片段开始时间-100ms缓冲
+  - 避免话被截断，提升观看体验
+
+### 技术细节 (Technical Details)
+**优化策略**：
+```python
+# 钩子点优化：等话说完
+def adjust_hook_point(hook_timestamp, asr_segments):
+    for segment in asr_segments:
+        if segment.start > hook_timestamp:
+            return segment.end + 0.1  # 结束时间+100ms缓冲
+
+# 高光点优化：从话开始
+def adjust_highlight_point(highlight_timestamp, asr_segments):
+    for segment in reversed(asr_segments):
+        if segment.end < highlight_timestamp:
+            return segment.start - 0.1  # 开始时间-100ms缓冲
+```
+
+**精度提升**：
+- 之前：秒级精度（如：75秒）
+- 现在：毫秒级精度（如：75.200秒）
+- 视频帧率：25帧/秒 = 40ms/帧
+- 优化后：可精确定位到句子边界，避免话被截断
+
 ## [V12.0.0] - 2026-03-03
 
 ### 新增 (Added)
