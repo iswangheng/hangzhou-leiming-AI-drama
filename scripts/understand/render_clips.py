@@ -11,6 +11,23 @@ from dataclasses import dataclass
 import re
 
 
+def format_time(seconds: int) -> str:
+    """格式化时间为中文显示
+
+    Args:
+        seconds: 秒数
+
+    Returns:
+        格式化后的时间字符串（如："3分24秒" 或 "45秒"）
+    """
+    if seconds < 60:
+        return f"{seconds}秒"
+    else:
+        minutes = seconds // 60
+        secs = seconds % 60
+        return f"{minutes}分{secs}秒"
+
+
 @dataclass
 class Clip:
     """剪辑组合"""
@@ -64,7 +81,8 @@ class ClipRenderer:
         height: int = 1080,
         fps: int = 30,
         crf: int = 18,
-        preset: str = "fast"
+        preset: str = "fast",
+        project_name: Optional[str] = None
     ):
         """初始化剪辑渲染器
 
@@ -77,10 +95,17 @@ class ClipRenderer:
             fps: 输出帧率
             crf: CRF质量（18-28，越小质量越高）
             preset: 编码预设（ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow）
+            project_name: 项目名称（用于文件命名）
         """
         self.project_path = Path(project_path)
         self.output_dir = Path(output_dir)
         self.video_dir = Path(video_dir) if video_dir else self.project_path
+
+        # 提取项目名称（如果未提供）
+        if project_name is None:
+            project_name = self.project_path.name
+
+        self.project_name = project_name
 
         # FFmpeg参数
         self.width = width
@@ -374,17 +399,35 @@ class ClipRenderer:
         Returns:
             输出文件路径
         """
-        # 生成输出文件名
+        # 生成输出文件名（中文格式）
         if output_path is None:
-            clip_type_safe = clip.clip_type.replace('/', '-').replace(' ', '_')
-            if clip.is_cross_episode:
-                filename = f"clip_ep{clip.episode}-ep{clip.hookEpisode}_{clip_type_safe}.mp4"
-            else:
-                filename = f"clip_ep{clip.episode}_{clip.start}-{clip.end}_{clip_type_safe}.mp4"
+            # 计算起始和结束时间（在该集内的秒数）
+            start_cumulative = clip.start
+            end_cumulative = clip.end
+
+            # 计算起始集内的秒数
+            cumulative_before_start = 0
+            for ep in sorted(self.episode_durations.keys()):
+                if ep < clip.episode:
+                    cumulative_before_start += self.episode_durations[ep]
+
+            start_in_episode = start_cumulative - cumulative_before_start
+
+            # 计算结束集内的秒数
+            cumulative_before_end = 0
+            for ep in sorted(self.episode_durations.keys()):
+                if ep < clip.hookEpisode:
+                    cumulative_before_end += self.episode_durations[ep]
+
+            end_in_episode = end_cumulative - cumulative_before_end
+
+            # 生成中文文件名
+            filename = f"{self.project_name}_第{clip.episode}集{format_time(int(start_in_episode))}_第{clip.hookEpisode}集{format_time(int(end_in_episode))}.mp4"
             output_path = str(self.output_dir / filename)
 
         print(f"\n渲染剪辑: {filename}")
-        print(f"  类型: {clip.clip_type}")
+        print(f"  起始: 第{clip.episode}集{format_time(int(start_in_episode))}")
+        print(f"  结束: 第{clip.hookEpisode}集{format_time(int(end_in_episode))}")
         print(f"  时长: {clip.duration}秒")
         print(f"  跨集: {'是' if clip.is_cross_episode else '否'}")
 
@@ -472,17 +515,25 @@ def main():
     import sys
 
     if len(sys.argv) < 2:
-        print("用法: python -m scripts.understand.render_clips <项目路径> [输出目录]")
-        print("示例: python -m scripts.understand.render_clips ./漫剧素材/百里将就")
+        print("用法: python -m scripts.understand.render_clips <项目路径> [视频目录]")
+        print("示例: python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就")
         sys.exit(1)
 
     project_path = sys.argv[1]
-    output_dir = sys.argv[2] if len(sys.argv) > 2 else f"{project_path}/clips"
+    video_dir = sys.argv[2] if len(sys.argv) > 2 else None
+
+    # 从项目路径提取项目名称
+    project_name = Path(project_path).name
+
+    # 新的输出目录：clips/{项目名}/
+    output_dir = f"clips/{project_name}"
 
     # 创建渲染器
     renderer = ClipRenderer(
         project_path=project_path,
-        output_dir=output_dir
+        output_dir=output_dir,
+        video_dir=video_dir,
+        project_name=project_name
     )
 
     # 渲染所有剪辑

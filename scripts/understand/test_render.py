@@ -19,13 +19,15 @@ def test_single_clip():
 
     project_path = "data/hangzhou-leiming/analysis/百里将就"
     video_dir = "漫剧素材/百里将就"  # 视频文件目录
-    output_dir = "data/hangzhou-leiming/analysis/百里将就/clips"
+    project_name = "百里将就"  # 项目名称
+    output_dir = f"clips/{project_name}"  # 新的输出目录
 
     # 创建渲染器
     renderer = ClipRenderer(
         project_path=project_path,
         output_dir=output_dir,
-        video_dir=video_dir  # 指定视频目录
+        video_dir=video_dir,  # 指定视频目录
+        project_name=project_name  # 传递项目名称
     )
 
     # 打印基本信息
@@ -90,13 +92,15 @@ def test_all_clips():
 
     project_path = "data/hangzhou-leiming/analysis/百里将就"
     video_dir = "漫剧素材/百里将就"  # 视频文件目录
-    output_dir = "data/hangzhou-leiming/analysis/百里将就/clips"
+    project_name = "百里将就"  # 项目名称
+    output_dir = f"clips/{project_name}"  # 新的输出目录
 
     # 创建渲染器
     renderer = ClipRenderer(
         project_path=project_path,
         output_dir=output_dir,
-        video_dir=video_dir  # 指定视频目录
+        video_dir=video_dir,  # 指定视频目录
+        project_name=project_name  # 传递项目名称
     )
 
     # 渲染所有剪辑
