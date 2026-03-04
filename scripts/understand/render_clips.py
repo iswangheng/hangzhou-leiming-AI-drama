@@ -296,19 +296,15 @@ class ClipRenderer:
         start_time = segment.start if isinstance(segment.start, float) else float(segment.start)
         duration = segment.end - segment.start
 
-        # FFmpeg命令（使用毫秒精度）
+        # FFmpeg命令（V13.1优化：使用流复制，保持原质量）
+        # 使用 -c copy 直接复制流，不重新编码，保持原视频质量和大小
         cmd = [
             'ffmpeg',
             '-y',  # 覆盖输出文件
             '-ss', f"{start_time:.3f}",  # V13: 毫秒精度开始时间
             '-i', segment.video_path,  # 输入文件
             '-t', f"{duration:.3f}",  # V13: 毫秒精度持续时间
-            '-c:v', 'libx264',  # 视频编码器
-            '-c:a', 'aac',  # 音频编码器
-            '-crf', str(self.crf),  # 质量
-            '-preset', self.preset,  # 编码速度
-            '-vf', f'scale={self.width}:{self.height}',  # 缩放
-            '-r', str(self.fps),  # 帧率
+            '-c', 'copy',  # 复制流，不重新编码（保持原质量和大小）
             '-movflags', '+faststart',  # 优化Web播放
             output_path
         ]
