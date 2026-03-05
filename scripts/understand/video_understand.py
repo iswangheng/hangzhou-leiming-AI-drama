@@ -21,6 +21,8 @@ from scripts.extract_asr import load_asr_from_file, get_asr_output_path, extract
 
 # 导入文件名解析工具
 from scripts.utils.filename_parser import parse_episode_number
+from scripts.config import TrainingConfig
+import shutil
 
 
 def load_episode_data(project_path: str, auto_extract: bool = True) -> tuple:
@@ -182,20 +184,68 @@ def load_episode_data(project_path: str, auto_extract: bool = True) -> tuple:
     return episode_keyframes, episode_asr, episode_durations
 
 
+def cleanup_project_cache(project_name: str) -> dict:
+    """清理项目的中间缓存文件
+
+    项目分析完成后，清理关键帧、音频、ASR等中间产物。
+
+    Args:
+        project_name: 项目名称
+
+    Returns:
+        清理结果统计
+    """
+    cache_dir = TrainingConfig.CACHE_DIR
+    result = {
+        "keyframes_cleaned": 0,
+        "audio_cleaned": 0,
+        "asr_cleaned": 0,
+        "total_size_freed_mb": 0,
+    }
+
+    # 清理关键帧缓存
+    keyframes_dir = cache_dir / "keyframes" / project_name
+    if keyframes_dir.exists():
+        size = sum(f.stat().st_size for f in keyframes_dir.rglob("*") if f.is_file())
+        shutil.rmtree(keyframes_dir)
+        result["keyframes_cleaned"] = 1
+        result["total_size_freed_mb"] += size / (1024 * 1024)
+
+    # 清理音频缓存
+    audio_dir = cache_dir / "audio" / project_name
+    if audio_dir.exists():
+        size = sum(f.stat().st_size for f in audio_dir.rglob("*") if f.is_file())
+        shutil.rmtree(audio_dir)
+        result["audio_cleaned"] = 1
+        result["total_size_freed_mb"] += size / (1024 * 1024)
+
+    # 清理ASR缓存
+    asr_dir = cache_dir / "asr" / project_name
+    if asr_dir.exists():
+        size = sum(f.stat().st_size for f in asr_dir.rglob("*") if f.is_file())
+        shutil.rmtree(asr_dir)
+        result["asr_cleaned"] = 1
+        result["total_size_freed_mb"] += size / (1024 * 1024)
+
+    return result
+
+
 def video_understand(
     project_path: str,
     skill_file: str = None,
     force_skill: bool = False,
-    output_dir: str = None
+    output_dir: str = None,
+    no_cleanup: bool = False
 ) -> Dict[str, Any]:
     """视频理解主函数
-    
+
     Args:
         project_path: 项目路径（包含视频文件）
         skill_file: 技能文件路径
         force_skill: 是否强制重新生成技能框架
         output_dir: 输出目录
-        
+        no_cleanup: 是否跳过清理中间缓存
+
     Returns:
         理解结果dict
     """
@@ -385,21 +435,41 @@ def video_understand(
     print(f"高光点: {len(highlights)}")
     print(f"钩子点: {len(hooks)}")
     print(f"剪辑组合: {len(clips)}")
-    
+
+    # 项目分析完成后清理中间缓存
+    if not no_cleanup:
+        print(f"\n清理项目 {project_name} 的中间缓存...")
+        cleanup_result = cleanup_project_cache(project_name)
+        print(f"  已清理: 关键帧={cleanup_result['keyframes_cleaned']}, "
+              f"音频={cleanup_result['audio_cleaned']}, "
+              f"ASR={cleanup_result['asr_cleaned']}")
+        print(f"  释放空间: {cleanup_result['total_size_freed_mb']:.2f} MB")
+
     return result
 
 
 def main():
     """命令行入口"""
-    if len(sys.argv) < 2:
-        print("用法: python -m scripts.understand.video_understand <项目路径> [技能文件]")
-        print("示例: python -m scripts.understand.video_understand ./漫剧素材/百里将就")
-        sys.exit(1)
-    
-    project_path = sys.argv[1]
-    skill_file = sys.argv[2] if len(sys.argv) > 2 else None
-    
-    video_understand(project_path, skill_file)
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='视频理解 - 分析短剧并生成剪辑方案'
+    )
+    parser.add_argument('project_path', help='项目路径（包含视频文件）')
+    parser.add_argument('skill_file', nargs='?', help='技能文件路径（可选）')
+    parser.add_argument('--force-skill', action='store_true', help='强制重新生成技能框架')
+    parser.add_argument('--output-dir', type=str, help='输出目录')
+    parser.add_argument('--no-cleanup', action='store_true', help='跳过清理中间缓存（关键帧、音频、ASR）')
+
+    args = parser.parse_args()
+
+    video_understand(
+        args.project_path,
+        args.skill_file,
+        args.force_skill,
+        args.output_dir,
+        args.no_cleanup
+    )
 
 
 if __name__ == "__main__":

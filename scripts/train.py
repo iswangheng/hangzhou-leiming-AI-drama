@@ -19,6 +19,8 @@ from .extract_context import (
 )
 from .analyze_gemini import analyze_markings_batch, validate_api_key
 from .merge_skills import load_latest_skill, merge_skills, generate_skill_file
+from .config import TrainingConfig
+import shutil
 
 
 def save_progress(progress: dict):
@@ -53,6 +55,53 @@ def clear_progress():
     if os.path.exists(progress_file):
         os.remove(progress_file)
         print("已清除训练进度")
+
+
+def cleanup_project_cache(project_name: str) -> dict:
+    """清理项目的中间缓存文件
+
+    项目分析完成后，清理关键帧、音频、ASR等中间产物，
+    只保留最终的技能文件。
+
+    Args:
+        project_name: 项目名称
+
+    Returns:
+        清理结果统计
+    """
+    cache_dir = TrainingConfig.CACHE_DIR
+    result = {
+        "keyframes_cleaned": 0,
+        "audio_cleaned": 0,
+        "asr_cleaned": 0,
+        "total_size_freed_mb": 0,
+    }
+
+    # 清理关键帧缓存
+    keyframes_dir = cache_dir / "keyframes" / project_name
+    if keyframes_dir.exists():
+        size = sum(f.stat().st_size for f in keyframes_dir.rglob("*") if f.is_file())
+        shutil.rmtree(keyframes_dir)
+        result["keyframes_cleaned"] = 1
+        result["total_size_freed_mb"] += size / (1024 * 1024)
+
+    # 清理音频缓存
+    audio_dir = cache_dir / "audio" / project_name
+    if audio_dir.exists():
+        size = sum(f.stat().st_size for f in audio_dir.rglob("*") if f.is_file())
+        shutil.rmtree(audio_dir)
+        result["audio_cleaned"] = 1
+        result["total_size_freed_mb"] += size / (1024 * 1024)
+
+    # 清理ASR缓存
+    asr_dir = cache_dir / "asr" / project_name
+    if asr_dir.exists():
+        size = sum(f.stat().st_size for f in asr_dir.rglob("*") if f.is_file())
+        shutil.rmtree(asr_dir)
+        result["asr_cleaned"] = 1
+        result["total_size_freed_mb"] += size / (1024 * 1024)
+
+    return result
 
 
 def process_project(
@@ -142,7 +191,8 @@ def train(
     projects: Optional[List[str]] = None,
     force_reextract: bool = False,
     skip_analysis: bool = False,
-    resume: bool = False
+    resume: bool = False,
+    no_cleanup: bool = False
 ):
     """执行训练流程
 
@@ -151,6 +201,7 @@ def train(
         force_reextract: 是否强制重新提取数据
         skip_analysis: 是否跳过AI分析
         resume: 是否从上次中断处继续
+        no_cleanup: 项目完成后是否不清理中间缓存
     """
     start_time = time.time()
     print("="*60)
@@ -212,6 +263,15 @@ def train(
             all_contexts.extend(contexts)
             all_results.extend(results)
             successfully_processed.append(project_name)
+
+            # 项目分析完成后清理中间缓存
+            if not skip_analysis and results and not no_cleanup:
+                print(f"\n清理项目 {project_name} 的中间缓存...")
+                cleanup_result = cleanup_project_cache(project_name)
+                print(f"  已清理: 关键帧={cleanup_result['keyframes_cleaned']}, "
+                      f"音频={cleanup_result['audio_cleaned']}, "
+                      f"ASR={cleanup_result['asr_cleaned']}")
+                print(f"  释放空间: {cleanup_result['total_size_freed_mb']:.2f} MB")
 
             # 保存进度
             progress = {
@@ -305,6 +365,11 @@ def main():
         action='store_true',
         help='清除训练进度'
     )
+    parser.add_argument(
+        '--no-cleanup',
+        action='store_true',
+        help='项目完成后不清理中间缓存（关键帧、音频、ASR）'
+    )
 
     args = parser.parse_args()
 
@@ -323,7 +388,8 @@ def main():
             projects=projects,
             force_reextract=args.force_reextract,
             skip_analysis=args.skip_analysis,
-            resume=args.resume
+            resume=args.resume,
+            no_cleanup=args.no_cleanup
         )
     except KeyboardInterrupt:
         print("\n训练被用户中断")

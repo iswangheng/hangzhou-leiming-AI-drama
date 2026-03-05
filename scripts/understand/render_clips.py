@@ -14,6 +14,9 @@ from pathlib import Path
 from typing import List, Dict, Optional, Callable
 from dataclasses import dataclass
 import re
+import shutil
+
+from scripts.config import TrainingConfig
 
 
 def format_time(seconds: int) -> str:
@@ -73,6 +76,52 @@ class ClipSegment:
     start: float      # 开始秒（在该集内）V13: 支持毫秒精度
     end: float        # 结束秒（在该集内）V13: 支持毫秒精度
     video_path: str
+
+
+def cleanup_project_cache(project_name: str) -> dict:
+    """清理项目的中间缓存文件
+
+    项目渲染完成后，清理关键帧、音频、ASR等中间产物。
+
+    Args:
+        project_name: 项目名称
+
+    Returns:
+        清理结果统计
+    """
+    cache_dir = TrainingConfig.CACHE_DIR
+    result = {
+        "keyframes_cleaned": 0,
+        "audio_cleaned": 0,
+        "asr_cleaned": 0,
+        "total_size_freed_mb": 0,
+    }
+
+    # 清理关键帧缓存
+    keyframes_dir = cache_dir / "keyframes" / project_name
+    if keyframes_dir.exists():
+        size = sum(f.stat().st_size for f in keyframes_dir.rglob("*") if f.is_file())
+        shutil.rmtree(keyframes_dir)
+        result["keyframes_cleaned"] = 1
+        result["total_size_freed_mb"] += size / (1024 * 1024)
+
+    # 清理音频缓存
+    audio_dir = cache_dir / "audio" / project_name
+    if audio_dir.exists():
+        size = sum(f.stat().st_size for f in audio_dir.rglob("*") if f.is_file())
+        shutil.rmtree(audio_dir)
+        result["audio_cleaned"] = 1
+        result["total_size_freed_mb"] += size / (1024 * 1024)
+
+    # 清理ASR缓存
+    asr_dir = cache_dir / "asr" / project_name
+    if asr_dir.exists():
+        size = sum(f.stat().st_size for f in asr_dir.rglob("*") if f.is_file())
+        shutil.rmtree(asr_dir)
+        result["asr_cleaned"] = 1
+        result["total_size_freed_mb"] += size / (1024 * 1024)
+
+    return result
 
 
 class ClipRenderer:
@@ -1193,6 +1242,9 @@ def main():
     parser.add_argument('--add-overlay', action='store_true', help='添加花字叠加')
     parser.add_argument('--overlay-style', type=str, help='花字样式ID（默认随机选择）')
 
+    # 缓存清理参数
+    parser.add_argument('--no-cleanup', action='store_true', help='渲染完成后跳过清理中间缓存')
+
     args = parser.parse_args()
 
     # 确定是否添加结尾视频
@@ -1261,6 +1313,15 @@ def main():
     print(f"\n\n完成！输出文件:")
     for path in output_paths:
         print(f"  - {path}")
+
+    # 渲染完成后清理中间缓存
+    if not args.no_cleanup:
+        print(f"\n清理项目 {project_name} 的中间缓存...")
+        cleanup_result = cleanup_project_cache(project_name)
+        print(f"  已清理: 关键帧={cleanup_result['keyframes_cleaned']}, "
+              f"音频={cleanup_result['audio_cleaned']}, "
+              f"ASR={cleanup_result['asr_cleaned']}")
+        print(f"  释放空间: {cleanup_result['total_size_freed_mb']:.2f} MB")
 
 
 if __name__ == "__main__":

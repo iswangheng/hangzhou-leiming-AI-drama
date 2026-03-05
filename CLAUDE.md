@@ -69,6 +69,24 @@ python -m scripts.full_training_pipeline
 
 # Individual training steps
 python -m scripts.train [options]
+
+# 训练命令选项说明:
+# --projects "项目名"     指定要处理的项目
+# --force-reextract       强制重新提取关键帧和ASR
+# --skip-analysis         跳过AI分析（仅提取数据）
+# --resume                从上次中断处继续
+# --no-cleanup            项目完成后不清理中间缓存
+
+# 视频理解流程 (分析整部剧)
+python -m scripts.understand.video_understand "漫剧素材/项目名" [技能文件]
+
+# 渲染剪辑视频
+python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/项目名 漫剧素材/项目名
+
+# 缓存清理说明:
+# - 默认情况下，分析/渲染完成后会自动清理中间缓存（关键帧、音频、ASR）
+# - 使用 --no-cleanup 参数可跳过清理（调试用）
+# - 只保留: 原始视频(漫剧素材/) + 成品(clips/) + 技能文件(skills/)
 ```
 
 ### Testing and Verification
