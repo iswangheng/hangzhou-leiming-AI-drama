@@ -8,8 +8,13 @@
 1. 预处理阶段：批量检测所有视频的片尾
 2. 渲染阶段：自动跳过片尾，保证剪辑连贯性
 
+双层防护架构：
+- 第一层：项目级配置（快速开关）
+- 第二层：智能检测算法（画面相似度）
+
 作者：V14
 创建时间：2026-03-04
+更新时间：2026-03-04（添加项目配置支持）
 """
 
 import os
@@ -19,6 +24,26 @@ from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass, asdict
 import hashlib
+
+# 导入项目配置模块
+try:
+    from scripts.ending_credits_config import load_project_config, should_detect_ending
+except ImportError:
+    # 如果导入失败，提供降级方案
+    def load_project_config(project_name):
+        return {"has_ending_credits": True}
+
+    def should_detect_ending(project_name):
+        return True
+
+# 导入ASR分析模块
+try:
+    from scripts.asr_transcriber import ASRTranscriber
+    from scripts.asr_analyzer import ASRContentAnalyzer
+    ASR_AVAILABLE = True
+except ImportError:
+    ASR_AVAILABLE = False
+    print("⚠️  ASR模块未安装，将跳过ASR增强检测")
 
 
 # ========== 数据结构 ==========
@@ -130,7 +155,45 @@ class EndingCreditsDetector:
         total_duration = self._get_video_duration(video_path)
         print(f"总时长: {total_duration:.1f}秒")
 
-        # 2. 综合检测
+        # 1.5. 【第一层防护】检查项目配置
+        # 从视频路径提取项目名称
+        project_name = self._extract_project_name(video_path)
+
+        # 检查项目配置
+        if not should_detect_ending(project_name):
+            config = load_project_config(project_name)
+            print(f"\n[项目配置] 该项目配置为无需检测片尾")
+            print(f"  原因: {config.get('notes', '项目配置为无片尾')}")
+            print(f"  有效时长: {total_duration:.2f}秒（使用总时长）")
+
+            return VideoEndingResult(
+                video_path=video_path,
+                episode=episode,
+                total_duration=total_duration,
+                ending_info=EndingCreditsInfo(
+                    has_ending=False,
+                    duration=0.0,
+                    confidence=1.0,
+                    method="project_config",
+                    features={
+                        "reason": "项目配置为无片尾",
+                        "config": config
+                    }
+                ),
+                effective_duration=total_duration
+            )
+
+        print(f"\n[项目配置] 该项目需要检测片尾，运行智能检测算法")
+
+        # 2. 【第二层防护】ASR增强检测
+        asr_analysis = None
+        if ASR_AVAILABLE:
+            print(f"\n[第二层防护] ASR增强检测...")
+            asr_analysis = self._asr_enhanced_detection(video_path, total_duration)
+        else:
+            print(f"\n[第二层防护] ASR模块未安装，使用传统检测算法")
+
+        # 3. 综合检测
         features_found = []
         durations = []
 
@@ -179,20 +242,62 @@ class EndingCreditsDetector:
         else:
             print(f"\n[方法4/4] ASR对白密度分析...（无ASR数据，跳过）")
 
-        # 3. 综合判断
+        # 3. 综合判断（应用ASR修正）
         print(f"\n{'=' * 70}")
         print(f"📊 检测结果汇总")
         print(f"{'=' * 70}")
 
         if not durations:
-            print(f"❌ 未检测到明显的片尾特征")
-            ending_info = EndingCreditsInfo(
-                has_ending=False,
-                duration=0.0,
-                confidence=0.0,
-                method='none',
-                features={'methods_used': [], 'features_found': []}
-            )
+            # 所有传统检测方法都失败，检查ASR增强检测结果
+            if asr_analysis and asr_analysis.get('has_speech', False):
+                # 有ASR内容，检查ASR分析的判断
+                asr_has_ending = asr_analysis.get('has_ending', False)
+                if asr_has_ending:
+                    # ASR分析认为这是片尾
+                    print(f"✅ 传统检测方法未检测到，但ASR分析认为有片尾")
+                    print(f"  ASR文本: \"{asr_analysis.get('full_text', '')[:30]}...\"")
+                    print(f"  原因: {asr_analysis.get('reason', 'N/A')}")
+
+                    # 计算片尾时长
+                    if asr_analysis.get('is_ending_narration'):
+                        # 片尾旁白 → 使用ASR结束时间
+                        ending_start = asr_analysis.get('last_asr_end', 0)
+                        ending_duration = total_duration - ending_start
+                    else:
+                        # 短ASR声效 → 使用默认时长
+                        ending_duration = 2.0
+
+                    ending_info = EndingCreditsInfo(
+                        has_ending=True,
+                        duration=ending_duration,
+                        confidence=0.90,
+                        method='asr_only',
+                        features={
+                            'methods_used': [],
+                            'features_found': ['ASR验证'],
+                            'asr_analysis': asr_analysis
+                        }
+                    )
+                else:
+                    # ASR分析认为不是片尾
+                    print(f"❌ 传统检测方法未检测到，ASR分析也认为无片尾")
+                    ending_info = EndingCreditsInfo(
+                        has_ending=False,
+                        duration=0.0,
+                        confidence=0.0,
+                        method='none',
+                        features={'methods_used': [], 'features_found': [], 'asr_analysis': asr_analysis}
+                    )
+            else:
+                # 无ASR内容或ASR分析失败
+                print(f"❌ 未检测到明显的片尾特征")
+                ending_info = EndingCreditsInfo(
+                    has_ending=False,
+                    duration=0.0,
+                    confidence=0.0,
+                    method='none',
+                    features={'methods_used': [], 'features_found': []}
+                )
         else:
             # 选择最可靠的检测结果
             # 优先级: similarity > brightness > audio > asr
@@ -203,25 +308,58 @@ class EndingCreditsDetector:
                 key=lambda x: (priority.get(x[0], 0), x[2])
             )
 
-            # 计算综合置信度
-            confidence = min(0.95, sum(d[2] for d in durations) / len(durations))
+            # 【关键】应用ASR修正逻辑
+            similarity_duration = sim_duration if 'similarity' in [d[0] for d in durations] else 0.0
+            similarity_conf = sim_conf if 'similarity' in [d[0] for d in durations] else 0.0
 
-            print(f"检测方法: {best_method}")
-            print(f"检测特征: {', '.join(features_found)}")
-            print(f"片尾时长: {best_duration:.2f}秒")
-            print(f"综合置信度: {confidence:.1%}")
-
-            ending_info = EndingCreditsInfo(
-                has_ending=True,
-                duration=best_duration,
-                confidence=confidence,
-                method=best_method,
-                features={
-                    'methods_used': [d[0] for d in durations],
-                    'features_found': features_found,
-                    'all_durations': [(d[0], d[1]) for d in durations]
-                }
+            has_ending, final_duration, final_conf, final_method = self._apply_asr_correction(
+                similarity_result=(similarity_duration, similarity_conf),
+                asr_analysis=asr_analysis,
+                total_duration=total_duration
             )
+
+            # 计算综合置信度
+            if has_ending:
+                confidence = min(0.98, final_conf)
+                print(f"检测方法: {final_method}")
+                if asr_analysis:
+                    print(f"ASR修正: 已应用ASR增强检测")
+                    print(f"修正原因: {asr_analysis.get('reason', 'N/A')}")
+                print(f"检测特征: {', '.join(features_found)}")
+                print(f"片尾时长: {final_duration:.2f}秒")
+                print(f"综合置信度: {confidence:.1%}")
+
+                ending_info = EndingCreditsInfo(
+                    has_ending=True,
+                    duration=final_duration,
+                    confidence=confidence,
+                    method=final_method,
+                    features={
+                        'methods_used': [d[0] for d in durations],
+                        'features_found': features_found,
+                        'all_durations': [(d[0], d[1]) for d in durations],
+                        'asr_analysis': asr_analysis if asr_analysis else None
+                    }
+                )
+            else:
+                # ASR判断为误判，返回无片尾
+                print(f"检测方法: {final_method}")
+                print(f"❌ 修正结果: 无片尾（ASR检测到正常剧情内容）")
+
+                ending_info = EndingCreditsInfo(
+                    has_ending=False,
+                    duration=0.0,
+                    confidence=1.0,
+                    method=final_method,
+                    features={
+                        'reason': 'ASR增强检测修正误判',
+                        'asr_analysis': asr_analysis,
+                        'original_similarity_detection': {
+                            'duration': similarity_duration,
+                            'confidence': similarity_conf
+                        }
+                    }
+                )
 
         # 4. 计算有效时长
         effective_duration = total_duration - ending_info.duration
@@ -240,6 +378,190 @@ class EndingCreditsDetector:
         )
 
     # =================== 私有辅助方法 ===================
+
+    def _asr_enhanced_detection(self, video_path: str, total_duration: float) -> Optional[Dict]:
+        """
+        【第二层防护】ASR增强检测
+
+        转录视频最后3.5秒的音频，分析内容判断是否是真实片尾
+
+        Args:
+            video_path: 视频路径
+            total_duration: 视频总时长
+
+        Returns:
+            ASR分析结果字典，包含：
+            - has_speech: 是否检测到语音
+            - is_ending_narration: 是否是片尾旁白
+            - last_asr_end: 最后一条ASR的结束时间
+            - full_text: 转录文本
+            - reason: 判断原因
+        """
+        if not ASR_AVAILABLE:
+            return None
+
+        try:
+            # 初始化ASR转录器
+            transcriber = ASRTranscriber(model_size="base")
+
+            # 转录最后3.5秒
+            print(f"  🎙️  转录最后3.5秒音频...")
+            asr_segments = transcriber.transcribe_last_seconds(video_path, seconds=3.5)
+
+            if not asr_segments:
+                print(f"  ℹ️  未检测到语音（无ASR片段）")
+                return {
+                    "has_speech": False,
+                    "is_ending_narration": False,
+                    "last_asr_end": 0,
+                    "full_text": "",
+                    "reason": "无语音"
+                }
+
+            # 初始化ASR分析器
+            analyzer = ASRContentAnalyzer()
+
+            # 分析ASR内容
+            print(f"  📝 分析ASR内容...")
+            analysis = analyzer.analyze_with_similarity(
+                asr_segments=asr_segments,
+                video_end_time=total_duration,
+                similarity_has_ending=True,  # 这里先假设有片尾，让analyzer判断
+                similarity_duration=3.5
+            )
+
+            # 提取asr_analysis中的详细信息
+            detailed_analysis = analysis.get('asr_analysis', {})
+
+            # 构建返回结果，同时保留兼容性
+            asr_analysis = {
+                'has_ending': analysis.get('has_ending', False),
+                'method': analysis.get('method', ''),
+                'reason': analysis.get('reason', ''),
+                # 详细信息
+                'has_speech': detailed_analysis.get('has_speech', False),
+                'is_ending_narration': detailed_analysis.get('is_ending_narration', False),
+                'last_asr_end': detailed_analysis.get('last_asr_end', 0),
+                'full_text': detailed_analysis.get('full_text', ''),
+            }
+
+            # 输出分析结果
+            print(f"  检测到语音: {'是' if asr_analysis['has_speech'] else '否'}")
+            if asr_analysis['has_speech']:
+                print(f"  片尾旁白: {'是' if asr_analysis['is_ending_narration'] else '否'}")
+                print(f"  ASR文本: \"{asr_analysis['full_text'][:50]}...\"")
+                print(f"  判断原因: {asr_analysis['reason']}")
+
+            return asr_analysis
+
+        except Exception as e:
+            print(f"  ⚠️  ASR检测失败: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    def _apply_asr_correction(
+        self,
+        similarity_result: Tuple[float, float],
+        asr_analysis: Optional[Dict],
+        total_duration: float
+    ) -> Tuple[bool, float, float, str]:
+        """
+        应用ASR分析结果修正画面相似度检测的误判
+
+        Args:
+            similarity_result: (相似度检测时长, 置信度)
+            asr_analysis: ASR分析结果
+            total_duration: 视频总时长
+
+        Returns:
+            (是否有片尾, 片尾时长, 置信度, 检测方法)
+        """
+        sim_duration, sim_conf = similarity_result
+
+        # 如果没有ASR分析，使用相似度结果
+        if asr_analysis is None:
+            return (sim_duration > self.MIN_ENDING_DURATION, sim_duration, sim_conf, "similarity")
+
+        # 情况1: 无语音 + 画面相似 → 真实片尾
+        if not asr_analysis['has_speech']:
+            if sim_duration > self.MIN_ENDING_DURATION:
+                print(f"\n[ASR修正] 无语音 + 画面相似 → 真实片尾")
+                return (True, sim_duration, min(0.95, sim_conf + 0.1), "asr_verified")
+            else:
+                return (False, 0.0, 0.0, "none")
+
+        # 情况2: 有语音 + ASR分析认为是片尾 → 真实片尾
+        # 检查has_ending字段（从ASR分析结果中提取）
+        asr_has_ending = asr_analysis.get('has_ending', False)
+
+        if asr_has_ending:
+            # ASR分析确认这是片尾（包括：片尾旁白、短ASR无明确剧情等）
+            if asr_analysis['is_ending_narration']:
+                # 片尾旁白 → 使用ASR结束时间
+                ending_start = asr_analysis['last_asr_end']
+                ending_duration = total_duration - ending_start
+
+                if ending_duration >= self.MIN_ENDING_DURATION:
+                    print(f"\n[ASR修正] 检测到片尾旁白 → 真实片尾")
+                    print(f"  片尾旁白结束时间: {ending_start:.2f}秒")
+                    print(f"  片尾时长: {ending_duration:.2f}秒")
+                    return (True, ending_duration, 0.95, "asr_ending_narration")
+            else:
+                # 短ASR无明确剧情特征 → 保留相似度检测结果，如果相似度失败则使用默认时长
+                print(f"\n[ASR修正] ASR验证通过（短ASR，无明确剧情特征）")
+                print(f"  ASR文本: \"{asr_analysis['full_text'][:30]}...\"")
+                print(f"  原因: {asr_analysis['reason']}")
+
+                # 如果画面相似度检测失败，使用ASR计算的时长或默认时长
+                if sim_duration < self.MIN_ENDING_DURATION:
+                    # 画面相似度检测失败，使用ASR停止位置后的时长
+                    ending_start = asr_analysis.get('last_asr_end', 0)
+                    ending_duration = total_duration - ending_start
+                    if ending_duration < self.MIN_ENDING_DURATION:
+                        # ASR计算的时长也不够，使用默认时长
+                        ending_duration = 2.0
+                    return (True, ending_duration, 0.90, "asr_only")
+                else:
+                    # 画面相似度检测成功，使用相似度时长
+                    return (True, sim_duration, min(0.95, sim_conf + 0.1), "asr_verified")
+
+        # 情况3: 有语音 + ASR分析认为不是片尾 → 误判
+        if asr_analysis['has_speech'] and not asr_has_ending:
+            print(f"\n[ASR修正] 检测到正常剧情对白 → 画面相似是误判！")
+            print(f"  ASR文本: \"{asr_analysis['full_text']}\"")
+            print(f"  原因: {asr_analysis['reason']}")
+            print(f"  ✅ 修正结果: 无片尾（保留全部内容）")
+            return (False, 0.0, 1.0, "asr_false_positive_fix")
+
+        # 默认情况：使用相似度结果
+        return (sim_duration > self.MIN_ENDING_DURATION, sim_duration, sim_conf, "similarity")
+
+    def _extract_project_name(self, video_path: str) -> str:
+        """
+        从视频路径提取项目名称
+
+        Args:
+            video_path: 视频文件路径
+
+        Returns:
+            项目名称
+        """
+        path = Path(video_path)
+
+        # 从路径中提取项目名称
+        # 路径示例: .../晓红姐-3.4剧目/多子多福，开局就送绝美老婆/1.mp4
+        #          .../新的漫剧素材/不晚忘忧/1.mp4
+
+        # 获取项目目录（视频文件的父目录）
+        project_dir = path.parent
+
+        # 如果目录名为数字（集数），再往上一层
+        if project_dir.name.isdigit():
+            project_dir = project_dir.parent
+
+        project_name = project_dir.name
+        return project_name
 
     def _get_video_duration(self, video_path: str) -> float:
         """获取视频总时长"""
