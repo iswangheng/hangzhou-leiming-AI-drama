@@ -52,7 +52,67 @@
 
 ## 📋 中优先级
 
-### 2. 添加标准结尾帧视频功能
+### 2. 集成视频包装花字模块到默认渲染流程 [NEW]
+
+**问题描述**：
+视频包装花字模块已实现（V15功能），但还没有集成到默认渲染流程中。
+
+**当前状态**：
+- ✅ 花字模块已实现：`scripts/understand/video_overlay/video_overlay.py`
+- ✅ 已集成到render_clips.py：可以使用`--add-overlay`参数启用
+- ❌ 默认渲染流程未启用：需要手动添加`--add-overlay`参数
+
+**功能说明**：
+- **三层花字叠加**：
+  1. **热门短剧**（24pt字体）：随机位置（左上/右上），随机显示3-8秒
+  2. **剧名**（16pt字体）：底部居中，全时长显示
+  3. **免责声明**（12pt字体）：底部居中，剧名下方40px，全时长显示
+- **10种预设样式**：gold_luxury, red_passion, blue_cool, purple_mystery等
+- **项目级样式统一**：同一项目的所有剪辑使用相同样式（基于项目名hash缓存）
+- **自动字体检测**：优先使用Songti.ttc（macOS），fallback到系统字体
+
+**使用方法**（当前需要手动指定参数）：
+```bash
+# 基础使用（启用花字叠加）
+python -m scripts.understand.render_clips \
+    data/hangzhou-leiming/analysis/项目名 \
+    漫剧素材/项目名 \
+    --add-overlay
+
+# 指定样式
+python -m scripts.understand.render_clips \
+    data/hangzhou-leiming/analysis/项目名 \
+    漫剧素材/项目名 \
+    --add-overlay \
+    --overlay-style-id gold_luxury
+
+# 完整示例（结尾视频 + 花字叠加）
+python -m scripts.understand.render_clips \
+    data/hangzhou-leiming/analysis/项目名 \
+    漫剧素材/项目名 \
+    --add-ending \
+    --add-overlay
+```
+
+**待办事项**：
+- [ ] 评估是否应该在默认渲染流程中启用花字叠加
+  - 优点：增加视频吸引力，符合短视频平台习惯
+  - 缺点：渲染时间稍长（需要额外的FFmpeg处理）
+  - 决策：用户手动启用 OR 默认启用添加配置项控制
+- [ ] 更新CLAUDE.md文档，添加`--add-overlay`参数说明
+- [ ] 创建花字样式预览脚本（查看不同样式的效果）
+- [ ] 测试花字叠加在不同分辨率视频下的表现
+- [ ] 验证字幕安全区设置是否合理（当前150px）
+
+**文件位置**：
+- 核心模块：`scripts/understand/video_overlay/video_overlay.py`
+- 样式定义：`scripts/understand/video_overlay/overlay_styles.py`
+- 已集成到：`scripts/understand/render_clips.py`（第96-964行）
+- 测试脚本：`scripts/understand/video_overlay/test_overlay.py`
+
+---
+
+### 3. 添加标准结尾帧视频功能
 
 **问题描述**：
 生成的剪辑没有自动添加标准结尾帧视频
