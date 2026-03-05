@@ -5,6 +5,104 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V14.1.0] - 2026-03-05
+
+### 新增 (Added)
+- **自动片尾检测集成** - 将V13片尾检测模块集成到渲染流程，自动去除原始剧集片尾
+  - 新增 `auto_detect_ending` 参数，启用自动片尾检测（默认True）
+  - 新增 `skip_ending` 参数，跳过片尾检测，使用完整时长
+  - 新增 `force_detect` 参数，强制重新检测片尾（覆盖缓存）
+  - 新增 `_handle_ending_detection()` 方法，处理片尾检测流程
+  - 新增 `_load_ending_credits()` 方法，加载片尾缓存
+  - 新增 `_validate_cache()` 方法，验证缓存有效性
+  - 新增 `_auto_detect_ending_credits()` 方法，自动检测所有视频
+  - 新增 `_get_ending_cache_file()` 方法，获取缓存文件路径
+  - 新增 `_extract_episode_number()` 方法，从文件名提取集数
+  - 新增 `_save_ending_credits()` 方法，保存检测结果到JSON
+  - 新增 `_should_detect_ending()` 方法，判断是否需要检测
+
+### 改进 (Changed)
+- **时长计算优化** - 使用有效时长（总时长 - 片尾时长）进行跨集计算
+  - `_calculate_episode_durations()`: 优先使用 `effective_duration`
+  - 自动加载缓存数据：`data/hangzhou-leiming/ending_credits/{项目名}_ending_credits.json`
+  - 降级策略：检测失败时使用完整时长
+- **命令行参数** - 添加片尾检测相关选项
+  - `--auto-detect-ending`: 启用自动检测（默认）
+  - `--skip-ending`: 跳过检测，使用完整时长
+  - `--force-detect`: 强制重新检测
+
+### 技术细节 (Technical Details)
+**缓存机制**:
+- 位置: `data/hangzhou-leiming/ending_credits/{项目名}_ending_credits.json`
+- 格式: JSON，包含项目名、各集片尾信息、有效时长
+- 策略: 首次检测后永久缓存，后续直接加载
+
+**有效时长计算**:
+```
+有效时长 = 总时长 - 片尾时长
+```
+
+**跨集计算改进**:
+- V14.0.1: 第1集 0-867秒，第2集 867-1141秒（包含第1集片尾）
+- V14.1.0: 第1集 0-820秒，第2集 820-1094秒（去除第1集47秒片尾）
+
+**自动化流程**:
+```
+1. 创建渲染器
+2. 检查缓存
+   ├─ 有缓存 ──→ 加载 ──→ 使用有效时长
+   └─ 无缓存 ──→ 自动检测 ──→ 保存 ──→ 使用有效时长
+3. 计算累积时长（使用有效时长）
+4. 渲染剪辑
+```
+
+### 使用示例
+
+#### 命令行
+```bash
+# 默认启用自动片尾检测
+python -m scripts.understand.render_clips \
+    data/hangzhou-leiming/analysis/项目名 \
+    漫剧素材/项目名
+
+# 强制重新检测
+python -m scripts.understand.render_clips \
+    data/hangzhou-leiming/analysis/项目名 \
+    漫剧素材/项目名 \
+    --force-detect
+
+# 跳过片尾检测
+python -m scripts.understand.render_clips \
+    data/hangzhou-leiming/analysis/项目名 \
+    漫剧素材/项目名 \
+    --skip-ending
+```
+
+#### Python代码
+```python
+from scripts.understand.render_clips import ClipRenderer
+
+renderer = ClipRenderer(
+    project_path="data/hangzhou-leiming/analysis/项目名",
+    output_dir="clips/项目名",
+    auto_detect_ending=True,   # 启用自动检测
+    skip_ending=False,         # 不跳过
+    force_detect=False         # 不强制重检
+)
+
+output_paths = renderer.render_all_clips()
+```
+
+### 性能优化
+- **首次运行**: 需要检测所有视频，耗时约3-10秒/视频
+- **后续运行**: 直接加载缓存，无额外耗时
+- **缓存复用**: 一次检测，永久使用
+
+### 文档 (Documentation)
+- 新增：[V14.1 实现报告](./V14.1_IMPLEMENTATION_REPORT.md)
+
+---
+
 ## [V14.0.1] - 2026-03-05
 
 ### 修复 (Fixed)

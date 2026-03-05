@@ -3,6 +3,7 @@
 基于FFmpeg实现高光点-钩子点剪辑的生成
 
 V14: 新增结尾视频拼接功能
+V14.1: 新增自动片尾检测功能
 """
 import os
 import json
@@ -86,7 +87,10 @@ class ClipRenderer:
         crf: int = 18,
         preset: str = "fast",
         project_name: Optional[str] = None,
-        add_ending_clip: bool = False
+        add_ending_clip: bool = False,
+        auto_detect_ending: bool = True,
+        skip_ending: bool = False,
+        force_detect: bool = False
     ):
         """初始化剪辑渲染器
 
@@ -101,6 +105,9 @@ class ClipRenderer:
             preset: 编码预设（ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow）
             project_name: 项目名称（用于文件命名）
             add_ending_clip: 是否添加结尾视频（V14新增）
+            auto_detect_ending: 自动检测片尾（V14.1新增）
+            skip_ending: 跳过片尾检测（V14.1新增）
+            force_detect: 强制重新检测片尾（V14.1新增）
         """
         self.project_path = Path(project_path)
         self.output_dir = Path(output_dir)
@@ -119,12 +126,23 @@ class ClipRenderer:
         self.crf = crf
         self.preset = preset
 
+        # V14.1: 片尾检测配置
+        self.auto_detect_ending = auto_detect_ending
+        self.skip_ending = skip_ending
+        self.force_detect = force_detect
+        self.ending_credits_cache = {}
+
         # V14: 结尾视频配置
         self.add_ending_clip = add_ending_clip
         self.ending_videos = self._load_ending_videos() if add_ending_clip else []
 
         # 加载结果
         self.result = self._load_result()
+
+        # V14.1: 自动处理片尾检测（在计算时长前）
+        self._handle_ending_detection()
+
+        # 计算各集时长（现在使用有效时长）
         self.episode_durations = self._calculate_episode_durations()
         self.video_files = self._discover_video_files()
 
@@ -140,7 +158,11 @@ class ClipRenderer:
     def _calculate_episode_durations(self) -> Dict[int, int]:
         """计算各集时长
 
-        从clips中推断各集时长
+        V14.1: 优先使用有效时长（总时长 - 片尾时长）
+        如果没有片尾检测数据，则使用总时长
+
+        Returns:
+            集数到时长的映射
         """
         durations = {}
 
@@ -151,10 +173,21 @@ class ClipRenderer:
         for h in self.result.get('hooks', []):
             episodes.add(h['episode'])
 
-        # 临时方案：使用ffprobe获取实际时长
+        # 获取每个集的时长
         for ep in sorted(episodes):
             video_path = self._find_video_file(ep)
             if video_path:
+                # V14.1: 优先使用有效时长
+                if ep in self.ending_credits_cache:
+                    ep_info = self.ending_credits_cache[ep]
+                    # 使用有效时长（总时长 - 片尾时长）
+                    effective_duration = ep_info.get('effective_duration')
+                    if effective_duration is not None:
+                        durations[ep] = int(effective_duration)
+                        print(f"  第{ep}集: 有效时长 {int(effective_duration)}秒 (已去除片尾)")
+                        continue
+
+                # 回退到使用总时长
                 duration = self._get_video_duration(video_path)
                 durations[ep] = int(duration)
 
@@ -174,6 +207,213 @@ class ClipRenderer:
                 )
 
         return video_files
+
+    def _handle_ending_detection(self) -> None:
+        """V14.1: 自动处理片尾检测
+
+        完全自动流程：
+        1. 检查是否需要检测
+        2. 尝试加载缓存
+        3. 如果需要，自动检测并保存
+        """
+        # 决定是否需要检测片尾
+        should_detect = self._should_detect_ending()
+
+        if not should_detect:
+            if self.skip_ending:
+                print("⚠️  已跳过片尾检测，将使用总时长")
+            return
+
+        # 尝试加载缓存
+        cache_loaded = False
+        if not self.force_detect:
+            cache_loaded = self._load_ending_credits()
+
+        # 如果缓存未加载，自动检测
+        if not cache_loaded:
+            print("🔍 开始自动检测片尾...")
+            self._auto_detect_ending_credits()
+
+    def _should_detect_ending(self) -> bool:
+        """决定是否需要检测片尾"""
+        # 1. 用户明确指定跳过
+        if self.skip_ending:
+            return False
+
+        # 2. 用户明确指定强制检测
+        if self.force_detect:
+            return True
+
+        # 3. 检查缓存是否存在
+        cache_file = self._get_ending_cache_file()
+        if not cache_file.exists():
+            # 缓存不存在，根据auto_detect_ending决定
+            return self.auto_detect_ending
+
+        return False
+
+    def _get_ending_cache_file(self) -> Path:
+        """获取片尾缓存文件路径"""
+        # 缓存文件保存在 data/hangzhou-leiming/ending_credits/ 目录下
+        cache_dir = self.project_path.parent.parent / "ending_credits"
+        return cache_dir / f"{self.project_name}_ending_credits.json"
+
+    def _load_ending_credits(self) -> bool:
+        """加载片尾检测结果缓存
+
+        Returns:
+            True if cache loaded successfully, False otherwise
+        """
+        cache_file = self._get_ending_cache_file()
+
+        if cache_file.exists():
+            try:
+                with open(cache_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+
+                # 验证缓存是否匹配当前项目
+                if self._validate_cache(data):
+                    # 转换为字典格式：episode -> effective_duration
+                    self.ending_credits_cache = {}
+                    for ep_info in data.get('episodes', []):
+                        ep = ep_info['episode']
+                        self.ending_credits_cache[ep] = ep_info
+
+                    print(f"✅ 已加载片尾缓存: {len(self.ending_credits_cache)} 集")
+                    return True
+                else:
+                    print("⚠️  缓存文件与当前项目不匹配，将重新检测")
+            except Exception as e:
+                print(f"⚠️  缓存文件损坏: {e}")
+
+        return False
+
+    def _validate_cache(self, cache_data: dict) -> bool:
+        """验证缓存数据是否有效
+
+        Args:
+            cache_data: 缓存数据
+
+        Returns:
+            True if cache is valid, False otherwise
+        """
+        # 检查项目名称是否匹配
+        if cache_data.get('project') != self.project_name:
+            return False
+
+        # 检查是否有集数据
+        episodes = cache_data.get('episodes', [])
+        if not episodes:
+            return False
+
+        return True
+
+    def _auto_detect_ending_credits(self) -> None:
+        """自动检测项目中所有视频的片尾"""
+        print(f"📺 检测项目: {self.project_name}")
+        print(f"📁 视频目录: {self.video_dir}")
+
+        try:
+            # 导入片尾检测模块
+            from scripts.detect_ending_credits import EndingCreditsDetector
+
+            detector = EndingCreditsDetector()
+
+            # 获取所有视频文件
+            video_files = sorted(self.video_dir.glob("*.mp4"))
+            total_videos = len(video_files)
+
+            if total_videos == 0:
+                print("⚠️  未找到视频文件")
+                return
+
+            print(f"📊 需要检测 {total_videos} 个视频...")
+            print(f"⏱️  预计耗时: {total_videos * 3}-{total_videos * 10} 秒")
+
+            results = {'project': self.project_name, 'episodes': []}
+
+            for i, video_path in enumerate(video_files, 1):
+                print(f"  [{i}/{total_videos}] 检测 {video_path.name}...")
+
+                episode = self._extract_episode_number(video_path.name)
+                if episode is None:
+                    print(f"    ⚠️  无法提取集数，跳过")
+                    continue
+
+                try:
+                    result = detector.detect_video_ending(str(video_path), episode)
+                    results['episodes'].append(result.to_dict())
+
+                    if result.ending_info.has_ending:
+                        print(f"    ✅ 检测到片尾: {result.ending_info.duration:.2f}秒")
+                    else:
+                        print(f"    ✅ 未检测到片尾")
+
+                except Exception as e:
+                    print(f"    ❌ 检测失败: {e}")
+                    continue
+
+            # 保存到文件
+            self._save_ending_credits(results)
+
+            # 更新缓存
+            self.ending_credits_cache = {}
+            for ep_info in results['episodes']:
+                ep = ep_info['episode']
+                self.ending_credits_cache[ep] = ep_info
+
+            print(f"✅ 片尾检测完成，结果已保存")
+
+            # 显示统计
+            with_ending = sum(1 for ep in results['episodes'] if ep['ending_info']['has_ending'])
+            without_ending = len(results['episodes']) - with_ending
+            print(f"📊 检测统计: {len(results['episodes'])}集视频, {with_ending}集有片尾, {without_ending}集无片尾")
+
+        except Exception as e:
+            print(f"❌ 片尾检测失败: {e}")
+            print("⚠️  将使用总时长进行渲染")
+
+    def _extract_episode_number(self, filename: str) -> Optional[int]:
+        """从文件名提取集数
+
+        Args:
+            filename: 视频文件名
+
+        Returns:
+            集数，如果无法提取则返回None
+        """
+        import re
+
+        # 尝试多种命名格式
+        patterns = [
+            r'第(\d+)集',
+            r'EP?(\d+)',
+            r'^(\d+)',
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, filename, re.IGNORECASE)
+            if match:
+                return int(match.group(1))
+
+        return None
+
+    def _save_ending_credits(self, results: dict) -> None:
+        """保存片尾检测结果到文件
+
+        Args:
+            results: 检测结果数据
+        """
+        cache_file = self._get_ending_cache_file()
+
+        # 确保目录存在
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+
+        # 保存到文件
+        with open(cache_file, 'w', encoding='utf-8') as f:
+            json.dump(results, f, ensure_ascii=False, indent=2)
+
+        print(f"💾 缓存已保存: {cache_file}")
 
     def _load_ending_videos(self) -> List[str]:
         """加载标准结尾视频素材列表
@@ -775,32 +1015,54 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='渲染AI短剧剪辑（V14: 支持结尾视频拼接）',
+        description='渲染AI短剧剪辑（V14.1: 支持自动片尾检测和结尾视频拼接）',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 示例:
-  # 基础渲染（不加结尾）
+  # 基础渲染（自动检测片尾，添加结尾视频）
   python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就
 
-  # 添加结尾视频
-  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --add-ending
-
-  # 不添加结尾视频（显式指定）
+  # 不添加结尾视频
   python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --no-ending
+
+  # 强制重新检测片尾
+  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --force-detect
+
+  # 跳过片尾检测（使用完整时长）
+  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --skip-ending
+
+  # 同时添加结尾视频和片尾检测
+  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --add-ending --auto-detect-ending
         '''
     )
 
     parser.add_argument('project_path', help='项目路径（包含result.json）')
     parser.add_argument('video_dir', nargs='?', help='视频文件目录（可选，默认为项目路径）')
+
+    # V14: 结尾视频参数
     parser.add_argument('--add-ending', action='store_true', help='添加随机结尾视频')
     parser.add_argument('--no-ending', action='store_true', help='不添加结尾视频')
 
+    # V14.1: 片尾检测参数
+    parser.add_argument('--auto-detect-ending', action='store_true', help='自动检测片尾（默认启用）')
+    parser.add_argument('--skip-ending', action='store_true', help='跳过片尾检测，使用完整时长')
+    parser.add_argument('--force-detect', action='store_true', help='强制重新检测片尾（覆盖缓存）')
+
     args = parser.parse_args()
 
-    # 确定是否添加结尾
+    # 确定是否添加结尾视频
     add_ending = args.add_ending
     if args.no_ending:
         add_ending = False
+
+    # 确定片尾检测参数
+    auto_detect_ending = args.auto_detect_ending
+    skip_ending = args.skip_ending
+    force_detect = args.force_detect
+
+    # 如果没有指定任何选项，默认启用自动检测
+    if not skip_ending and not force_detect:
+        auto_detect_ending = True
 
     project_path = args.project_path
     video_dir = args.video_dir
@@ -817,7 +1079,10 @@ def main():
         output_dir=output_dir,
         video_dir=video_dir,
         project_name=project_name,
-        add_ending_clip=add_ending  # V14: 传递结尾视频配置
+        add_ending_clip=add_ending,       # V14: 传递结尾视频配置
+        auto_detect_ending=auto_detect_ending,  # V14.1: 传递片尾检测配置
+        skip_ending=skip_ending,
+        force_detect=force_detect
     )
 
     # 显示配置信息
@@ -825,7 +1090,10 @@ def main():
     print(f"项目名称: {project_name}")
     print(f"项目路径: {project_path}")
     print(f"输出目录: {output_dir}")
-    print(f"结尾视频: {'✅ 启用' if add_ending else '❌ 禁用'}")
+    print(f"结尾视频拼接: {'✅ 启用' if add_ending else '❌ 禁用'}")
+    print(f"片尾检测: {'✅ 自动检测' if auto_detect_ending else '⚠️ 跳过' if skip_ending else '✅ 正常'}")
+    if force_detect:
+        print(f"片尾检测模式: 🔃 强制重新检测")
     print(f"{'='*60}\n")
 
     # 渲染所有剪辑

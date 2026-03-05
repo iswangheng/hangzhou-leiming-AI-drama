@@ -6,6 +6,44 @@
 
 ## 最新更新 ✨
 
+### V14.1 - 自动片尾检测集成 (2026-03-05) 🔍
+
+**核心功能**：
+- ✅ **完全自动化**：自动检测并缓存原始剧集的片尾时长，无需用户干预
+- ✅ **智能缓存**：一次检测，永久复用，提升后续运行速度
+- ✅ **精确计算**：使用有效时长（总时长 - 片尾时长）进行跨集剪辑计算
+- ✅ **灵活配置**：支持自动检测、强制重检、跳过检测三种模式
+
+**使用示例**：
+```bash
+# 默认启用自动片尾检测
+python -m scripts.understand.render_clips \
+    data/hangzhou-leiming/analysis/项目名 \
+    漫剧素材/项目名
+
+# 强制重新检测
+python -m scripts.understand.render_clips \
+    data/hangzhou-leiming/analysis/项目名 \
+    漫剧素材/项目名 \
+    --force-detect
+
+# 跳过片尾检测
+python -m scripts.understand.render_clips \
+    data/hangzhou-leiming/analysis/项目名 \
+    漫剧素材/项目名 \
+    --skip-ending
+```
+
+**技术亮点**：
+- **有效时长计算**：去除片尾后，跨集剪辑更精确
+  - V14.0: 第1集 0-867秒，第2集 867-1141秒（包含片尾）
+  - V14.1: 第1集 0-820秒，第2集 820-1094秒（去除47秒片尾）
+- **零配置运行**：默认启用，自动处理，无需额外参数
+- **缓存机制**：检测结果保存至 `data/hangzhou-leiming/ending_credits/`
+
+**详细文档**：
+- [V14.1 实现报告](./V14.1_IMPLEMENTATION_REPORT.md) - 完整技术说明
+
 ### V14 - 结尾视频拼接功能 (2026-03-05) 🎬
 
 **核心功能**：
