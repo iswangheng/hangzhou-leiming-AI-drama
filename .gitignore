@@ -111,13 +111,7 @@ data/hangzhou-leiming/skills/v0.7.*
 data/hangzhou-leiming/skills/v0.*
 !data/hangzhou-leiming/skills/v0.5.*
 !data/hangzhou-leiming/skills/v0.4.*
-# 其他旧版本不提交
-data/hangzhou-leiming/skills/*.json
-data/hangzhou-leiming/skills/*.md
 
 # Archive目录内容（归档文件不需要跟踪）
 archive/*/
 !archive/.gitkeep
-
-# 技能markdown文件（已经在上面忽略了.json）
-data/hangzhou-leiming/skills/*.md
