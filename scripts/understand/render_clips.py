@@ -1,10 +1,13 @@
 """
 视频剪辑渲染模块
 基于FFmpeg实现高光点-钩子点剪辑的生成
+
+V14: 新增结尾视频拼接功能
 """
 import os
 import json
 import subprocess
+import random
 from pathlib import Path
 from typing import List, Dict, Optional, Callable
 from dataclasses import dataclass
@@ -82,7 +85,8 @@ class ClipRenderer:
         fps: int = 30,
         crf: int = 18,
         preset: str = "fast",
-        project_name: Optional[str] = None
+        project_name: Optional[str] = None,
+        add_ending_clip: bool = False
     ):
         """初始化剪辑渲染器
 
@@ -96,6 +100,7 @@ class ClipRenderer:
             crf: CRF质量（18-28，越小质量越高）
             preset: 编码预设（ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow）
             project_name: 项目名称（用于文件命名）
+            add_ending_clip: 是否添加结尾视频（V14新增）
         """
         self.project_path = Path(project_path)
         self.output_dir = Path(output_dir)
@@ -113,6 +118,10 @@ class ClipRenderer:
         self.fps = fps
         self.crf = crf
         self.preset = preset
+
+        # V14: 结尾视频配置
+        self.add_ending_clip = add_ending_clip
+        self.ending_videos = self._load_ending_videos() if add_ending_clip else []
 
         # 加载结果
         self.result = self._load_result()
@@ -165,6 +174,70 @@ class ClipRenderer:
                 )
 
         return video_files
+
+    def _load_ending_videos(self) -> List[str]:
+        """加载标准结尾视频素材列表
+
+        V14: 从项目根目录的 `标准结尾帧视频素材` 文件夹加载结尾视频
+
+        Returns:
+            结尾视频文件路径列表
+        """
+        # 从项目路径向上查找，直到找到 `标准结尾帧视频素材` 文件夹
+        # 或者到达一定层级后停止
+
+        # 首先尝试当前路径的父目录
+        current_path = self.project_path
+
+        # 向上查找最多3层
+        for _ in range(3):
+            parent = current_path.parent
+            ending_dir = parent / "标准结尾帧视频素材"
+
+            if ending_dir.exists():
+                break
+
+            current_path = parent
+        else:
+            # 如果没找到，尝试使用当前工作目录
+            import os
+            cwd = Path(os.getcwd())
+            ending_dir = cwd / "标准结尾帧视频素材"
+
+        if not ending_dir.exists():
+            print(f"⚠️  警告: 找不到结尾视频文件夹: {ending_dir}")
+            print(f"    请确保 `标准结尾帧视频素材` 文件夹在项目根目录下")
+            return []
+
+        # 支持的视频格式
+        video_extensions = ['.mp4', '.mov', '.avi', '.mkv', '.flv', '.webm']
+        ending_videos = []
+
+        for ext in video_extensions:
+            pattern = f"*{ext}"
+            for video_path in ending_dir.glob(pattern):
+                if video_path.is_file():
+                    ending_videos.append(str(video_path))
+
+        if not ending_videos:
+            print(f"⚠️  警告: 结尾视频文件夹为空: {ending_dir}")
+        else:
+            print(f"✅ 加载了 {len(ending_videos)} 个结尾视频")
+
+        return ending_videos
+
+    def _get_random_ending_video(self) -> Optional[str]:
+        """随机选择一个结尾视频
+
+        V14: 从已加载的结尾视频中随机选择一个
+
+        Returns:
+            结尾视频文件路径，如果没有可用的则返回None
+        """
+        if not self.ending_videos:
+            return None
+
+        return random.choice(self.ending_videos)
 
     def _find_video_file(self, episode: int) -> Optional[Path]:
         """查找指定集数的视频文件
@@ -387,6 +460,180 @@ class ClipRenderer:
         # 删除临时文件
         concat_file.unlink()
 
+    def _append_ending_video(self, clip_path: str) -> str:
+        """为剪辑添加结尾视频
+
+        V14: 在剪辑末尾拼接随机选择的结尾视频
+        预处理结尾视频以匹配原剪辑的分辨率和编码
+
+        Args:
+            clip_path: 原剪辑文件路径
+
+        Returns:
+            添加结尾后的文件路径（如果未添加则返回原路径）
+        """
+        # 随机选择结尾视频
+        ending_video = self._get_random_ending_video()
+        if not ending_video:
+            print(f"  ⚠️  无可用结尾视频，跳过拼接")
+            return clip_path
+
+        # 生成新的输出文件名（添加 "_带结尾" 标记）
+        clip_path_obj = Path(clip_path)
+        new_filename = clip_path_obj.stem + "_带结尾" + clip_path_obj.suffix
+        new_output_path = str(clip_path_obj.parent / new_filename)
+
+        print(f"  🎬 添加结尾视频: {Path(ending_video).name}")
+        print(f"  输出文件: {new_filename}")
+
+        # 预处理结尾视频（匹配原剪辑的分辨率）
+        processed_ending = self._preprocess_ending_video(clip_path, ending_video)
+
+        # 拼接视频
+        self._concat_videos([clip_path, processed_ending], new_output_path)
+
+        # 删除临时处理的结尾视频
+        Path(processed_ending).unlink()
+
+        # 删除原剪辑文件
+        Path(clip_path).unlink()
+
+        return new_output_path
+
+    def _preprocess_ending_video(self, clip_path: str, ending_video: str) -> str:
+        """预处理结尾视频，使其与原剪辑兼容
+
+        V14: 将结尾视频转换为与原剪辑相同的分辨率和编码
+
+        Args:
+            clip_path: 原剪辑文件路径（用于获取分辨率）
+            ending_video: 结尾视频文件路径
+
+        Returns:
+            处理后的结尾视频文件路径
+        """
+        # 获取原剪辑的实际分辨率（而不是使用默认的width/height）
+        cmd = [
+            'ffprobe', '-v', 'error',
+            '-select_streams', 'v:0',
+            '-show_entries', 'stream=width,height',
+            '-of', 'csv=p=0',
+            clip_path
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            # 如果获取失败，使用默认值
+            clip_width, clip_height = self.width, self.height
+        else:
+            parts = result.stdout.strip().split(',')
+            clip_width = int(parts[0])
+            clip_height = int(parts[1])
+
+        # 生成临时文件路径
+        temp_ending = self.output_dir / f"temp_ending_{Path(ending_video).stem}.mp4"
+
+        # FFmpeg命令：转换分辨率和编码
+        cmd = [
+            'ffmpeg',
+            '-y',
+            '-i', ending_video,
+            '-vf', f'scale={clip_width}:{clip_height}:force_original_aspect_ratio=decrease,pad={clip_width}:{clip_height}:(ow-iw)/2:(oh-ih)/2',  # 缩放并添加黑边
+            '-c:v', 'libx264',  # 统一使用h264编码
+            '-preset', self.preset,
+            '-crf', str(self.crf),
+            '-c:a', 'aac',  # 统一音频编码
+            '-b:a', '128k',
+            '-movflags', '+faststart',
+            str(temp_ending)
+        ]
+
+        # 执行命令
+        try:
+            print(f"  🔄 预处理结尾视频（{clip_width}x{clip_height}）...")
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True
+            )
+
+            # 等待完成
+            process.wait()
+
+            if process.returncode != 0:
+                raise RuntimeError(f"FFmpeg预处理失败 (返回码: {process.returncode})")
+
+            print(f"  ✅ 结尾视频预处理完成")
+
+        except Exception as e:
+            raise RuntimeError(f"结尾视频预处理失败: {e}")
+
+        return str(temp_ending)
+
+    def _concat_videos(
+        self,
+        video_files: List[str],
+        output_path: str,
+        on_progress: Optional[Callable[[float], None]] = None
+    ) -> None:
+        """拼接多个视频文件
+
+        V14: 通用视频拼接方法，用于拼接剪辑和结尾视频
+        使用 concat demuxer 快速拼接（视频已预处理为相同格式）
+
+        Args:
+            video_files: 视频文件路径列表
+            output_path: 输出文件路径
+            on_progress: 进度回调函数
+        """
+        # 创建临时concat列表文件
+        concat_file = self.output_dir / "concat_list.txt"
+        with open(concat_file, 'w', encoding='utf-8') as f:
+            for video_file in video_files:
+                # 使用绝对路径
+                video_path = Path(video_file).resolve()
+                f.write(f"file '{video_path}'\n")
+
+        # FFmpeg命令 - 使用 concat demuxer 快速拼接
+        cmd = [
+            'ffmpeg',
+            '-y',
+            '-f', 'concat',  # concat demuxer
+            '-safe', '0',  # 允许任意文件路径
+            '-i', str(concat_file),  # 输入列表文件
+            '-c', 'copy',  # 复制流，不重编码（因为已经预处理为相同格式）
+            '-movflags', '+faststart',  # 优化Web播放
+            output_path
+        ]
+
+        # 执行命令
+        try:
+            print(f"  🔄 拼接视频...")
+
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            )
+
+            # 等待完成
+            process.wait()
+
+            if process.returncode != 0:
+                error_output = process.stderr.read()
+                raise RuntimeError(f"FFmpeg拼接失败: {error_output}")
+
+            print(f"  ✅ 视频拼接完成")
+
+            if on_progress:
+                on_progress(1.0)
+
+        finally:
+            # 删除临时文件
+            if concat_file.exists():
+                concat_file.unlink()
+
     def render_clip(
         self,
         clip: Clip,
@@ -465,6 +712,10 @@ class ClipRenderer:
                 Path(temp_file).unlink()
             temp_dir.rmdir()
 
+        # V14: 添加结尾视频（如果配置了）
+        if self.add_ending_clip:
+            output_path = self._append_ending_video(output_path)
+
         print(f"  ✅ 输出: {output_path}")
         return output_path
 
@@ -521,14 +772,38 @@ class ClipRenderer:
 def main():
     """命令行入口"""
     import sys
+    import argparse
 
-    if len(sys.argv) < 2:
-        print("用法: python -m scripts.understand.render_clips <项目路径> [视频目录]")
-        print("示例: python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description='渲染AI短剧剪辑（V14: 支持结尾视频拼接）',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+示例:
+  # 基础渲染（不加结尾）
+  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就
 
-    project_path = sys.argv[1]
-    video_dir = sys.argv[2] if len(sys.argv) > 2 else None
+  # 添加结尾视频
+  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --add-ending
+
+  # 不添加结尾视频（显式指定）
+  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --no-ending
+        '''
+    )
+
+    parser.add_argument('project_path', help='项目路径（包含result.json）')
+    parser.add_argument('video_dir', nargs='?', help='视频文件目录（可选，默认为项目路径）')
+    parser.add_argument('--add-ending', action='store_true', help='添加随机结尾视频')
+    parser.add_argument('--no-ending', action='store_true', help='不添加结尾视频')
+
+    args = parser.parse_args()
+
+    # 确定是否添加结尾
+    add_ending = args.add_ending
+    if args.no_ending:
+        add_ending = False
+
+    project_path = args.project_path
+    video_dir = args.video_dir
 
     # 从项目路径提取项目名称
     project_name = Path(project_path).name
@@ -541,8 +816,17 @@ def main():
         project_path=project_path,
         output_dir=output_dir,
         video_dir=video_dir,
-        project_name=project_name
+        project_name=project_name,
+        add_ending_clip=add_ending  # V14: 传递结尾视频配置
     )
+
+    # 显示配置信息
+    print(f"\n{'='*60}")
+    print(f"项目名称: {project_name}")
+    print(f"项目路径: {project_path}")
+    print(f"输出目录: {output_dir}")
+    print(f"结尾视频: {'✅ 启用' if add_ending else '❌ 禁用'}")
+    print(f"{'='*60}\n")
 
     # 渲染所有剪辑
     def on_progress(current: int, total: int, progress: float):

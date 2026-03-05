@@ -6,6 +6,32 @@
 
 ## 最新更新 ✨
 
+### V14 - 结尾视频拼接功能 (2026-03-05) 🎬
+
+**核心功能**：
+- ✅ **自动拼接结尾视频**：在剪辑片尾随机添加结尾视频
+- ✅ **用户可选配置**：通过 `--add-ending` 参数控制是否添加
+- ✅ **智能路径查找**：自动定位 `标准结尾帧视频素材/` 文件夹
+- ✅ **文件名标记**：自动在输出文件名添加 `_带结尾` 标记
+
+**使用示例**：
+```bash
+# 添加结尾视频
+python -m scripts.understand.render_clips \
+    data/hangzhou-leiming/analysis/项目名 \
+    漫剧素材/项目名 \
+    --add-ending
+
+# 不添加结尾视频
+python -m scripts.understand.render_clips \
+    data/hangzhou-leiming/analysis/项目名 \
+    漫剧素材/项目名 \
+    --no-ending
+```
+
+**详细文档**：
+- [结尾视频功能使用指南](./docs/ENDING_CLIP_FEATURE.md) - 完整使用说明
+
 ### V13 - 片尾检测优化到100%准确率 (2026-03-05) 🎉
 
 **核心成就**：

@@ -5,6 +5,124 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V14.0.1] - 2026-03-05
+
+### 修复 (Fixed)
+- **结尾视频分辨率不匹配问题** - 修复结尾视频画面不显示的严重BUG
+  - 问题原因：预处理结尾视频时使用默认分辨率(1920x1080)而非原剪辑实际分辨率(640x360)
+  - 修复方法：使用 ffprobe 动态获取原剪辑的实际分辨率
+  - 影响：结尾视频现在能正确显示，不再卡在最后一帧
+  - 测试状态：✅ 已验证，结尾画面正常显示
+
+### 技术细节 (Technical Details)
+**问题分析**：
+- 原剪辑分辨率：640x360（横屏）
+- 结尾视频原始分辨率：720x1280（竖屏）
+- 修复前预处理：错误使用 1920x1080
+- 修复后预处理：正确使用 640x360（原剪辑实际分辨率）
+
+**修复代码**：
+```python
+# 使用 ffprobe 获取原剪辑的实际分辨率
+cmd = ['ffprobe', '-v', 'error',
+       '-select_streams', 'v:0',
+       '-show_entries', 'stream=width,height',
+       '-of', 'csv=p=0',
+       clip_path]
+result = subprocess.run(cmd, capture_output=True, text=True)
+parts = result.stdout.strip().split(',')
+clip_width = int(parts[0])
+clip_height = int(parts[1])
+```
+
+---
+
+## [V14.0.0] - 2026-03-05
+
+### 新增 (Added)
+- **结尾视频拼接功能** - 在剪辑片尾自动拼接随机选择的结尾视频
+  - 新增 `add_ending_clip` 参数，控制是否添加结尾视频
+  - 新增 `_load_ending_videos()` 方法，从 `标准结尾帧视频素材/` 文件夹加载结尾视频
+  - 新增 `_get_random_ending_video()` 方法，随机选择结尾视频
+  - 新增 `_append_ending_video()` 方法，拼接剪辑和结尾视频
+  - 新增 `_preprocess_ending_video()` 方法，预处理结尾视频匹配原剪辑格式
+  - 新增 `_concat_videos()` 方法，通用视频拼接方法
+  - 支持 `.mp4`、`.mov`、`.avi`、`.mkv`、`.flv`、`.webm` 格式
+  - 自动在输出文件名添加 `_带结尾` 标记
+
+### 改进 (Changed)
+- **命令行参数** - 添加 `--add-ending` 和 `--no-ending` 选项
+  - `--add-ending`: 启用结尾视频拼接
+  - `--no-ending`: 禁用结尾视频拼接（显式指定）
+- **路径查找逻辑** - 智能向上查找 `标准结尾帧视频素材` 文件夹
+  - 支持最多向上查找3层
+  - 如果找不到，使用当前工作目录
+  - 提供清晰的错误提示信息
+
+### 文档 (Documentation)
+- 新增：[结尾视频功能使用指南](./docs/ENDING_CLIP_FEATURE.md)
+- 新增：`test_ending_clip.py` - 结尾视频功能测试脚本
+
+### 测试结果 (Testing)
+**测试项目**: 不晚忘忧
+
+| 测试项 | 结果 |
+|--------|------|
+| 结尾视频加载 | ✅ 成功加载5个结尾视频 |
+| 随机选择 | ✅ 随机功能正常 |
+| 路径查找 | ✅ 自动定位文件夹 |
+
+**可用的结尾视频**:
+1. 点击下方观看全集.mp4
+2. 点击下方链接观看完整版.mp4
+3. 点击下方按钮精彩剧集等你来看.mp4
+4. 点击下方链接观看完整剧情.mp4
+5. 晓红姐团队-标准结尾帧视频.mp4
+
+### 使用示例
+
+#### 命令行
+```bash
+# 添加结尾视频
+python -m scripts.understand.render_clips \
+    data/hangzhou-leiming/analysis/项目名 \
+    漫剧素材/项目名 \
+    --add-ending
+```
+
+#### Python代码
+```python
+from scripts.understand.render_clips import ClipRenderer
+
+renderer = ClipRenderer(
+    project_path="data/hangzhou-leiming/analysis/项目名",
+    output_dir="clips/项目名",
+    add_ending_clip=True  # 启用结尾视频
+)
+
+output_paths = renderer.render_all_clips()
+```
+
+### 技术细节 (Technical Details)
+**拼接方法**:
+- 使用 FFmpeg `concat demuxer` 方法
+- 无需重新编码，保持原视频质量
+- 直接流复制，速度快
+
+**随机选择策略**:
+- 每个剪辑独立随机选择结尾视频
+- 使用 Python `random.choice()` 方法
+- 确保每个剪辑的结尾视频是独立选择的
+
+**文件处理流程**:
+1. 渲染原剪辑（高光点 → 钩子点）
+2. 随机选择结尾视频
+3. 拼接原剪辑 + 结尾视频
+4. 生成新文件（带 `_带结尾` 标记）
+5. 删除原剪辑文件
+
+---
+
 ## [V13.1.0] - 2026-03-04
 
 ### 修复 (Fixed)
