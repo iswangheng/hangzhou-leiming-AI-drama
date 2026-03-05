@@ -201,3 +201,6 @@ data/hangzhou-leiming/skills/*.json
 # Archive目录内容（归档文件不需要跟踪）
 archive/*/
 !archive/.gitkeep
+
+# 技能markdown文件（已经在上面忽略了.json）
+data/hangzhou-leiming/skills/*.md
