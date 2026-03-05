@@ -1,80 +1,112 @@
-# 待办事项 - 片尾检测模块
+# 项目待办事项
 
-**优先级顺序**：
+## 🔄 高优先级
 
-## 🔥 紧急（下次启动立即做）
+### 1. 自动清理缓存机制 [CRITICAL]
 
-- [ ] **重新运行完整批量测试**
-  ```bash
-  cd "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama"
-  python test_ending_detection.py
-  ```
+**问题描述**：
+缓存文件占用大量空间（当前约1.7GB）：
+- `cache/keyframes/`: ~1.4GB（关键帧图片）
+- `cache/audio/`: ~335MB（提取的音频文件）
+- `cache/asr/`: ~4.6MB（ASR转录文本，很小）
 
-- [ ] **查看检测结果**
-  ```bash
-  # 查看JSON结果
-  cat data/hangzhou-leiming/ending_credits/多子多福，开局就送绝美老婆_ending_credits.json | python3 -m json.tool
-  ```
+**需求**：
+- 实现自动清理机制
+- 清理过期的关键帧和音频文件
+- 保留ASR文本（很小且有用）
 
-- [ ] **手动验证准确性**
-  - 打开几个视频，查看最后2秒
-  - 确认检测时长是否合理
-  - 重点检查：第2、3、4、6、7、8集
+**实现建议**：
 
-## ⚙️ 参数调整（如果验证后需要）
+1. **基于时间的清理策略**
+   ```python
+   # 示例配置
+   CACHE_RETENTION_DAYS = {
+       'keyframes': 7,      # 关键帧保留7天
+       'audio': 7,          # 音频保留7天
+       'asr': -1,           # ASR文本永久保留（-1表示不删除）
+   }
+   ```
 
-当前参数：
-```python
-CHECK_LAST_SECONDS = 3.5         # 只检测最后3.5秒
-SIMILARITY_THRESHOLD = 0.92      # 相似度阈值
-MIN_CONTINUOUS_FRAMES = 5        # 最小连续帧数
-SAFE_MARGIN = 0.1                # 安全边界
-```
+2. **实现位置**
+   - 创建 `scripts/cache_cleaner.py`
+   - 集成到 `video_understand.py` 流程末尾
+   - 或作为独立的定时任务
 
-**可能需要调整**：
-- 如果漏检太多：降低阈值到 0.90
-- 如果误检太多：提高阈值到 0.93
-- 如果边界不准：降低连续帧数到 3
+3. **清理逻辑**
+   ```bash
+   # 示例命令
+   python -m scripts.cache_cleaner --days 7 --dry-run
+   python -m scripts.cache_cleaner --days 7 --execute
+   ```
 
-## 📦 应用（验证通过后）
+4. **安全性考虑**
+   - 清理前检查是否有项目正在使用这些缓存
+   - 提供 `--dry-run` 选项预览要删除的文件
+   - 记录清理日志
 
-- [ ] **生成去除片尾的视频**
-  ```bash
-  python trim_ending_credits.py
-  ```
-
-- [ ] **手动检查视频质量**
-  - 播放 `clips/多子多福，开局就送绝美老婆_去除片尾v2/` 中的视频
-  - 确认片尾已正确去除
-  - 确认没有剪到正常内容
-
-- [ ] **集成到渲染流程**
-  - 修改 `scripts/understand/render_clips.py`
-  - 使用 `effective_duration` 代替 `total_duration`
-
-## 📄 文档
-
-详细进展记录：`ENDING-CREDITS-PROGRESS.md`
+**文件位置**：
+- 待创建：`scripts/cache_cleaner.py`
+- 待修改：`scripts/understand/video_understand.py`（集成清理调用）
 
 ---
 
-**快速启动命令**：
+## 📋 中优先级
+
+### 2. 添加标准结尾帧视频功能
+
+**问题描述**：
+生成的剪辑没有自动添加标准结尾帧视频
+
+**需求**：
+- 在每个剪辑末尾添加标准结尾帧视频
+- 使用 `标准结尾帧视频素材/` 目录下的标准结尾
+
+**实现方法**：
+V14版本已实现此功能，使用 `--add-ending` 参数：
 ```bash
-# 1. 进入项目目录
-cd "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama"
-
-# 2. 查看进展文档
-cat ENDING-CREDITS-PROGRESS.md
-
-# 3. 运行测试
-python test_ending_detection.py
-
-# 4. 查看结果
-python3 << 'EOF'
-import json
-from pathlib import Path
-data = json.load(Path("data/hangzhou-leiming/ending_credits/多子多福，开局就送绝美老婆_ending_credits.json"))
-for ep in data['episodes']:
-    print(f"第{ep['episode']:2d}集: {'✅' if ep['ending_info']['has_ending'] else '❌'} {ep['ending_info']['duration']:.2f}秒")
-EOF
+python -m scripts.understand.render_clips \
+    data/hangzhou-leiming/analysis/项目名 \
+    漫剧素材/项目名 \
+    --add-ending
 ```
+
+**待办事项**：
+- [ ] 验证标准结尾帧视频素材是否存在
+- [ ] 测试--add-ending功能是否正常工作
+- [ ] 确认结尾帧拼接的准确性
+
+**文件位置**：
+- 功能已实现：`scripts/understand/render_clips.py`
+- 素材目录：`标准结尾帧视频素材/`
+
+---
+
+### 3. 性能优化
+- [ ] 并行处理多个项目（当前是串行）
+- [ ] 关键帧提取进度显示（当前没有进度条）
+- [ ] ASR转录速度优化（考虑使用更快的模型）
+
+### 3. 质量改进
+- [ ] 优化AI分析prompt提高准确率
+- [ ] 增加更多质量过滤器
+- [ ] 支持人工审核和修正AI标记
+
+---
+
+## 💡 低优先级
+
+### 4. 功能增强
+- [ ] 支持批量项目管理（一次性处理多个项目）
+- [ ] Web界面可视化查看分析结果
+- [ ] 导出分析报告为PDF/Excel
+
+### 5. 文档完善
+- [ ] 添加更多示例到文档
+- [ ] 录制视频教程
+- [ ] 编写故障排查指南
+
+---
+
+## 📝 更新日志
+
+- **2026-03-05**: 创建待办事项列表，标记缓存清理为高优先级

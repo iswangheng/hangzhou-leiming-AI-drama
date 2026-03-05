@@ -21,294 +21,453 @@
       "description": "每部剧第1集开头的默认高光点"
     },
     {
-      "timestamp": 49.9,
+      "timestamp": 147.9,
       "episode": 1,
-      "type": "情节重大转折",
+      "type": "剧情反转高光",
       "confidence": 8.0,
-      "description": "男主讲述自己全家遭遇，从将军之子到被抄家流放，命运发生重大转折，吸引观众。"
+      "description": "男主得知自己是家族最后的血脉，且家族面临危机，系统绑定，命运发生重大转折，引发观众期待。"
+    },
+    {
+      "timestamp": 51.9,
+      "episode": 1,
+      "type": "类型确认快",
+      "confidence": 7.5,
+      "description": "53秒处，画面从战场切换回室内，男主开始讲述自己的身世，交代了父亲是将军，哥哥是战神，快速确认了故事背景和人物关系。"
+    },
+    {
+      "timestamp": 19.9,
+      "episode": 2,
+      "type": "关键道具/场景",
+      "confidence": 8.0,
+      "description": "男主展示发光的丹药，特写镜头，色彩对比强烈，引发观众好奇。"
     },
     {
       "timestamp": 0.9,
-      "episode": 2,
-      "type": "剧情反转高光",
+      "episode": 4,
+      "type": "关键道具/场景",
       "confidence": 7.5,
-      "description": "男主获得系统，预示着命运的转折，引发观众的好奇和期待。"
+      "description": "0-1秒，画面从男女主同床的场景快速切换到系统面板，视觉冲击力强，引发观众好奇。"
+    },
+    {
+      "timestamp": 54.9,
+      "episode": 5,
+      "type": "悬念抛出快",
+      "confidence": 7.5,
+      "description": "55秒开始出现蓝色背景的文字介绍，展示了灵器“恰花剑”的名称、品阶、特性和简介，引发观众对这个灵器的兴趣和好奇，想知道它有什么作用。"
+    },
+    {
+      "timestamp": 61.9,
+      "episode": 7,
+      "type": "悬念抛出快",
+      "confidence": 7.5,
+      "description": "画面中人物说出“他去黑风山了”，引发观众好奇，想知道发生了什么事。"
+    },
+    {
+      "timestamp": 31.9,
+      "episode": 9,
+      "type": "关键道具/场景",
+      "confidence": 7.5,
+      "description": "男主打开钱袋，露出大量银子，视觉冲击力强，引发观众好奇。"
     }
   ],
   "hooks": [
     {
-      "timestamp": 96.5,
+      "timestamp": 253.5,
       "episode": 1,
-      "type": "关键信息被截断",
-      "confidence": 8.0,
-      "description": "大哥说“在这黑棍城，那有什么好下场”，暗示了某种危险或者秘密，信息被截断，引发观众的好奇。"
+      "type": "未完成事件型",
+      "confidence": 7.5,
+      "description": "系统提示“拿下美女，即可获得丰厚奖励”，男主露出笑容，但具体如何行动，以及奖励是什么，都留有悬念。"
     },
     {
-      "timestamp": 42.5,
-      "episode": 2,
-      "type": "关键信息被截断",
+      "timestamp": 81.5,
+      "episode": 1,
+      "type": "对话留白型",
       "confidence": 8.0,
-      "description": "女主说“眼下我们该怎么办”，正要讨论重要对策，但画面结束，观众想知道后续的计划。"
+      "description": "77秒处，男主说“还好”，然后画面切换到嫂嫂的脸，暗示嫂嫂对他很好，但是“还好”之后是什么，观众想知道后续。"
+    },
+    {
+      "timestamp": 229.5,
+      "episode": 1,
+      "type": "情节重大转折",
+      "confidence": 8.0,
+      "description": "男主说“你千万全没实力”，暗示男主发现了什么，情节发生转折，观众想知道后续。"
+    },
+    {
+      "timestamp": 105.5,
+      "episode": 1,
+      "type": "情感爆发顶点",
+      "confidence": 7.5,
+      "description": "女主得知家产被夺，情绪激动，大喊“夫君”，预示着后续剧情的冲突和反转。"
+    },
+    {
+      "timestamp": 50.5,
+      "episode": 1,
+      "type": "对话留白型",
+      "confidence": 7.5,
+      "description": "男主介绍完自己的家庭背景后，画面停留在他说“附近是零小天这过将军”这句话，但并没有说完，留下悬念，想知道后续剧情发展。"
+    },
+    {
+      "timestamp": 98.5,
+      "episode": 2,
+      "type": "情节重大转折",
+      "confidence": 8.0,
+      "description": "男主突然笑着说“我前途光明”，与之前的悲伤气氛形成反差，预示着剧情有重大转折，观众想知道他为什么这么说。"
+    },
+    {
+      "timestamp": 81.5,
+      "episode": 2,
+      "type": "未完成事件型",
+      "confidence": 8.0,
+      "description": "四嫂说“完了，这个家，他可是真的有人”，暗示林家唯一的男人可能出事，但具体什么事没说，属于未完成事件，引发观众好奇。"
+    },
+    {
+      "timestamp": 193.5,
+      "episode": 2,
+      "type": "对话留白型",
+      "confidence": 7.5,
+      "description": "男主问“病秧子吗”，对话进行中，想知道后续发展，BGM正常，但对话留白权重较高"
+    },
+    {
+      "timestamp": 180.5,
+      "episode": 2,
+      "type": "情感爆发顶点",
+      "confidence": 7.5,
+      "description": "男主愤怒至极，即将采取行动，画面停在此处，引发观众期待后续发展。"
+    },
+    {
+      "timestamp": 48.5,
+      "episode": 3,
+      "type": "未完成事件型",
+      "confidence": 8.0,
+      "description": "女子说“这小叔子有问题”，但没有继续说哪里有问题，属于未完成事件，引发观众好奇。"
+    },
+    {
+      "timestamp": 98.5,
+      "episode": 3,
+      "type": "对话留白型",
+      "confidence": 7.5,
+      "description": "男主说“我怎么就以后了”，女主疑问“怎么回事”，对话进行中，想知道后续，符合对话留白型钩子特征。"
     },
     {
       "timestamp": 27.26,
-      "episode": 3,
-      "type": "关键信息被截断",
-      "confidence": 8.0,
-      "description": "男主说出“跟我睡觉就能变强”，这种出人意料的说法，属于关键信息，观众想知道后续会发生什么，因此是钩子。"
-    },
-    {
-      "timestamp": 1.26,
       "episode": 4,
       "type": "关键信息被截断",
-      "confidence": 7.5,
-      "description": "男主正要打开系统面板，观众想知道打开后会看到什么，属于关键信息即将揭晓被打断。"
-    },
-    {
-      "timestamp": 102.5,
-      "episode": 6,
-      "type": "情感爆发顶点",
       "confidence": 8.0,
-      "description": "女主得知“全知道了”之后，情绪崩溃说“以后怎么见人”，停在这里让观众想知道发生了什么，属于情感爆发顶点。"
+      "description": "在27秒时，系统面板显示“男女同修可互相滋养”，正要继续说明，画面结束，关键信息被截断，引发观众想要知道后续。"
     },
     {
-      "timestamp": 16.18,
-      "episode": 6,
+      "timestamp": 55.5,
+      "episode": 4,
+      "type": "对话留白型",
+      "confidence": 7.5,
+      "description": "女主质问男主“你说话呀”，男主没有回应，对话中断，想知道男主后续会说什么，制造悬念。"
+    },
+    {
+      "timestamp": 27.26,
+      "episode": 5,
+      "type": "对话留白型",
+      "confidence": 8.0,
+      "description": "男主施法后，女主说“娘子我来了”，但画面突然结束，观众想知道男主接下来要做什么，以及女主会发生什么。"
+    },
+    {
+      "timestamp": 47.5,
+      "episode": 5,
       "type": "关键信息被截断",
       "confidence": 7.5,
-      "description": "大嫂说“今天下不来床吧”，暗示了某种原因或秘密，但话没说完就结束，引发观众好奇。"
+      "description": "男主说出“这是十家天府还是灰死”，紧接着说“这是变相严同兄弟时间”，但“时间”之后被截断，想知道是什么时间，制造悬念。"
     },
     {
-      "timestamp": 102.5,
-      "episode": 7,
+      "timestamp": 101.5,
+      "episode": 6,
       "type": "关键信息被截断",
-      "confidence": 8.5,
-      "description": "大姐正要说出“是因为昨夜与我阴阳交泰”，话没说完就结束，观众想知道原因，属于关键信息被截断。"
+      "confidence": 8.0,
+      "description": "男主说出“现在全知道了”，女主表情复杂，暗示有重要秘密被揭露，但具体内容未知，形成悬念。"
+    },
+    {
+      "timestamp": 30.5,
+      "episode": 6,
+      "type": "对话留白型",
+      "confidence": 7.5,
+      "description": "大嫂对躺在床上的人说“吃了再睡”，对话进行中，不知道床上的人会说什么，想知道后续"
+    },
+    {
+      "timestamp": 81.5,
+      "episode": 6,
+      "type": "未完成事件型",
+      "confidence": 7.5,
+      "description": "男主说“我去给我娘子送饭”，起身离开，留下未完成的对话和事件，观众想知道后续发展。"
     },
     {
       "timestamp": 81.5,
       "episode": 7,
-      "type": "悬念结束时刻",
+      "type": "未完成事件型",
       "confidence": 8.0,
-      "description": "二妹将剑交给大姐，并说“再见你”，暗示此行凶险，大姐接过剑，画面结束，观众想知道接下来会发生什么。"
+      "description": "妹妹将剑交给姐姐，说“再见你”，姐姐接过剑，但并未说任何话，留下悬念，想知道接下来会发生什么。"
     },
     {
-      "timestamp": 115.5,
+      "timestamp": 99.5,
       "episode": 7,
-      "type": "情节重大转折",
-      "confidence": 7.5,
-      "description": "女主说“睡一觉就服服帖帖”，然后出现特效，暗示有意外发生，情节出现转折。"
-    },
-    {
-      "timestamp": 42.5,
-      "episode": 8,
-      "type": "情节重大转折",
-      "confidence": 8.0,
-      "description": "男主正要回去，突然遇到打劫，剧情突变，引发观众好奇后续发展。"
-    },
-    {
-      "timestamp": 47.5,
-      "episode": 9,
       "type": "关键信息被截断",
       "confidence": 8.0,
-      "description": "男主问黑风寨在哪，对方正要说出具体位置，被打断，属于关键信息被截断。"
+      "description": "男二正要说出关键信息（“他说”），但被打断，观众想知道他到底说了什么。"
     },
     {
       "timestamp": 27.26,
-      "episode": 9,
-      "type": "情节重大转折",
+      "episode": 7,
+      "type": "未完成事件型",
       "confidence": 7.5,
-      "description": "男主发现受伤者招惹了黑风寨，暗示着后续会有冲突或危险，情节发生转折。"
+      "description": "女主问“那我们能做些什么”，男主回答“为未来想办法”，但具体办法是什么没有说，留下悬念。"
     },
     {
-      "timestamp": 69.5,
-      "episode": 9,
+      "timestamp": 55.5,
+      "episode": 7,
+      "type": "对话留白型",
+      "confidence": 7.5,
+      "description": "画面停留在另一位女性角色出现并呼唤“大姐”，观众不知道她要说什么，属于对话留白，想知道后续。"
+    },
+    {
+      "timestamp": 48.5,
+      "episode": 8,
+      "type": "情节重大转折",
+      "confidence": 8.0,
+      "description": "男主被两个蒙面人袭击，情节突变，观众想知道后续如何发展。"
+    },
+    {
+      "timestamp": 96.5,
+      "episode": 8,
       "type": "悬念结束时刻",
       "confidence": 7.5,
-      "description": "女主担心小叔出事，观众想知道小叔是否真的出事，画面停在女主担忧的表情上。"
+      "description": "男主笑着走向独眼龙，即将发生战斗，画面停住，观众想知道后续。"
+    },
+    {
+      "timestamp": 64.5,
+      "episode": 8,
+      "type": "对话留白型",
+      "confidence": 7.5,
+      "description": "男主说“太好了，大哥终于等到你们了”，但对方的反应和后续计划未知，属于对话留白，观众想知道后续发展。"
+    },
+    {
+      "timestamp": 53.5,
+      "episode": 9,
+      "type": "对话留白型",
+      "confidence": 8.0,
+      "description": "男主问“你要入伙”，被打断，观众想知道后续发展。"
+    },
+    {
+      "timestamp": 30.5,
+      "episode": 9,
+      "type": "未完成事件型",
+      "confidence": 8.0,
+      "description": "男主打开包裹，发现里面有东西，并说“卧槽竟有十八两”，想知道里面是什么，属于未完成事件，画面停在这里，制造悬念。"
+    },
+    {
+      "timestamp": 81.5,
+      "episode": 9,
+      "type": "对话留白型",
+      "confidence": 7.5,
+      "description": "画面停留在众人举杯喝酒的场景，然后镜头聚焦到一个人物，他举杯，但后续的话语被截断，留下悬念，想知道他要说什么。"
+    },
+    {
+      "timestamp": 28.5,
+      "episode": 10,
+      "type": "对话留白型",
+      "confidence": 7.5,
+      "description": "画面停留在其中一个角色突然惊讶的表情，并发出“喂”的声音，对话被打断，观众想知道发生了什么，后续是什么。"
     },
     {
       "timestamp": 73.5,
       "episode": 10,
-      "type": "情节重大转折",
-      "confidence": 8.0,
-      "description": "在众人吃饭时，突然有人闯入并大喊“有敌人”，预示着平静被打破，即将发生重大冲突或转折，观众想知道接下来会发生什么。"
+      "type": "悬念结束时刻",
+      "confidence": 7.5,
+      "description": "当家的人说“谁也不许出去”，画面停住，预示着冲突即将发生，观众想知道后续发展。"
     }
   ],
   "clips": [
     {
       "start": 0,
-      "end": 304.5,
-      "duration": 304.5,
+      "end": 229.5,
+      "duration": 229.5,
       "highlight": "开篇高光",
       "highlightDesc": "每部剧第1集开头的默认高光点",
-      "hook": "关键信息被截断",
-      "hookDesc": "女主说“眼下我们该怎么办”，正要讨论重要对策，但画面结束，观众想知道后续的计划。",
-      "type": "开篇高光-关键信息被截断",
-      "episode": 1,
-      "hookEpisode": 2
-    },
-    {
-      "start": 0,
-      "end": 481.26,
-      "duration": 481.26,
-      "highlight": "开篇高光",
-      "highlightDesc": "每部剧第1集开头的默认高光点",
-      "hook": "关键信息被截断",
-      "hookDesc": "男主说出“跟我睡觉就能变强”，这种出人意料的说法，属于关键信息，观众想知道后续会发生什么，因此是钩子。",
-      "type": "开篇高光-关键信息被截断",
-      "episode": 1,
-      "hookEpisode": 3
-    },
-    {
-      "start": 0,
-      "end": 563.26,
-      "duration": 563.26,
-      "highlight": "开篇高光",
-      "highlightDesc": "每部剧第1集开头的默认高光点",
-      "hook": "关键信息被截断",
-      "hookDesc": "男主正要打开系统面板，观众想知道打开后会看到什么，属于关键信息即将揭晓被打断。",
-      "type": "开篇高光-关键信息被截断",
-      "episode": 1,
-      "hookEpisode": 4
-    },
-    {
-      "start": 49.9,
-      "end": 304.5,
-      "duration": 254.6,
-      "highlight": "情节重大转折",
-      "highlightDesc": "男主讲述自己全家遭遇，从将军之子到被抄家流放，命运发生重大转折，吸引观众。",
-      "hook": "关键信息被截断",
-      "hookDesc": "女主说“眼下我们该怎么办”，正要讨论重要对策，但画面结束，观众想知道后续的计划。",
-      "type": "情节重大转折-关键信息被截断",
-      "episode": 1,
-      "hookEpisode": 2
-    },
-    {
-      "start": 49.9,
-      "end": 481.26,
-      "duration": 431.36,
-      "highlight": "情节重大转折",
-      "highlightDesc": "男主讲述自己全家遭遇，从将军之子到被抄家流放，命运发生重大转折，吸引观众。",
-      "hook": "关键信息被截断",
-      "hookDesc": "男主说出“跟我睡觉就能变强”，这种出人意料的说法，属于关键信息，观众想知道后续会发生什么，因此是钩子。",
-      "type": "情节重大转折-关键信息被截断",
-      "episode": 1,
-      "hookEpisode": 3
-    },
-    {
-      "start": 49.9,
-      "end": 563.26,
-      "duration": 513.36,
-      "highlight": "情节重大转折",
-      "highlightDesc": "男主讲述自己全家遭遇，从将军之子到被抄家流放，命运发生重大转折，吸引观众。",
-      "hook": "关键信息被截断",
-      "hookDesc": "男主正要打开系统面板，观众想知道打开后会看到什么，属于关键信息即将揭晓被打断。",
-      "type": "情节重大转折-关键信息被截断",
-      "episode": 1,
-      "hookEpisode": 4
-    },
-    {
-      "start": 49.9,
-      "end": 742.18,
-      "duration": 692.28,
-      "highlight": "情节重大转折",
-      "highlightDesc": "男主讲述自己全家遭遇，从将军之子到被抄家流放，命运发生重大转折，吸引观众。",
-      "hook": "关键信息被截断",
-      "hookDesc": "大嫂说“今天下不来床吧”，暗示了某种原因或秘密，但话没说完就结束，引发观众好奇。",
-      "type": "情节重大转折-关键信息被截断",
-      "episode": 1,
-      "hookEpisode": 6
-    },
-    {
-      "start": 262.9,
-      "end": 481.26,
-      "duration": 218.36,
-      "highlight": "剧情反转高光",
-      "highlightDesc": "男主获得系统，预示着命运的转折，引发观众的好奇和期待。",
-      "hook": "关键信息被截断",
-      "hookDesc": "男主说出“跟我睡觉就能变强”，这种出人意料的说法，属于关键信息，观众想知道后续会发生什么，因此是钩子。",
-      "type": "剧情反转高光-关键信息被截断",
-      "episode": 2,
-      "hookEpisode": 3
-    },
-    {
-      "start": 262.9,
-      "end": 563.26,
-      "duration": 300.36,
-      "highlight": "剧情反转高光",
-      "highlightDesc": "男主获得系统，预示着命运的转折，引发观众的好奇和期待。",
-      "hook": "关键信息被截断",
-      "hookDesc": "男主正要打开系统面板，观众想知道打开后会看到什么，属于关键信息即将揭晓被打断。",
-      "type": "剧情反转高光-关键信息被截断",
-      "episode": 2,
-      "hookEpisode": 4
-    },
-    {
-      "start": 262.9,
-      "end": 742.18,
-      "duration": 479.28,
-      "highlight": "剧情反转高光",
-      "highlightDesc": "男主获得系统，预示着命运的转折，引发观众的好奇和期待。",
-      "hook": "关键信息被截断",
-      "hookDesc": "大嫂说“今天下不来床吧”，暗示了某种原因或秘密，但话没说完就结束，引发观众好奇。",
-      "type": "剧情反转高光-关键信息被截断",
-      "episode": 2,
-      "hookEpisode": 6
-    },
-    {
-      "start": 262.9,
-      "end": 828.5,
-      "duration": 565.6,
-      "highlight": "剧情反转高光",
-      "highlightDesc": "男主获得系统，预示着命运的转折，引发观众的好奇和期待。",
-      "hook": "情感爆发顶点",
-      "hookDesc": "女主得知“全知道了”之后，情绪崩溃说“以后怎么见人”，停在这里让观众想知道发生了什么，属于情感爆发顶点。",
-      "type": "剧情反转高光-情感爆发顶点",
-      "episode": 2,
-      "hookEpisode": 6
-    },
-    {
-      "start": 262.9,
-      "end": 947.5,
-      "duration": 684.6,
-      "highlight": "剧情反转高光",
-      "highlightDesc": "男主获得系统，预示着命运的转折，引发观众的好奇和期待。",
-      "hook": "悬念结束时刻",
-      "hookDesc": "二妹将剑交给大姐，并说“再见你”，暗示此行凶险，大姐接过剑，画面结束，观众想知道接下来会发生什么。",
-      "type": "剧情反转高光-悬念结束时刻",
-      "episode": 2,
-      "hookEpisode": 7
-    },
-    {
-      "start": 262.9,
-      "end": 968.5,
-      "duration": 705.6,
-      "highlight": "剧情反转高光",
-      "highlightDesc": "男主获得系统，预示着命运的转折，引发观众的好奇和期待。",
-      "hook": "关键信息被截断",
-      "hookDesc": "大姐正要说出“是因为昨夜与我阴阳交泰”，话没说完就结束，观众想知道原因，属于关键信息被截断。",
-      "type": "剧情反转高光-关键信息被截断",
-      "episode": 2,
-      "hookEpisode": 7
-    },
-    {
-      "start": 262.9,
-      "end": 981.5,
-      "duration": 718.6,
-      "highlight": "剧情反转高光",
-      "highlightDesc": "男主获得系统，预示着命运的转折，引发观众的好奇和期待。",
       "hook": "情节重大转折",
-      "hookDesc": "女主说“睡一觉就服服帖帖”，然后出现特效，暗示有意外发生，情节出现转折。",
-      "type": "剧情反转高光-情节重大转折",
-      "episode": 2,
-      "hookEpisode": 7
+      "hookDesc": "男主说“你千万全没实力”，暗示男主发现了什么，情节发生转折，观众想知道后续。",
+      "type": "开篇高光-情节重大转折",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 0,
+      "end": 253.5,
+      "duration": 253.5,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "未完成事件型",
+      "hookDesc": "系统提示“拿下美女，即可获得丰厚奖励”，男主露出笑容，但具体如何行动，以及奖励是什么，都留有悬念。",
+      "type": "开篇高光-未完成事件型",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 0,
+      "end": 343.5,
+      "duration": 343.5,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "未完成事件型",
+      "hookDesc": "四嫂说“完了，这个家，他可是真的有人”，暗示林家唯一的男人可能出事，但具体什么事没说，属于未完成事件，引发观众好奇。",
+      "type": "开篇高光-未完成事件型",
+      "episode": 1,
+      "hookEpisode": 2
+    },
+    {
+      "start": 0,
+      "end": 360.5,
+      "duration": 360.5,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "情节重大转折",
+      "hookDesc": "男主突然笑着说“我前途光明”，与之前的悲伤气氛形成反差，预示着剧情有重大转折，观众想知道他为什么这么说。",
+      "type": "开篇高光-情节重大转折",
+      "episode": 1,
+      "hookEpisode": 2
+    },
+    {
+      "start": 0,
+      "end": 442.5,
+      "duration": 442.5,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "情感爆发顶点",
+      "hookDesc": "男主愤怒至极，即将采取行动，画面停在此处，引发观众期待后续发展。",
+      "type": "开篇高光-情感爆发顶点",
+      "episode": 1,
+      "hookEpisode": 2
+    },
+    {
+      "start": 0,
+      "end": 455.5,
+      "duration": 455.5,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "对话留白型",
+      "hookDesc": "男主问“病秧子吗”，对话进行中，想知道后续发展，BGM正常，但对话留白权重较高",
+      "type": "开篇高光-对话留白型",
+      "episode": 1,
+      "hookEpisode": 2
+    },
+    {
+      "start": 0,
+      "end": 502.5,
+      "duration": 502.5,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "未完成事件型",
+      "hookDesc": "女子说“这小叔子有问题”，但没有继续说哪里有问题，属于未完成事件，引发观众好奇。",
+      "type": "开篇高光-未完成事件型",
+      "episode": 1,
+      "hookEpisode": 3
+    },
+    {
+      "start": 0,
+      "end": 552.5,
+      "duration": 552.5,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "对话留白型",
+      "hookDesc": "男主说“我怎么就以后了”，女主疑问“怎么回事”，对话进行中，想知道后续，符合对话留白型钩子特征。",
+      "type": "开篇高光-对话留白型",
+      "episode": 1,
+      "hookEpisode": 3
+    },
+    {
+      "start": 0,
+      "end": 589.26,
+      "duration": 589.26,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "在27秒时，系统面板显示“男女同修可互相滋养”，正要继续说明，画面结束，关键信息被截断，引发观众想要知道后续。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 4
+    },
+    {
+      "start": 0,
+      "end": 617.5,
+      "duration": 617.5,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "对话留白型",
+      "hookDesc": "女主质问男主“你说话呀”，男主没有回应，对话中断，想知道男主后续会说什么，制造悬念。",
+      "type": "开篇高光-对话留白型",
+      "episode": 1,
+      "hookEpisode": 4
+    },
+    {
+      "start": 0,
+      "end": 652.26,
+      "duration": 652.26,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "对话留白型",
+      "hookDesc": "男主施法后，女主说“娘子我来了”，但画面突然结束，观众想知道男主接下来要做什么，以及女主会发生什么。",
+      "type": "开篇高光-对话留白型",
+      "episode": 1,
+      "hookEpisode": 5
+    },
+    {
+      "start": 0,
+      "end": 672.5,
+      "duration": 672.5,
+      "highlight": "开篇高光",
+      "highlightDesc": "每部剧第1集开头的默认高光点",
+      "hook": "关键信息被截断",
+      "hookDesc": "男主说出“这是十家天府还是灰死”，紧接着说“这是变相严同兄弟时间”，但“时间”之后被截断，想知道是什么时间，制造悬念。",
+      "type": "开篇高光-关键信息被截断",
+      "episode": 1,
+      "hookEpisode": 5
+    },
+    {
+      "start": 51.9,
+      "end": 229.5,
+      "duration": 177.6,
+      "highlight": "类型确认快",
+      "highlightDesc": "53秒处，画面从战场切换回室内，男主开始讲述自己的身世，交代了父亲是将军，哥哥是战神，快速确认了故事背景和人物关系。",
+      "hook": "情节重大转折",
+      "hookDesc": "男主说“你千万全没实力”，暗示男主发现了什么，情节发生转折，观众想知道后续。",
+      "type": "类型确认快-情节重大转折",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 51.9,
+      "end": 253.5,
+      "duration": 201.6,
+      "highlight": "类型确认快",
+      "highlightDesc": "53秒处，画面从战场切换回室内，男主开始讲述自己的身世，交代了父亲是将军，哥哥是战神，快速确认了故事背景和人物关系。",
+      "hook": "未完成事件型",
+      "hookDesc": "系统提示“拿下美女，即可获得丰厚奖励”，男主露出笑容，但具体如何行动，以及奖励是什么，都留有悬念。",
+      "type": "类型确认快-未完成事件型",
+      "episode": 1,
+      "hookEpisode": 1
+    },
+    {
+      "start": 51.9,
+      "end": 343.5,
+      "duration": 291.6,
+      "highlight": "类型确认快",
+      "highlightDesc": "53秒处，画面从战场切换回室内，男主开始讲述自己的身世，交代了父亲是将军，哥哥是战神，快速确认了故事背景和人物关系。",
+      "hook": "未完成事件型",
+      "hookDesc": "四嫂说“完了，这个家，他可是真的有人”，暗示林家唯一的男人可能出事，但具体什么事没说，属于未完成事件，引发观众好奇。",
+      "type": "类型确认快-未完成事件型",
+      "episode": 1,
+      "hookEpisode": 2
     }
   ],
   "statistics": {
-    "totalHighlights": 3,
-    "totalHooks": 14,
-    "totalClips": 14,
-    "averageConfidence": 7.970588235294118
+    "totalHighlights": 8,
+    "totalHooks": 30,
+    "totalClips": 90,
+    "averageConfidence": 7.7631578947368425
   }
 }

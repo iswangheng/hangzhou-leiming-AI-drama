@@ -4,6 +4,7 @@
 
 V14: 新增结尾视频拼接功能
 V14.1: 新增自动片尾检测功能
+V15: 新增视频包装花字叠加功能
 """
 import os
 import json
@@ -62,6 +63,7 @@ class VideoFile:
     episode: int
     path: str
     duration: int  # 时长（秒）
+    fps: float = 30.0  # V14.2: 帧率（默认30.0，实际会自动检测）
 
 
 @dataclass
@@ -90,7 +92,9 @@ class ClipRenderer:
         add_ending_clip: bool = False,
         auto_detect_ending: bool = True,
         skip_ending: bool = False,
-        force_detect: bool = False
+        force_detect: bool = False,
+        add_overlay: bool = False,
+        overlay_style_id: Optional[str] = None
     ):
         """初始化剪辑渲染器
 
@@ -108,6 +112,8 @@ class ClipRenderer:
             auto_detect_ending: 自动检测片尾（V14.1新增）
             skip_ending: 跳过片尾检测（V14.1新增）
             force_detect: 强制重新检测片尾（V14.1新增）
+            add_overlay: 是否添加花字叠加（V15新增）
+            overlay_style_id: 花字样式ID（None表示随机，V15新增）
         """
         self.project_path = Path(project_path)
         self.output_dir = Path(output_dir)
@@ -135,6 +141,27 @@ class ClipRenderer:
         # V14: 结尾视频配置
         self.add_ending_clip = add_ending_clip
         self.ending_videos = self._load_ending_videos() if add_ending_clip else []
+
+        # V15: 花字叠加配置
+        self.add_overlay = add_overlay
+        self.overlay_style_id = overlay_style_id
+        self.overlay_renderer = None
+        if add_overlay:
+            # 延迟导入花字叠加模块（避免循环依赖）
+            try:
+                from .video_overlay.video_overlay import VideoOverlayRenderer, OverlayConfig
+                self.overlay_config = OverlayConfig(
+                    enabled=True,
+                    style_id=overlay_style_id,
+                    project_name=project_name,
+                    drama_title=project_name
+                )
+                # 不在这里创建渲染器，而是在需要时创建（确保项目级样式统一）
+                self._overlay_renderer_class = VideoOverlayRenderer
+                print(f"✅ 花字叠加已启用")
+            except ImportError as e:
+                print(f"⚠️  无法导入花字叠加模块: {e}")
+                self.add_overlay = False
 
         # 加载结果
         self.result = self._load_result()
@@ -194,16 +221,25 @@ class ClipRenderer:
         return durations
 
     def _discover_video_files(self) -> Dict[int, VideoFile]:
-        """发现所有视频文件"""
+        """发现所有视频文件
+
+        V14.2: 自动检测每个视频的帧率，确保剪辑精度
+        """
         video_files = {}
 
         for ep in self.episode_durations.keys():
             video_path = self._find_video_file(ep)
             if video_path:
+                # V14.2: 自动检测视频帧率
+                video_fps = self._get_video_fps(str(video_path))
+
+                print(f"  第{ep}集: 检测到帧率 {video_fps:.2f} FPS")
+
                 video_files[ep] = VideoFile(
                     episode=ep,
                     path=str(video_path),
-                    duration=self.episode_durations[ep]
+                    duration=self.episode_durations[ep],
+                    fps=video_fps  # V14.2: 存储实际帧率
                 )
 
         return video_files
@@ -600,23 +636,40 @@ class ClipRenderer:
     ) -> None:
         """裁剪单个视频片段
 
+        V14.2 更新：使用基于帧率的精确剪辑，避免精度问题
+        FFmpeg按帧率对齐，使用-frames:v参数而不是-t参数
+
         Args:
             segment: 视频片段
             output_path: 输出文件路径
             on_progress: 进度回调函数（0.0-1.0）
         """
+        import math
+
         # V13: 支持毫秒精度（浮点数时间戳）
         start_time = segment.start if isinstance(segment.start, float) else float(segment.start)
-        duration = segment.end - segment.start
+        end_time = segment.end if isinstance(segment.end, float) else float(segment.end)
 
-        # FFmpeg命令（V13.1优化：使用流复制，保持原质量）
-        # 使用 -c copy 直接复制流，不重新编码，保持原视频质量和大小
+        # V14.2: 从VideoFile获取实际帧率（而不是每次都检测）
+        if segment.episode in self.video_files:
+            fps = self.video_files[segment.episode].fps
+        else:
+            # 回退到自动检测
+            fps = self._get_video_fps(segment.video_path)
+
+        # 计算帧数（向上取整，确保完整）
+        start_frame = math.floor(start_time * fps)
+        end_frame = math.ceil(end_time * fps)
+        total_frames = end_frame - start_frame
+
+        # V14.2: 使用基于帧的精确剪辑
+        # -frames:v 参数比 -t 参数更精确，因为FFmpeg按帧率对齐
         cmd = [
             'ffmpeg',
             '-y',  # 覆盖输出文件
-            '-ss', f"{start_time:.3f}",  # V13: 毫秒精度开始时间
+            '-ss', f"{start_time:.3f}",  # 起始时间（用于快速定位）
             '-i', segment.video_path,  # 输入文件
-            '-t', f"{duration:.3f}",  # V13: 毫秒精度持续时间
+            '-frames:v', str(total_frames),  # V14.2: 基于帧数的精确剪辑
             '-c', 'copy',  # 复制流，不重新编码（保持原质量和大小）
             '-movflags', '+faststart',  # 优化Web播放
             output_path
@@ -641,6 +694,39 @@ class ClipRenderer:
                 f"FFmpeg裁剪失败 (返回码: {process.returncode})\n"
                 f"命令: {' '.join(cmd)}\n"
             )
+
+    def _get_video_fps(self, video_path: str) -> float:
+        """获取视频帧率
+
+        V14.2 新增方法：用于基于帧的精确剪辑
+
+        Args:
+            video_path: 视频文件路径
+
+        Returns:
+            视频帧率（FPS）
+        """
+        cmd = [
+            'ffprobe',
+            '-v', 'error',
+            '-select_streams', 'v:0',
+            '-show_entries', 'stream=r_frame_rate',
+            '-of', 'default=noprint_wrappers=1:nokey=1',
+            video_path
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            # 如果无法获取帧率，使用默认值
+            return float(self.fps)
+
+        fps_str = result.stdout.strip()
+        # 解析帧率（例如 "30/1" 或 "29.97"）
+        if '/' in fps_str:
+            num, den = fps_str.split('/')
+            return float(num) / float(den)
+        else:
+            return float(fps_str)
 
     def _concat_segments(
         self,
@@ -874,6 +960,50 @@ class ClipRenderer:
             if concat_file.exists():
                 concat_file.unlink()
 
+    def _apply_video_overlay(self, clip_path: str) -> str:
+        """为视频添加花字叠加
+
+        V15: 在视频上叠加"热门短剧"、剧名、免责声明
+        项目级样式统一（同一项目使用相同样式）
+
+        Args:
+            clip_path: 原视频文件路径
+
+        Returns:
+            添加花字后的文件路径
+        """
+        try:
+            # 延迟创建渲染器（确保项目级样式统一）
+            if not hasattr(self, '_overlay_renderer_instance'):
+                self._overlay_renderer_instance = self._overlay_renderer_class(
+                    self.overlay_config
+                )
+
+            # 生成新的输出文件名（添加 "_带花字" 标记）
+            clip_path_obj = Path(clip_path)
+            new_filename = clip_path_obj.stem + "_带花字" + clip_path_obj.suffix
+            new_output_path = str(clip_path_obj.parent / new_filename)
+
+            print(f"  🎨 添加花字叠加...")
+            print(f"  输出文件: {new_filename}")
+
+            # 应用花字叠加
+            result_path = self._overlay_renderer_instance.apply_overlay(
+                input_video=clip_path,
+                output_video=new_output_path
+            )
+
+            # 删除原视频文件
+            Path(clip_path).unlink()
+
+            return result_path
+
+        except Exception as e:
+            print(f"  ⚠️  花字叠加失败: {e}")
+            print(f"  将保留原视频: {clip_path}")
+            # 如果花字叠加失败，返回原视频路径
+            return clip_path
+
     def render_clip(
         self,
         clip: Clip,
@@ -956,6 +1086,10 @@ class ClipRenderer:
         if self.add_ending_clip:
             output_path = self._append_ending_video(output_path)
 
+        # V15: 添加花字叠加（如果配置了）
+        if self.add_overlay and hasattr(self, '_overlay_renderer_class'):
+            output_path = self._apply_video_overlay(output_path)
+
         print(f"  ✅ 输出: {output_path}")
         return output_path
 
@@ -1015,15 +1149,21 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='渲染AI短剧剪辑（V14.1: 支持自动片尾检测和结尾视频拼接）',
+        description='渲染AI短剧剪辑（V15: 支持花字叠加、结尾视频拼接和片尾检测）',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 示例:
-  # 基础渲染（自动检测片尾，添加结尾视频）
+  # 基础渲染（自动检测片尾，添加结尾视频和花字叠加）
   python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就
 
   # 不添加结尾视频
   python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --no-ending
+
+  # 添加花字叠加
+  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --add-overlay
+
+  # 指定花字样式
+  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --add-overlay --overlay-style gold_luxury
 
   # 强制重新检测片尾
   python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --force-detect
@@ -1031,8 +1171,8 @@ def main():
   # 跳过片尾检测（使用完整时长）
   python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --skip-ending
 
-  # 同时添加结尾视频和片尾检测
-  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --add-ending --auto-detect-ending
+  # 完整功能（片尾检测 + 结尾视频 + 花字叠加）
+  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --add-ending --add-overlay
         '''
     )
 
@@ -1047,6 +1187,10 @@ def main():
     parser.add_argument('--auto-detect-ending', action='store_true', help='自动检测片尾（默认启用）')
     parser.add_argument('--skip-ending', action='store_true', help='跳过片尾检测，使用完整时长')
     parser.add_argument('--force-detect', action='store_true', help='强制重新检测片尾（覆盖缓存）')
+
+    # V15: 花字叠加参数
+    parser.add_argument('--add-overlay', action='store_true', help='添加花字叠加')
+    parser.add_argument('--overlay-style', type=str, help='花字样式ID（默认随机选择）')
 
     args = parser.parse_args()
 
@@ -1063,6 +1207,10 @@ def main():
     # 如果没有指定任何选项，默认启用自动检测
     if not skip_ending and not force_detect:
         auto_detect_ending = True
+
+    # V15: 花字叠加参数
+    add_overlay = args.add_overlay
+    overlay_style = args.overlay_style
 
     project_path = args.project_path
     video_dir = args.video_dir
@@ -1082,7 +1230,9 @@ def main():
         add_ending_clip=add_ending,       # V14: 传递结尾视频配置
         auto_detect_ending=auto_detect_ending,  # V14.1: 传递片尾检测配置
         skip_ending=skip_ending,
-        force_detect=force_detect
+        force_detect=force_detect,
+        add_overlay=add_overlay,          # V15: 传递花字叠加配置
+        overlay_style_id=overlay_style    # V15: 传递花字样式
     )
 
     # 显示配置信息
@@ -1092,6 +1242,9 @@ def main():
     print(f"输出目录: {output_dir}")
     print(f"结尾视频拼接: {'✅ 启用' if add_ending else '❌ 禁用'}")
     print(f"片尾检测: {'✅ 自动检测' if auto_detect_ending else '⚠️ 跳过' if skip_ending else '✅ 正常'}")
+    print(f"花字叠加: {'✅ 启用' if add_overlay else '❌ 禁用'}")
+    if overlay_style:
+        print(f"花字样式: {overlay_style}")
     if force_detect:
         print(f"片尾检测模式: 🔃 强制重新检测")
     print(f"{'='*60}\n")

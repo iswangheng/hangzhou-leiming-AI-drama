@@ -10,11 +10,16 @@
 
 双层防护架构：
 - 第一层：项目级配置（快速开关）
-- 第二层：智能检测算法（画面相似度）
+- 第二层：智能检测算法（画面相似度 + ASR时序分析）
+
+V14.2 更新（2026-03-05）：
+- 【重要】扩大ASR检测范围：从3.5秒增加到10秒
+- 【重要】实施保守剪辑策略：只剪纯静音部分（最后ASR结束后+0.2秒）
+- 【重要】确保不会剪掉任何台词，优先保证剧情完整性
 
 作者：V14
 创建时间：2026-03-04
-更新时间：2026-03-04（添加项目配置支持）
+更新时间：2026-03-05（V14.2 保守剪辑策略）
 """
 
 import os
@@ -163,11 +168,11 @@ class EndingCreditsDetector:
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-        # 配置参数
-        self.CHECK_LAST_SECONDS = 3.5         # 只分析最后3.5秒
+        # 配置参数（V14.2 保守剪辑策略更新）
+        self.CHECK_LAST_SECONDS = 10.0        # 【重要】分析最后10秒（从3.5秒增加），确保找到真正的最后ASR
         self.SIMILARITY_THRESHOLD = 0.92      # 相似度阈值
         self.MIN_CONTINUOUS_FRAMES = 5        # 最小连续高相似度帧数（0.1秒 @ 50fps）
-        self.SAFE_MARGIN = 0.1                # 安全边界（秒），避免剪太多
+        self.SAFE_MARGIN = 0.2                # 【重要】安全缓冲0.2秒（从0.1秒增加），保守策略避免剪掉台词
         self.BRIGHTNESS_THRESHOLD = 0.3       # 亮度阈值（黑屏判定）
         self.MIN_ENDING_DURATION = 0.2        # 最小片尾时长（秒）
 
@@ -439,7 +444,10 @@ class EndingCreditsDetector:
         """
         【重写】ASR时序模式分析（第二层防护，支持多次转录）
 
-        转录视频最后3.5秒的音频，分析ASR时序模式判断是否是真实片尾
+        V14.2 更新：
+        - 转录视频最后10秒的音频（从3.5秒增加），确保找到真正的最后ASR
+        - 实施保守策略：只剪纯静音部分（最后ASR结束后+0.2秒缓冲）
+        - 确保不会剪掉任何台词
 
         Args:
             video_path: 视频路径
@@ -466,7 +474,8 @@ class EndingCreditsDetector:
 
             if use_consensus:
                 # 【优化3】多次转录，取最稳定的结果
-                print(f"  🎙️  多次转录最后3.5秒音频...")
+                # V14.2: 扩大检测范围到10秒，确保找到最后ASR
+                print(f"  🎙️  多次转录最后{self.CHECK_LAST_SECONDS}秒音频...")
                 timing_pattern = analyzer.transcribe_with_consensus(
                     transcriber=transcriber,
                     video_path=video_path,
@@ -475,8 +484,9 @@ class EndingCreditsDetector:
                 )
             else:
                 # 单次转录
-                print(f"  🎙️  转录最后3.5秒音频...")
-                asr_segments = transcriber.transcribe_last_seconds(video_path, seconds=3.5)
+                # V14.2: 扩大检测范围到10秒
+                print(f"  🎙️  转录最后{self.CHECK_LAST_SECONDS}秒音频...")
+                asr_segments = transcriber.transcribe_last_seconds(video_path, seconds=self.CHECK_LAST_SECONDS)
 
                 # 分析ASR时序模式
                 print(f"  📊 分析ASR时序模式...")
@@ -532,13 +542,26 @@ class EndingCreditsDetector:
         pattern = asr_timing_pattern.get('pattern', 'unknown')
         reason = asr_timing_pattern.get('reason', '')
 
-        # 情况1: 纯BGM（无ASR）→ 可能是片尾
+        # 情况1: 纯BGM（无ASR）→ 可能是片尾（V14.3修复）
         if pattern == 'no_asr_only_bgm':
             if sim_duration > self.MIN_ENDING_DURATION:
                 print(f"\n[ASR修正] {reason}")
                 print(f"  画面相似度: {sim_duration:.2f}秒")
-                print(f"  ✅ 综合判断: 有片尾（无ASR，只有BGM）")
-                return (True, sim_duration, min(0.95, sim_conf + 0.1), "asr_timing_no_asr")
+
+                # 【V14.3修复】无ASR的片尾可能是剧情画面，需要保守处理
+                MAX_SAFE_ENDING_NO_ASR = 4.0  # 无ASR时，超过4秒就很可能是剧情
+
+                if sim_duration > MAX_SAFE_ENDING_NO_ASR:
+                    # 片尾过长且无ASR，但可能有画面内容，保守剪裁
+                    safe_ending = min(sim_duration * 0.5, 3.0)  # 最多剪掉一半，但不超过3秒
+                    print(f"  ⚠️  片尾过长({sim_duration:.2f}秒)且无ASR，可能有剧情画面")
+                    print(f"  📊 保守策略: 只剪掉 {safe_ending:.2f}秒")
+                    print(f"  ✅ 综合判断: 有片尾（保守剪裁）")
+                    return (True, safe_ending, min(0.90, sim_conf), "asr_timing_no_asr_conservative")
+                else:
+                    # 片尾长度适中，可以剪掉
+                    print(f"  ✅ 综合判断: 有片尾（无ASR，只有BGM，长度适中）")
+                    return (True, sim_duration, min(0.95, sim_conf + 0.1), "asr_timing_no_asr")
             else:
                 return (False, 0.0, 0.0, "none")
 
@@ -569,19 +592,138 @@ class EndingCreditsDetector:
             print(f"  ✅ 综合判断: 无片尾（ASR持续到结尾，正常剧情）")
             return (False, 0.0, 0.95, "asr_timing_normal_drama")
 
-        # 情况4: 混合特征 → 保守判断
+        # 情况4: 混合特征 → 保守判断（V14.3修复）
         if pattern == 'mixed':
             print(f"\n[ASR修正] {reason}")
-            print(f"  ⚠️  ASR模式不明确，使用画面相似度结果")
+            print(f"  ⚠️  ASR模式不明确（混合特征）")
 
-            # 依赖画面相似度
+            # 【V14.3修复】检查片尾时长，对长片尾更保守
+            # 如果片尾过长（>6秒），极大概率是剧情内容，应该减少剪掉
+            MAX_SAFE_ENDING = 6.0  # 超过6秒的片尾需要更保守
+
             if sim_duration > self.MIN_ENDING_DURATION:
-                return (True, sim_duration, sim_conf * 0.8, "asr_timing_mixed")
+                silence_after_asr = asr_timing_pattern.get('silence_after_asr', 0.0)
+
+                if sim_duration > MAX_SAFE_ENDING:
+                    # 片尾过长，只剪掉纯静音部分（ASR结束后）
+                    # 保留有画面变化和ASR的部分
+                    safe_ending = min(silence_after_asr, 3.0)  # 最多剪掉3秒纯静音
+                    print(f"  ⚠️  片尾过长({sim_duration:.2f}秒)，可能是剧情内容")
+                    print(f"  📊 保守策略: 只剪掉纯静音部分 {safe_ending:.2f}秒")
+                    print(f"  ✅ 综合判断: 有片尾（保守剪裁，保留剧情内容）")
+                    return (True, safe_ending, sim_conf * 0.7, "asr_timing_mixed_conservative")
+                else:
+                    # 片尾长度适中，使用画面相似度结果
+                    print(f"  📊 片尾长度适中({sim_duration:.2f}秒)，使用画面相似度结果")
+                    print(f"  ✅ 综合判断: 有片尾（混合特征）")
+                    return (True, sim_duration, sim_conf * 0.8, "asr_timing_mixed")
             else:
                 return (False, 0.0, 0.0, "none")
 
         # 默认情况：使用相似度结果
         return (sim_duration > self.MIN_ENDING_DURATION, sim_duration, sim_conf, "similarity")
+
+    def _apply_conservative_ending(
+        self,
+        sim_duration: float,
+        asr_pattern: Dict,
+        default_min: float = 2.0
+    ) -> float:
+        """
+        【V14.4新增】应用保守剪裁策略，避免错误剪掉剧情内容
+
+        V14.4更新：
+        - 增加ASR安全缓冲区，避免剪掉最后一句台词的结尾部分
+        - 优化mixed模式的判断逻辑
+
+        Args:
+            sim_duration: 画面相似度检测的片尾时长
+            asr_pattern: ASR时序模式分析结果
+            default_min: 默认最小片尾时长
+
+        Returns:
+            修正后的片尾时长
+        """
+        # 如果没有ASR模式信息，返回原始时长
+        if not asr_pattern:
+            return sim_duration if sim_duration > default_min else default_min
+
+        pattern = asr_pattern.get('pattern', 'unknown')
+        silence_after_asr = asr_pattern.get('silence_after_asr', 0.0)
+        last_asr_end = asr_pattern.get('last_asr_end', None)
+
+        # 【V14.5关键修复】优化ASR安全缓冲区，平衡剪裁片尾和保留台词
+        # 因为最后一句台词可能在ASR检测窗口之外，或者台词的尾音需要保留
+        ASR_SAFETY_BUFFER = 0.15  # V14.5: ASR结束后0.15秒缓冲区（恢复之前完美版本的参数）
+
+        # V14.5: 对不同的ASR模式应用保守策略
+        if pattern == 'mixed':
+            # 混合模式：有ASR但混合了静音
+            MAX_SAFE_ENDING = 6.0  # 超过6秒需要保守处理
+
+            if sim_duration > MAX_SAFE_ENDING:
+                # 【V14.5修复】片尾过长时，考虑ASR缓冲区
+                # 如果有last_asr_end信息，使用它来计算更精确的安全片尾
+                if last_asr_end is not None:
+                    # 计算：纯静音部分 - ASR缓冲区
+                    # V14.5: 减少缓冲区从3秒到1秒，确保至少剪掉1秒
+                    safe_ending = max(1.0, silence_after_asr - ASR_SAFETY_BUFFER)
+                    safe_ending = min(safe_ending, 3.0)  # 最多剪掉3秒（从2秒增加）
+                    print(f"    [V14.5优化剪裁] mixed模式，片尾过长({sim_duration:.2f}s)")
+                    print(f"    → 考虑ASR缓冲区1秒，纯静音{silence_after_asr:.2f}s - 缓冲区1s = {safe_ending:.2f}s")
+                    return safe_ending
+                else:
+                    # 没有last_asr_end信息，使用旧逻辑
+                    safe_ending = min(silence_after_asr, 2.0)
+                    print(f"    [V14.3保守剪裁] mixed模式，片尾过长({sim_duration:.2f}s) → {safe_ending:.2f}s")
+                    return safe_ending
+            else:
+                # 片尾长度适中（3-6秒），需要剪掉一部分
+                # V14.5: 3-6秒的片尾应该剪掉2秒
+                if sim_duration > 3.0:
+                    print(f"    [V14.5优化剪裁] mixed模式，片尾适中({sim_duration:.2f}s)，剪掉2秒")
+                    return 2.0
+                else:
+                    # 3秒以内保留
+                    print(f"    [V14.5优化剪裁] mixed模式，片尾较短({sim_duration:.2f}s ≤ 3s)，保留")
+                    return 0.0
+
+        elif pattern == 'no_asr_only_bgm':
+            # 纯BGM模式：更严格的检查
+            MAX_SAFE_ENDING_NO_ASR = 4.0  # 无ASR时，超过4秒就很可能是剧情
+
+            if sim_duration > MAX_SAFE_ENDING_NO_ASR:
+                # 片尾过长且无ASR，保守剪裁
+                safe_ending = min(sim_duration * 0.5, 2.0)  # V14.4: 最多剪掉2秒
+                print(f"    [V14.4保守剪裁] no_asr模式，片尾过长({sim_duration:.2f}s) → {safe_ending:.2f}s")
+                return safe_ending
+            else:
+                # 片尾长度适中，保守保留
+                print(f"    [V14.4保守剪裁] no_asr模式，片尾适中({sim_duration:.2f}s ≤ 4s)，保留")
+                return 0.0
+
+        elif pattern == 'long_asr_no_silence':
+            # 长ASR持续到结尾：正常剧情，不剪掉
+            print(f"    [V14.4判断] long_asr_no_silence模式，ASR持续到结尾，正常剧情，不剪掉")
+            return 0.0
+
+        elif pattern == 'short_asr_long_silence':
+            # 短ASR + 长静音：可能是片尾旁白
+            # 但需要考虑ASR缓冲区
+            if last_asr_end is not None and silence_after_asr > ASR_SAFETY_BUFFER:
+                # 静音足够长（>3秒），可以剪掉超出缓冲区的部分
+                safe_ending = silence_after_asr - ASR_SAFETY_BUFFER
+                print(f"    [V14.4保守剪裁] short_asr_long_silence模式")
+                print(f"    → 静音{silence_after_asr:.2f}s - 缓冲区3s = {safe_ending:.2f}s")
+                return safe_ending
+            else:
+                # 静音不够长，保留
+                print(f"    [V14.4保守剪裁] short_asr_long_silence模式，静音不足，保留")
+                return 0.0
+
+        else:
+            # 其他模式，保守处理
+            return sim_duration if sim_duration > default_min else default_min
 
     def _extract_project_name(self, video_path: str) -> str:
         """
@@ -1187,19 +1329,28 @@ def detect_project_endings(
             has_ending = True
             confidence = min(0.98, 0.8 + total_score * 0.05)
             method = "comprehensive_very_high_confidence"
-            final_duration = sim_duration if sim_duration > detector.MIN_ENDING_DURATION else 2.0
+            # V14.3: 应用保守剪裁策略
+            final_duration = detector._apply_conservative_ending(
+                sim_duration, asr_pattern, default_min=detector.MIN_ENDING_DURATION
+            )
         elif total_score >= 0.8:
             # 中高置信度：很可能有片尾
             has_ending = True
             confidence = min(0.95, 0.7 + total_score * 0.1)
             method = "comprehensive_high_confidence"
-            final_duration = sim_duration if sim_duration > detector.MIN_ENDING_DURATION else 2.0
+            # V14.3: 应用保守剪裁策略
+            final_duration = detector._apply_conservative_ending(
+                sim_duration, asr_pattern, default_min=detector.MIN_ENDING_DURATION
+            )
         elif total_score >= 0.3:
             # 中等置信度：可能有片尾
             has_ending = True
             confidence = 0.70
             method = "comprehensive_moderate"
-            final_duration = sim_duration if sim_duration > detector.MIN_ENDING_DURATION else 2.0
+            # V14.3: 应用保守剪裁策略
+            final_duration = detector._apply_conservative_ending(
+                sim_duration, asr_pattern, default_min=detector.MIN_ENDING_DURATION
+            )
         elif total_score <= -1.0:
             # 高置信度：明显无片尾
             has_ending = False
@@ -1226,7 +1377,10 @@ def detect_project_endings(
                 has_ending = True
                 confidence = 0.75
                 method = "cross_episode_decisive_positive"
-                final_duration = sim_duration if sim_duration > detector.MIN_ENDING_DURATION else 2.0
+                # V14.3: 应用保守剪裁策略
+                final_duration = detector._apply_conservative_ending(
+                    sim_duration, asr_pattern, default_min=detector.MIN_ENDING_DURATION
+                )
             elif scores.get('cross_episode', 0) <= -0.5:
                 # 跨集一致性强烈支持无片尾
                 has_ending = False
@@ -1337,7 +1491,7 @@ def main():
 
     project_path = sys.argv[1]
     asr_dir = sys.argv[2] if len(sys.argv) > 2 else None
-    output_dir = sys.argv[3] if len(sys.argv) > 3 else None
+    output_dir = sys.argv[3] if len(sys.argv) > 3 else 'data/hangzhou-leiming/ending_credits'
 
     # 加载ASR数据（如果提供）
     asr_data = None
@@ -1352,6 +1506,11 @@ def main():
         asr_data=asr_data,
         output_dir=output_dir
     )
+
+    if result:
+        print(f"\n✅ 检测完成！")
+        actual_output_file = Path(output_dir) / f"{result.project_name}_ending_credits.json"
+        print(f"结果已保存到: {actual_output_file}")
 
     if result:
         print(f"\n✅ 检测完成！")

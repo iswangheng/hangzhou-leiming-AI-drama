@@ -2,6 +2,10 @@
 ASR内容分析模块
 
 分析ASR转录内容，判断是"片尾旁白"还是"正常剧情对白"
+
+V14.2 更新（2026-03-05）：
+- 【重要】检测范围从3.5秒增加到10秒，确保找到真正的最后ASR
+- 实施保守剪辑策略，避免剪掉台词
 """
 
 import re
@@ -11,35 +15,161 @@ from typing import List, Dict, Any
 class ASRContentAnalyzer:
     """ASR内容分析器"""
 
-    # 片尾旁白关键词
-    ENDING_KEYWORDS = [
-        "精彩剧集", "敬请期待", "下集", "预告",
-        "关注", "点赞", "收藏", "转发", "关注我",
-        "未完待续", "待续", "想看更多", "后续更精彩",
-        "下期", "预告", "精彩", "不要走开"
-    ]
-
-    # 正常剧情关键词（提示这是有意义的剧情对白）
-    DRAMA_KEYWORDS = [
-        # 疑问词
-        "怎么回事", "为什么", "怎么会", "不可能", "什么",
-        "你是谁", "我是谁", "这是哪里", "这是哪里", "哪里",
-        "你知道吗", "我告诉你", "让我说", "等等", "等等我",
-        # 对话常用词
-        "不要", "别走", "等等", "等一下", "怎么了",
-        "你说什么", "你说", "听我说", "我知道", "我知道了",
-        # 情感表达
-        "我爱你", "喜欢你", "讨厌", "恨你", "对不起",
-        # 动作相关
-        "过来", "回去", "走吧", "走开", "站住",
-        # 剧情推进
-        "原来", "竟然", "居然", "真的", "假的"
-    ]
-
     def __init__(self):
         """初始化分析器"""
-        self.ending_keywords = self.ENDING_KEYWORDS
-        self.drama_keywords = self.DRAMA_KEYWORDS
+        self.CHECK_DURATION = 10.0  # V14.2: 检测最后10秒（从3.5秒增加），确保找到真正的最后ASR
+
+    def transcribe_with_consensus(
+        self,
+        transcriber,
+        video_path: str,
+        video_end_time: float,
+        n_times: int = 3
+    ) -> Dict[str, Any]:
+        """
+        【优化3】多次转录，取最稳定的结果
+
+        Args:
+            transcriber: ASR转录器实例
+            video_path: 视频路径
+            video_end_time: 视频结束时间
+            n_times: 转录次数（默认3次）
+
+        Returns:
+            最一致的ASR时序模式分析结果
+        """
+        from collections import Counter
+
+        print(f"  🔄 多次转录取稳定结果（{n_times}次）...")
+
+        # 多次转录
+        all_results = []
+        all_patterns = []
+
+        for i in range(n_times):
+            print(f"    [{i+1}/{n_times}] 转录中...")
+
+            # 转录
+            segments = transcriber.transcribe_last_seconds(
+                video_path,
+                seconds=self.CHECK_DURATION
+            )
+
+            # 分析时序模式
+            timing_pattern = self.analyze_timing_pattern(
+                segments,
+                video_end_time,
+                self.CHECK_DURATION
+            )
+
+            all_results.append(timing_pattern)
+            all_patterns.append(timing_pattern['pattern'])
+
+            # 输出每次的结果
+            asr_count = len(segments) if segments else 0
+            print(f"        模式: {timing_pattern['pattern']}, ASR片段数: {asr_count}")
+
+        # 统计最一致的模式
+        pattern_counts = Counter(all_patterns)
+        most_common_pattern = pattern_counts.most_common(1)[0][0]
+        consistency_ratio = pattern_counts[most_common_pattern] / n_times
+
+        print(f"  ✓ 一致性分析: {most_common_pattern} ({consistency_ratio:.0%}一致)")
+
+        # 找到最常见模式的第一个结果
+        for result in all_results:
+            if result['pattern'] == most_common_pattern:
+                # 添加一致性信息
+                result['consistency_ratio'] = consistency_ratio
+                result['transcription_count'] = n_times
+                result['pattern_distribution'] = dict(pattern_counts)
+                return result
+
+        # 不应该到这里，但以防万一返回最后一个结果
+        return all_results[-1]
+
+    def analyze_timing_pattern(
+        self,
+        asr_segments: List[Dict[str, Any]],
+        video_end_time: float,
+        check_duration: float = None
+    ) -> Dict[str, Any]:
+        """
+        【新增】ASR时序模式分析（核心方法）
+
+        判断ASR的时间分布模式，不依赖内容分析
+
+        Args:
+            asr_segments: ASR片段列表
+            video_end_time: 视频结束时间
+            check_duration: 检测时长（默认3.5秒）
+
+        Returns:
+            {
+                'asr_duration': ASR总时长,
+                'asr_coverage': ASR覆盖比例,
+                'silence_after_asr': ASR结束后的静音时长,
+                'has_long_asr': 是否有长ASR,
+                'has_long_silence': 是否有长静音,
+                'pattern': 'short_asr_long_silence' | 'long_asr_no_silence' | 'no_asr_only_bgm' | 'mixed'
+            }
+        """
+        if check_duration is None:
+            check_duration = self.CHECK_DURATION
+
+        # 情况1：无ASR（只有BGM）
+        if not asr_segments or len(asr_segments) == 0:
+            return {
+                'asr_duration': 0.0,
+                'asr_coverage': 0.0,
+                'silence_after_asr': check_duration,
+                'has_long_asr': False,
+                'has_long_silence': True,
+                'pattern': 'no_asr_only_bgm',
+                'reason': f'无ASR，{check_duration}秒全是BGM'
+            }
+
+        # 计算ASR时长
+        first_asr_start = min(seg['start'] for seg in asr_segments)
+        last_asr_end = max(seg['end'] for seg in asr_segments)
+        asr_duration = last_asr_end - first_asr_start
+        asr_coverage = asr_duration / check_duration
+
+        # 计算ASR结束后的静音时长
+        silence_after_asr = video_end_time - last_asr_end
+
+        # 判断ASR模式
+        has_long_asr = asr_duration > 1.5  # ASR时长>1.5秒
+        has_long_silence = silence_after_asr > 1.0  # 静音>1秒
+
+        if not has_long_asr and has_long_silence:
+            # 短ASR + 长静音 → 片尾特征
+            pattern = 'short_asr_long_silence'
+            reason = f'短ASR({asr_duration:.2f}秒) + 长静音({silence_after_asr:.2f}秒) → 片尾特征'
+        elif has_long_asr and not has_long_silence:
+            # 长ASR + 无静音 → 正常剧情特征
+            pattern = 'long_asr_no_silence'
+            reason = f'长ASR({asr_duration:.2f}秒) + 持续到结尾 → 正常剧情特征'
+        elif not has_long_asr and not has_long_silence:
+            # 短ASR + 短静音 → 混合
+            pattern = 'mixed'
+            reason = f'短ASR({asr_duration:.2f}秒) + 短静音({silence_after_asr:.2f}秒) → 混合特征'
+        else:
+            # 长ASR + 长静音 → 混合
+            pattern = 'mixed'
+            reason = f'长ASR({asr_duration:.2f}秒) + 长静音({silence_after_asr:.2f}秒) → 混合特征'
+
+        return {
+            'asr_duration': asr_duration,
+            'asr_coverage': asr_coverage,
+            'silence_after_asr': silence_after_asr,
+            'has_long_asr': has_long_asr,
+            'has_long_silence': has_long_silence,
+            'pattern': pattern,
+            'reason': reason,
+            'first_asr_start': first_asr_start,
+            'last_asr_end': last_asr_end
+        }
 
     def analyze_segments(
         self,

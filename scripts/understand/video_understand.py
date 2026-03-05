@@ -65,12 +65,51 @@ def load_episode_data(project_path: str, auto_extract: bool = True) -> tuple:
             # 关键帧不存在，自动提取
             if auto_extract:
                 print(f"  ⚠️  第{episode}集关键帧不存在，开始自动提取...")
-                print(f"     提取参数: fps=1.0 (每秒1帧)")
+
+                # V14.2: 检测视频实际帧率
+                import subprocess
+                try:
+                    cmd = [
+                        'ffprobe',
+                        '-v', 'error',
+                        '-select_streams', 'v:0',
+                        '-show_entries', 'stream=r_frame_rate',
+                        '-of', 'default=noprint_wrappers=1:nokey=1',
+                        str(mp4_file)
+                    ]
+                    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+                    fps_str = result.stdout.strip()
+
+                    # 解析帧率
+                    if '/' in fps_str:
+                        num, den = fps_str.split('/')
+                        actual_fps = float(num) / float(den)
+                    else:
+                        actual_fps = float(fps_str)
+
+                    print(f"     检测到视频帧率: {actual_fps:.2f} FPS")
+
+                    # V14.2: 根据实际帧率调整提取参数
+                    # 对于高帧率视频，需要更密集的采样
+                    if actual_fps >= 50:
+                        extract_fps = 2.0  # 50fps视频，每秒2帧
+                        print(f"     提取参数: fps={extract_fps} (高帧率视频，增加采样密度)")
+                    elif actual_fps <= 25:
+                        extract_fps = 0.5  # 25fps视频，每秒0.5帧（减少采样）
+                        print(f"     提取参数: fps={extract_fps} (低帧率视频，减少采样)")
+                    else:
+                        extract_fps = 1.0  # 30fps视频，每秒1帧（标准）
+                        print(f"     提取参数: fps={extract_fps} (标准帧率视频)")
+
+                except (subprocess.CalledProcessError, ValueError) as e:
+                    print(f"     ⚠️  无法检测帧率，使用默认值: 1.0 fps")
+                    extract_fps = 1.0
+
                 try:
                     keyframes = extract_keyframes(
                         video_path=str(mp4_file),
                         output_dir=keyframe_path,
-                        fps=1.0,  # 每秒1帧
+                        fps=extract_fps,  # V14.2: 使用调整后的帧率
                         quality=TrainingConfig.KEYFRAME_QUALITY
                     )
                     print(f"  ✅ 第{episode}集关键帧提取完成 ({len(keyframes)}帧)")

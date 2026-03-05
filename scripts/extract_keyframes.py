@@ -16,19 +16,23 @@ def extract_keyframes(
     output_dir: str,
     fps: float = TrainingConfig.KEYFRAME_FPS,
     quality: int = TrainingConfig.KEYFRAME_QUALITY,
-    force_reextract: bool = False
+    force_reextract: bool = False,
+    video_actual_fps: float = None  # V14.2: 新增参数，视频实际帧率
 ) -> List[KeyFrame]:
     """提取关键帧
 
     使用 FFmpeg 按指定 fps 提取帧
     ffmpeg -i input.mp4 -vf "fps=2" output/%04d.jpg
 
+    V14.2 更新：支持传入视频实际帧率，用于精确计算时间戳
+
     Args:
         video_path: 视频文件路径
         output_dir: 输出目录
-        fps: 提取帧率（每秒帧数）
+        fps: 提取帧率（每秒帧数，用于FFmpeg -vf滤镜）
         quality: JPEG质量 (1-31, 越小越好)
         force_reextract: 是否强制重新提取
+        video_actual_fps: 视频实际帧率（用于精确计算时间戳）
 
     Returns:
         关键帧列表
@@ -85,8 +89,14 @@ def extract_keyframes(
     frame_files = sorted(Path(output_dir).glob('*.jpg'))
 
     for idx, frame_file in enumerate(frame_files):
-        # 计算时间戳
-        timestamp_ms = int((idx / fps) * 1000)
+        # V14.2: 使用视频实际帧率计算精确时间戳
+        if video_actual_fps is not None:
+            # 使用实际帧率计算：时间戳 = (帧索引 / 提取帧率) * (实际帧率 / 提取帧率) * 1000
+            timestamp_ms = int((idx / fps) * (video_actual_fps / fps) * 1000)
+        else:
+            # 回退到原来的计算方式
+            timestamp_ms = int((idx / fps) * 1000)
+
         keyframes.append(KeyFrame(
             frame_path=str(frame_file),
             timestamp_ms=timestamp_ms
@@ -100,7 +110,7 @@ def extract_keyframes(
     return keyframes
 
 
-def load_existing_keyframes(output_dir: str) -> Optional[List[KeyFrame]]:
+def load_existing_keyframes(output_dir: str, video_actual_fps: float = None) -> Optional[List[KeyFrame]]:
     """加载已提取的关键帧"""
     frame_files = sorted(Path(output_dir).glob('*.jpg'))
     if not frame_files:
