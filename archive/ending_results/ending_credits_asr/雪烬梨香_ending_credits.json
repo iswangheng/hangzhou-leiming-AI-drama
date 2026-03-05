@@ -1,0 +1,233 @@
+{
+  "project_name": "雪烬梨香",
+  "project_path": "新的漫剧素材/雪烬梨香",
+  "episodes": [
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/1.mp4",
+      "episode": 1,
+      "total_duration": 559.466667,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "project_config",
+        "features": {
+          "reason": "项目配置为无片尾",
+          "config": {
+            "has_ending_credits": false,
+            "source": "新的漫剧素材",
+            "ending_type": "无片尾",
+            "verified": true,
+            "notes": "人工验证，10集全部误判，实际是正常剧情内容（有ASR旁白）"
+          }
+        }
+      },
+      "effective_duration": 559.466667
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/2.mp4",
+      "episode": 2,
+      "total_duration": 72.0,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "project_config",
+        "features": {
+          "reason": "项目配置为无片尾",
+          "config": {
+            "has_ending_credits": false,
+            "source": "新的漫剧素材",
+            "ending_type": "无片尾",
+            "verified": true,
+            "notes": "人工验证，10集全部误判，实际是正常剧情内容（有ASR旁白）"
+          }
+        }
+      },
+      "effective_duration": 72.0
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/3.mp4",
+      "episode": 3,
+      "total_duration": 61.633333,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "project_config",
+        "features": {
+          "reason": "项目配置为无片尾",
+          "config": {
+            "has_ending_credits": false,
+            "source": "新的漫剧素材",
+            "ending_type": "无片尾",
+            "verified": true,
+            "notes": "人工验证，10集全部误判，实际是正常剧情内容（有ASR旁白）"
+          }
+        }
+      },
+      "effective_duration": 61.633333
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/4.mp4",
+      "episode": 4,
+      "total_duration": 58.5,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "project_config",
+        "features": {
+          "reason": "项目配置为无片尾",
+          "config": {
+            "has_ending_credits": false,
+            "source": "新的漫剧素材",
+            "ending_type": "无片尾",
+            "verified": true,
+            "notes": "人工验证，10集全部误判，实际是正常剧情内容（有ASR旁白）"
+          }
+        }
+      },
+      "effective_duration": 58.5
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/5.mp4",
+      "episode": 5,
+      "total_duration": 65.966667,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "project_config",
+        "features": {
+          "reason": "项目配置为无片尾",
+          "config": {
+            "has_ending_credits": false,
+            "source": "新的漫剧素材",
+            "ending_type": "无片尾",
+            "verified": true,
+            "notes": "人工验证，10集全部误判，实际是正常剧情内容（有ASR旁白）"
+          }
+        }
+      },
+      "effective_duration": 65.966667
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/6.mp4",
+      "episode": 6,
+      "total_duration": 59.733333,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "project_config",
+        "features": {
+          "reason": "项目配置为无片尾",
+          "config": {
+            "has_ending_credits": false,
+            "source": "新的漫剧素材",
+            "ending_type": "无片尾",
+            "verified": true,
+            "notes": "人工验证，10集全部误判，实际是正常剧情内容（有ASR旁白）"
+          }
+        }
+      },
+      "effective_duration": 59.733333
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/7.mp4",
+      "episode": 7,
+      "total_duration": 58.233333,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "project_config",
+        "features": {
+          "reason": "项目配置为无片尾",
+          "config": {
+            "has_ending_credits": false,
+            "source": "新的漫剧素材",
+            "ending_type": "无片尾",
+            "verified": true,
+            "notes": "人工验证，10集全部误判，实际是正常剧情内容（有ASR旁白）"
+          }
+        }
+      },
+      "effective_duration": 58.233333
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/8.mp4",
+      "episode": 8,
+      "total_duration": 67.333333,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "project_config",
+        "features": {
+          "reason": "项目配置为无片尾",
+          "config": {
+            "has_ending_credits": false,
+            "source": "新的漫剧素材",
+            "ending_type": "无片尾",
+            "verified": true,
+            "notes": "人工验证，10集全部误判，实际是正常剧情内容（有ASR旁白）"
+          }
+        }
+      },
+      "effective_duration": 67.333333
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/9.mp4",
+      "episode": 9,
+      "total_duration": 63.766667,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "project_config",
+        "features": {
+          "reason": "项目配置为无片尾",
+          "config": {
+            "has_ending_credits": false,
+            "source": "新的漫剧素材",
+            "ending_type": "无片尾",
+            "verified": true,
+            "notes": "人工验证，10集全部误判，实际是正常剧情内容（有ASR旁白）"
+          }
+        }
+      },
+      "effective_duration": 63.766667
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/10.mp4",
+      "episode": 10,
+      "total_duration": 54.333333,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "project_config",
+        "features": {
+          "reason": "项目配置为无片尾",
+          "config": {
+            "has_ending_credits": false,
+            "source": "新的漫剧素材",
+            "ending_type": "无片尾",
+            "verified": true,
+            "notes": "人工验证，10集全部误判，实际是正常剧情内容（有ASR旁白）"
+          }
+        }
+      },
+      "effective_duration": 54.333333
+    }
+  ],
+  "summary": {
+    "total_episodes": 10,
+    "episodes_with_ending": 0,
+    "total_ending_duration": 0.0,
+    "total_effective_duration": 1120.9666660000003,
+    "average_ending_duration": 0
+  }
+}

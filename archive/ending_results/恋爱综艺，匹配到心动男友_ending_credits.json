@@ -1,0 +1,303 @@
+{
+  "project_name": "恋爱综艺，匹配到心动男友",
+  "project_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/恋爱综艺，匹配到心动男友",
+  "episodes": [
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/恋爱综艺，匹配到心动男友/1.mp4",
+      "episode": 1,
+      "total_duration": 289.111995,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 1.966666666666697,
+        "confidence": 0.85,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              1.966666666666697
+            ],
+            [
+              "brightness",
+              3.6000000000000227
+            ]
+          ]
+        }
+      },
+      "effective_duration": 287.1453283333333
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/恋爱综艺，匹配到心动男友/2.mp4",
+      "episode": 2,
+      "total_duration": 64.087007,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.6000000000000014,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.6000000000000014
+            ]
+          ]
+        }
+      },
+      "effective_duration": 60.487007
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/恋爱综艺，匹配到心动男友/3.mp4",
+      "episode": 3,
+      "total_duration": 83.94,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.5999999999999943,
+        "confidence": 0.85,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.5999999999999943
+            ],
+            [
+              "brightness",
+              3.5999999999999943
+            ]
+          ]
+        }
+      },
+      "effective_duration": 80.34
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/恋爱综艺，匹配到心动男友/4.mp4",
+      "episode": 4,
+      "total_duration": 88.281995,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.9666666666666544,
+        "confidence": 0.85,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              2.9666666666666544
+            ],
+            [
+              "brightness",
+              3.5999999999999943
+            ]
+          ]
+        }
+      },
+      "effective_duration": 85.31532833333334
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/恋爱综艺，匹配到心动男友/5.mp4",
+      "episode": 5,
+      "total_duration": 85.588912,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.5999999999999943,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.5999999999999943
+            ]
+          ]
+        }
+      },
+      "effective_duration": 81.988912
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/恋爱综艺，匹配到心动男友/6.mp4",
+      "episode": 6,
+      "total_duration": 99.776009,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.5999999999999943,
+        "confidence": 0.85,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.5999999999999943
+            ],
+            [
+              "brightness",
+              3.5999999999999943
+            ]
+          ]
+        }
+      },
+      "effective_duration": 96.17600900000001
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/恋爱综艺，匹配到心动男友/7.mp4",
+      "episode": 7,
+      "total_duration": 99.241995,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 1.7333333333333343,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              1.7333333333333343
+            ]
+          ]
+        }
+      },
+      "effective_duration": 97.50866166666667
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/恋爱综艺，匹配到心动男友/8.mp4",
+      "episode": 8,
+      "total_duration": 121.881769,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 1.933333333333323,
+        "confidence": 0.85,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              1.933333333333323
+            ],
+            [
+              "brightness",
+              3.5999999999999943
+            ]
+          ]
+        }
+      },
+      "effective_duration": 119.94843566666668
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/恋爱综艺，匹配到心动男友/9.mp4",
+      "episode": 9,
+      "total_duration": 94.249977,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.5999999999999943,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.5999999999999943
+            ]
+          ]
+        }
+      },
+      "effective_duration": 90.649977
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/恋爱综艺，匹配到心动男友/10.mp4",
+      "episode": 10,
+      "total_duration": 91.602902,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.86666666666666,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              2.86666666666666
+            ]
+          ]
+        }
+      },
+      "effective_duration": 88.73623533333334
+    }
+  ],
+  "summary": {
+    "total_episodes": 10,
+    "episodes_with_ending": 10,
+    "total_ending_duration": 29.466666666666647,
+    "total_effective_duration": 1088.2958943333333,
+    "average_ending_duration": 2.9466666666666645
+  }
+}

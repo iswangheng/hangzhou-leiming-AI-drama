@@ -1,0 +1,285 @@
+{
+  "project_name": "雪烬梨香",
+  "project_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/雪烬梨香",
+  "episodes": [
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/雪烬梨香/1.mp4",
+      "episode": 1,
+      "total_duration": 559.466667,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.0,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              2.0
+            ]
+          ]
+        }
+      },
+      "effective_duration": 557.466667
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/雪烬梨香/2.mp4",
+      "episode": 2,
+      "total_duration": 72.0,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.166666666666657,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              2.166666666666657
+            ]
+          ]
+        }
+      },
+      "effective_duration": 69.83333333333334
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/雪烬梨香/3.mp4",
+      "episode": 3,
+      "total_duration": 61.633333,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.8000000000000043,
+        "confidence": 0.85,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              2.8000000000000043
+            ],
+            [
+              "brightness",
+              2.8000000000000043
+            ]
+          ]
+        }
+      },
+      "effective_duration": 58.833332999999996
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/雪烬梨香/4.mp4",
+      "episode": 4,
+      "total_duration": 58.5,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.6000000000000014,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.6000000000000014
+            ]
+          ]
+        }
+      },
+      "effective_duration": 54.9
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/雪烬梨香/5.mp4",
+      "episode": 5,
+      "total_duration": 65.966667,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.6000000000000014,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.6000000000000014
+            ]
+          ]
+        }
+      },
+      "effective_duration": 62.366667
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/雪烬梨香/6.mp4",
+      "episode": 6,
+      "total_duration": 59.733333,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.6000000000000014,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.6000000000000014
+            ]
+          ]
+        }
+      },
+      "effective_duration": 56.133333
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/雪烬梨香/7.mp4",
+      "episode": 7,
+      "total_duration": 58.233333,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.6000000000000014,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.6000000000000014
+            ]
+          ]
+        }
+      },
+      "effective_duration": 54.633333
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/雪烬梨香/8.mp4",
+      "episode": 8,
+      "total_duration": 67.333333,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.6000000000000014,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.6000000000000014
+            ]
+          ]
+        }
+      },
+      "effective_duration": 63.733332999999995
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/雪烬梨香/9.mp4",
+      "episode": 9,
+      "total_duration": 63.766667,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.933333333333337,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              2.933333333333337
+            ]
+          ]
+        }
+      },
+      "effective_duration": 60.83333366666666
+    },
+    {
+      "video_path": "/Users/weilingkeji/360安全云盘同步版/000-海外/01-jisi/002-HangzhouLeiming/hangzhou-leiming-AI-drama/新的漫剧素材/雪烬梨香/10.mp4",
+      "episode": 10,
+      "total_duration": 54.333333,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.5,
+        "confidence": 0.85,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              2.5
+            ],
+            [
+              "brightness",
+              3.6000000000000014
+            ]
+          ]
+        }
+      },
+      "effective_duration": 51.833333
+    }
+  ],
+  "summary": {
+    "total_episodes": 10,
+    "episodes_with_ending": 10,
+    "total_ending_duration": 30.400000000000006,
+    "total_effective_duration": 1090.5666660000002,
+    "average_ending_duration": 3.0400000000000005
+  }
+}

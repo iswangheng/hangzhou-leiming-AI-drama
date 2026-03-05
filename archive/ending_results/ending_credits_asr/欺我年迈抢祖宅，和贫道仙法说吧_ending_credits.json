@@ -1,0 +1,374 @@
+{
+  "project_name": "欺我年迈抢祖宅，和贫道仙法说吧",
+  "project_path": "晓红姐-3.4剧目/欺我年迈抢祖宅，和贫道仙法说吧",
+  "episodes": [
+    {
+      "video_path": "晓红姐-3.4剧目/欺我年迈抢祖宅，和贫道仙法说吧/1.mp4",
+      "episode": 1,
+      "total_duration": 151.255011,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.1599999999999966,
+        "confidence": 0.95,
+        "method": "asr_verified",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.1599999999999966
+            ],
+            [
+              "brightness",
+              3.5999999999999943
+            ]
+          ],
+          "asr_analysis": {
+            "has_speech": false,
+            "is_ending_narration": false,
+            "last_asr_end": 0,
+            "full_text": "",
+            "reason": "无语音"
+          }
+        }
+      },
+      "effective_duration": 148.095011
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/欺我年迈抢祖宅，和贫道仙法说吧/2.mp4",
+      "episode": 2,
+      "total_duration": 194.420998,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 0.0,
+        "method": "none",
+        "features": {
+          "methods_used": [],
+          "features_found": []
+        }
+      },
+      "effective_duration": 194.420998
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/欺我年迈抢祖宅，和贫道仙法说吧/3.mp4",
+      "episode": 3,
+      "total_duration": 150.08,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.2399999999999807,
+        "confidence": 0.95,
+        "method": "asr_verified",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.2399999999999807
+            ],
+            [
+              "brightness",
+              3.5999999999999943
+            ]
+          ],
+          "asr_analysis": {
+            "has_speech": false,
+            "is_ending_narration": false,
+            "last_asr_end": 0,
+            "full_text": "",
+            "reason": "无语音"
+          }
+        }
+      },
+      "effective_duration": 146.84000000000003
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/欺我年迈抢祖宅，和贫道仙法说吧/4.mp4",
+      "episode": 4,
+      "total_duration": 117.330658,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.5999999999999943,
+        "confidence": 0.95,
+        "method": "asr_verified",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.5999999999999943
+            ]
+          ],
+          "asr_analysis": {
+            "has_speech": false,
+            "is_ending_narration": false,
+            "last_asr_end": 0,
+            "full_text": "",
+            "reason": "无语音"
+          }
+        }
+      },
+      "effective_duration": 113.730658
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/欺我年迈抢祖宅，和贫道仙法说吧/5.mp4",
+      "episode": 5,
+      "total_duration": 119.373991,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.5999999999999943,
+        "confidence": 0.95,
+        "method": "asr_verified",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.5999999999999943
+            ],
+            [
+              "brightness",
+              3.5999999999999943
+            ]
+          ],
+          "asr_analysis": {
+            "has_speech": false,
+            "is_ending_narration": false,
+            "last_asr_end": 0,
+            "full_text": "",
+            "reason": "无语音"
+          }
+        }
+      },
+      "effective_duration": 115.77399100000001
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/欺我年迈抢祖宅，和贫道仙法说吧/6.mp4",
+      "episode": 6,
+      "total_duration": 175.612857,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 1.039999999999992,
+        "confidence": 0.95,
+        "method": "asr_verified",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              1.039999999999992
+            ],
+            [
+              "brightness",
+              3.5999999999999943
+            ]
+          ],
+          "asr_analysis": {
+            "has_speech": false,
+            "is_ending_narration": false,
+            "last_asr_end": 0,
+            "full_text": "",
+            "reason": "无语音"
+          }
+        }
+      },
+      "effective_duration": 174.572857
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/欺我年迈抢祖宅，和贫道仙法说吧/7.mp4",
+      "episode": 7,
+      "total_duration": 108.842653,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.5999999999999943,
+        "confidence": 0.95,
+        "method": "asr_verified",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.5999999999999943
+            ],
+            [
+              "brightness",
+              3.5999999999999943
+            ]
+          ],
+          "asr_analysis": {
+            "has_speech": false,
+            "is_ending_narration": false,
+            "last_asr_end": 0,
+            "full_text": "",
+            "reason": "无语音"
+          }
+        }
+      },
+      "effective_duration": 105.242653
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/欺我年迈抢祖宅，和贫道仙法说吧/8.mp4",
+      "episode": 8,
+      "total_duration": 132.97068,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.519999999999982,
+        "confidence": 0.95,
+        "method": "asr_verified",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.519999999999982
+            ],
+            [
+              "brightness",
+              3.5999999999999943
+            ]
+          ],
+          "asr_analysis": {
+            "has_speech": false,
+            "is_ending_narration": false,
+            "last_asr_end": 0,
+            "full_text": "",
+            "reason": "无语音"
+          }
+        }
+      },
+      "effective_duration": 129.45068
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/欺我年迈抢祖宅，和贫道仙法说吧/9.mp4",
+      "episode": 9,
+      "total_duration": 138.56,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.4000000000000057,
+        "confidence": 0.95,
+        "method": "asr_verified",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.4000000000000057
+            ],
+            [
+              "brightness",
+              3.5999999999999943
+            ]
+          ],
+          "asr_analysis": {
+            "has_speech": false,
+            "is_ending_narration": false,
+            "last_asr_end": 0,
+            "full_text": "",
+            "reason": "无语音"
+          }
+        }
+      },
+      "effective_duration": 135.16
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/欺我年迈抢祖宅，和贫道仙法说吧/10.mp4",
+      "episode": 10,
+      "total_duration": 119.295986,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.5999999999999943,
+        "confidence": 0.95,
+        "method": "asr_verified",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.5999999999999943
+            ],
+            [
+              "brightness",
+              3.5999999999999943
+            ]
+          ],
+          "asr_analysis": {
+            "has_speech": false,
+            "is_ending_narration": false,
+            "last_asr_end": 0,
+            "full_text": "",
+            "reason": "无语音"
+          }
+        }
+      },
+      "effective_duration": 115.695986
+    }
+  ],
+  "summary": {
+    "total_episodes": 10,
+    "episodes_with_ending": 9,
+    "total_ending_duration": 28.759999999999934,
+    "total_effective_duration": 1378.9828340000001,
+    "average_ending_duration": 3.1955555555555484
+  }
+}
