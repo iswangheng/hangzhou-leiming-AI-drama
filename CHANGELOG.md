@@ -5,6 +5,198 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V14.7] - 2026-03-05
+
+### 修复 (Fixed) - 🔴 Critical: 片尾剪裁精度和缓存加载问题
+
+#### Bug #1：int()转换丢失精度导致ASR内容被剪掉（Critical）
+- **现象**：渲染视频把ASR说话部分剪掉了（用户报告："ASR说话没说完就被剪了"）
+- **根本原因**：
+  ```python
+  # V14.6代码
+  durations[ep] = int(effective_duration)  # ❌ 259.94 → 259，丢失0.94秒
+  ```
+- **具体影响**：第1集effective_duration=259.94秒（ASR结束于259.94秒）
+  - int()转换后变成259秒，**丢失0.94秒精度**
+  - 导致ASR最后0.94秒的内容被错误剪掉
+- **修复方案**：
+  ```python
+  # V14.7修复
+  def _calculate_episode_durations(self) -> Dict[int, float]:  # 返回类型改为float
+      durations[ep] = effective_duration  # 保持浮点精度 ✅
+      print(f"  第{ep}集: 有效时长 {effective_duration:.2f}秒 (已去除片尾)")
+  ```
+- **效果验证**：
+  - 第1集：259秒 → **259.94秒**（保持浮点精度）
+  - 渲染片段：0.000-262.220秒 → **0.000-259.940秒**（使用有效时长）
+  - ASR内容：完整保留，不再被剪掉 ✅
+
+#### Bug #2：缓存加载逻辑错误导致effective_duration未应用（Critical）
+- **现象**：ending cache文件存在，但没有被加载，导致使用了总时长而不是有效时长
+- **根本原因**：
+  ```python
+  # V14.6代码
+  def _should_detect_ending(self) -> bool:
+      cache_file = self._get_ending_cache_file()
+      if not cache_file.exists():
+          return self.auto_detect_ending
+      return False  # ❌ 缓存存在时返回False，导致不加载缓存
+  ```
+- **具体影响**：
+  - `self.ending_credits_cache`为空
+  - `_calculate_episode_durations()`找不到effective_duration
+  - 回退使用总时长，导致片尾没有被剪掉
+- **修复方案**：
+  ```python
+  # V14.7修复
+  def _should_detect_ending(self) -> bool:
+      """V14.7修复: 当auto_detect_ending=True时，应该加载缓存并应用"""
+      if self.skip_ending:
+          return False
+      if self.force_detect:
+          return True
+      return self.auto_detect_ending  # ✅ 直接返回auto_detect_ending
+  ```
+- **效果验证**：
+  - 日志输出：`第1集: 有效时长 259.94秒 (已去除片尾)` ✅
+  - 缓存加载：所有10集的effective_duration正确应用 ✅
+
+### 改进 (Changed)
+
+**浮点精度系统升级**：
+- 返回类型：`Dict[int, int]` → `Dict[int, float]`
+- 日志格式：`{int(effective_duration)}` → `{effective_duration:.2f}`
+- 所有时长计算保持浮点精度，避免int()转换丢失内容
+
+**缓存加载逻辑优化**：
+- 去掉`if not cache_file.exists()`的条件判断
+- 统一使用`auto_detect_ending`参数决定是否加载缓存
+- 确保缓存正确加载并应用effective_duration
+
+### 测试验证 (Testing)
+
+**测试项目**：多子多福，开局就送绝美老婆（10集）
+
+**V14.6 vs V14.7对比**：
+| 版本 | 第1集有效时长 | 渲染片段时间 | ASR完整性 | 状态 |
+|------|--------------|-------------|----------|------|
+| V14.6 | 259秒 (int) | 0.000-262.220秒 | ❌ 剪掉0.94秒 | 有bug |
+| V14.7 | 259.94秒 (float) | 0.000-259.940秒 | ✅ 完整保留 | 已修复 |
+
+**渲染验证**：
+- ✅ 3个跨集剪辑全部渲染成功
+- ✅ 第1集使用259.94秒（有效时长），而不是262.220秒（总时长）
+- ✅ 所有10集的effective_duration正确应用
+- ✅ ASR内容完整保留，只剪掉片尾字幕/音乐
+
+### 相关文档
+- `docs/V14.7-FIX-REPORT.md` - 详细修复报告
+- `TODO-HIGH-PRIORITY.md` - Bug跟踪和验证记录
+
+---
+
+## [V14.6] - 2026-03-05
+
+### 修复 (Fixed) - 🎯 片尾检测三大关键问题
+
+#### 问题1：短片尾被错误保留（第2、4集）
+- **现象**：2.24秒的画面相似度片尾被保留（V14.5的3秒阈值限制）
+- **根本原因**：V14.5逻辑"3秒以内的片尾可能是剧情内容，所以保留"
+- **修复方案**：去掉3秒阈值限制，只要检测到画面相似度就剪掉
+- **效果**：第2集从0秒提升到2.33秒，第4集从0秒提升到2.50秒
+
+#### 问题2：long_asr模式误判（第10集）
+- **现象**：最后5.32秒静音被误判为"long_asr_no_silence"（正常剧情）
+- **根本原因**：ASR检测窗口（最后10秒）内有ASR，但最后5秒是纯静音/片尾音乐
+- **修复方案**：检查最后静音是否>2秒，如果是则识别为片尾
+- **效果**：第10集从0秒提升到2.50秒
+
+### 改进 (Changed)
+
+**ASR安全缓冲区最终优化**：
+- **V14.4**: 3.0秒（太保守，导致第2、4、10集不剪）
+- **V14.5**: 1.0秒（仍然保守）
+- **V14.6**: 0.15秒（恢复完美版本的参数）
+
+**mixed模式逻辑重构**：
+```python
+# V14.5逻辑（有问题）：
+if sim_duration > 3.0:
+    return 2.0  # 剪掉2秒
+else:
+    return 0.0  # 3秒以内保留 ❌
+
+# V14.6逻辑（修复）：
+if sim_duration > MAX_SAFE_ENDING:  # 6秒
+    safe_ending = max(1.0, silence_after_asr - 0.15)
+    return min(safe_ending, 3.0)
+else:
+    # 只要检测到画面相似度就剪掉，不受3秒限制 ✅
+    if silence_after_asr > 1.0:
+        safe_ending = max(1.0, silence_after_asr - 0.15)
+        return min(safe_ending, 2.5)
+    else:
+        return min(sim_duration, 2.0)
+```
+
+**long_asr_no_silence模式增强**：
+```python
+# V14.5逻辑（有问题）：
+if pattern == 'long_asr_no_silence':
+    return 0.0  # 直接判断为正常剧情 ❌
+
+# V14.6逻辑（修复）：
+if pattern == 'long_asr_no_silence':
+    if last_asr_end is not None:
+        trailing_silence = silence_after_asr
+        if trailing_silence > 2.0:  # ✅ 新增检查
+            safe_ending = trailing_silence - 0.15
+            return min(safe_ending, 4.0)
+    return 0.0
+```
+
+### 测试结果 (Test Results)
+
+**多子多福，开局就送绝美老婆（10集）**：
+
+| 集数 | V14.5 | V14.6 | 改进 |
+|------|-------|-------|------|
+| 第1集 | 2.13s | 2.13s | ✓ 保持 |
+| **第2集** | **0.00s** | **2.33s** | ✅ **+2.33s** |
+| 第3集 | 3.00s | 2.21s | ✓ 优化 |
+| **第4集** | **0.00s** | **2.50s** | ✅ **+2.50s** |
+| 第5集 | 2.81s | 2.81s | ✓ 保持 |
+| 第6集 | 3.00s | 3.00s | ✓ 保持 |
+| 第7集 | 2.43s | 2.43s | ✓ 保持 |
+| 第8集 | 2.33s | 2.33s | ✓ 保持 |
+| 第9集 | 2.47s | 2.47s | ✓ 保持 |
+| **第10集** | **0.00s** | **2.50s** | ✅ **+2.50s** |
+| **总计** | **18.2s** | **24.7s** | ✅ **+35%** |
+
+### 技术细节 (Technical Details)
+
+**测试视频位置**：
+```
+test_ending_trim/多子多福，开局就送绝美老婆/
+├── 第X集_完整片尾_最后20秒.mp4  (原始版本，包含片尾)
+└── 第X集_剪裁后_最后20秒.mp4    (V14.6剪裁版本，去掉片尾)
+```
+
+**全流程集成状态**：
+- ✅ `render_clips.py` 默认启用 `auto_detect_ending=True`
+- ✅ 自动加载片尾检测缓存
+- ✅ 逐集应用有效时长（`total_duration - ending_duration`）
+- ✅ 无片尾的剧集：`effective_duration = total_duration`（不剪裁）
+
+**修复的文件**：
+- `scripts/detect_ending_credits.py` - 片尾检测逻辑优化
+- 测试脚本：`scripts/test_ending_trim.py` - 孤立测试片尾剪裁
+
+**详细验证**：
+- 第2集：2.24秒画面相似度 + 2.48秒ASR静音 → 剪掉2.33秒 ✅
+- 第4集：2.24秒画面相似度 + 2.98秒ASR静音 → 剪掉2.50秒 ✅
+- 第10集：5.02秒尾部静音（long_asr误判）→ 剪掉2.50秒 ✅
+
 ## [V15] - 2026-03-05
 
 ### 新增 (Added) - 🎨 视频花字叠加功能

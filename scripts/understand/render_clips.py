@@ -182,14 +182,16 @@ class ClipRenderer:
         with open(result_path, 'r', encoding='utf-8') as f:
             return json.load(f)
 
-    def _calculate_episode_durations(self) -> Dict[int, int]:
+    def _calculate_episode_durations(self) -> Dict[int, float]:
         """计算各集时长
 
         V14.1: 优先使用有效时长（总时长 - 片尾时长）
         如果没有片尾检测数据，则使用总时长
 
+        V14.7修复: 保持浮点精度，避免int()转换丢失ASR内容
+
         Returns:
-            集数到时长的映射
+            集数到时长的映射（浮点数精度）
         """
         durations = {}
 
@@ -210,13 +212,13 @@ class ClipRenderer:
                     # 使用有效时长（总时长 - 片尾时长）
                     effective_duration = ep_info.get('effective_duration')
                     if effective_duration is not None:
-                        durations[ep] = int(effective_duration)
-                        print(f"  第{ep}集: 有效时长 {int(effective_duration)}秒 (已去除片尾)")
+                        durations[ep] = effective_duration  # V14.7: 保持浮点精度
+                        print(f"  第{ep}集: 有效时长 {effective_duration:.2f}秒 (已去除片尾)")
                         continue
 
                 # 回退到使用总时长
                 duration = self._get_video_duration(video_path)
-                durations[ep] = int(duration)
+                durations[ep] = duration  # V14.7: 保持浮点精度
 
         return durations
 
@@ -271,7 +273,10 @@ class ClipRenderer:
             self._auto_detect_ending_credits()
 
     def _should_detect_ending(self) -> bool:
-        """决定是否需要检测片尾"""
+        """决定是否需要检测片尾
+
+        V14.7修复: 当auto_detect_ending=True时，应该加载缓存并应用
+        """
         # 1. 用户明确指定跳过
         if self.skip_ending:
             return False
@@ -280,13 +285,9 @@ class ClipRenderer:
         if self.force_detect:
             return True
 
-        # 3. 检查缓存是否存在
-        cache_file = self._get_ending_cache_file()
-        if not cache_file.exists():
-            # 缓存不存在，根据auto_detect_ending决定
-            return self.auto_detect_ending
-
-        return False
+        # 3. 根据auto_detect_ending决定（无论缓存是否存在）
+        # V14.7修复: 如果auto_detect_ending=True，应该加载缓存并应用
+        return self.auto_detect_ending
 
     def _get_ending_cache_file(self) -> Path:
         """获取片尾缓存文件路径"""

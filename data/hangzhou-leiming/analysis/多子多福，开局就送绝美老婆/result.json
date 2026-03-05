@@ -285,30 +285,6 @@
   "clips": [
     {
       "start": 0,
-      "end": 229.5,
-      "duration": 229.5,
-      "highlight": "开篇高光",
-      "highlightDesc": "每部剧第1集开头的默认高光点",
-      "hook": "情节重大转折",
-      "hookDesc": "男主说“你千万全没实力”，暗示男主发现了什么，情节发生转折，观众想知道后续。",
-      "type": "开篇高光-情节重大转折",
-      "episode": 1,
-      "hookEpisode": 1
-    },
-    {
-      "start": 0,
-      "end": 253.5,
-      "duration": 253.5,
-      "highlight": "开篇高光",
-      "highlightDesc": "每部剧第1集开头的默认高光点",
-      "hook": "未完成事件型",
-      "hookDesc": "系统提示“拿下美女，即可获得丰厚奖励”，男主露出笑容，但具体如何行动，以及奖励是什么，都留有悬念。",
-      "type": "开篇高光-未完成事件型",
-      "episode": 1,
-      "hookEpisode": 1
-    },
-    {
-      "start": 0,
       "end": 343.5,
       "duration": 343.5,
       "highlight": "开篇高光",
@@ -316,42 +292,6 @@
       "hook": "未完成事件型",
       "hookDesc": "四嫂说“完了，这个家，他可是真的有人”，暗示林家唯一的男人可能出事，但具体什么事没说，属于未完成事件，引发观众好奇。",
       "type": "开篇高光-未完成事件型",
-      "episode": 1,
-      "hookEpisode": 2
-    },
-    {
-      "start": 0,
-      "end": 360.5,
-      "duration": 360.5,
-      "highlight": "开篇高光",
-      "highlightDesc": "每部剧第1集开头的默认高光点",
-      "hook": "情节重大转折",
-      "hookDesc": "男主突然笑着说“我前途光明”，与之前的悲伤气氛形成反差，预示着剧情有重大转折，观众想知道他为什么这么说。",
-      "type": "开篇高光-情节重大转折",
-      "episode": 1,
-      "hookEpisode": 2
-    },
-    {
-      "start": 0,
-      "end": 442.5,
-      "duration": 442.5,
-      "highlight": "开篇高光",
-      "highlightDesc": "每部剧第1集开头的默认高光点",
-      "hook": "情感爆发顶点",
-      "hookDesc": "男主愤怒至极，即将采取行动，画面停在此处，引发观众期待后续发展。",
-      "type": "开篇高光-情感爆发顶点",
-      "episode": 1,
-      "hookEpisode": 2
-    },
-    {
-      "start": 0,
-      "end": 455.5,
-      "duration": 455.5,
-      "highlight": "开篇高光",
-      "highlightDesc": "每部剧第1集开头的默认高光点",
-      "hook": "对话留白型",
-      "hookDesc": "男主问“病秧子吗”，对话进行中，想知道后续发展，BGM正常，但对话留白权重较高",
-      "type": "开篇高光-对话留白型",
       "episode": 1,
       "hookEpisode": 2
     },
@@ -369,18 +309,6 @@
     },
     {
       "start": 0,
-      "end": 552.5,
-      "duration": 552.5,
-      "highlight": "开篇高光",
-      "highlightDesc": "每部剧第1集开头的默认高光点",
-      "hook": "对话留白型",
-      "hookDesc": "男主说“我怎么就以后了”，女主疑问“怎么回事”，对话进行中，想知道后续，符合对话留白型钩子特征。",
-      "type": "开篇高光-对话留白型",
-      "episode": 1,
-      "hookEpisode": 3
-    },
-    {
-      "start": 0,
       "end": 589.26,
       "duration": 589.26,
       "highlight": "开篇高光",
@@ -390,84 +318,13 @@
       "type": "开篇高光-关键信息被截断",
       "episode": 1,
       "hookEpisode": 4
-    },
-    {
-      "start": 0,
-      "end": 617.5,
-      "duration": 617.5,
-      "highlight": "开篇高光",
-      "highlightDesc": "每部剧第1集开头的默认高光点",
-      "hook": "对话留白型",
-      "hookDesc": "女主质问男主“你说话呀”，男主没有回应，对话中断，想知道男主后续会说什么，制造悬念。",
-      "type": "开篇高光-对话留白型",
-      "episode": 1,
-      "hookEpisode": 4
-    },
-    {
-      "start": 0,
-      "end": 652.26,
-      "duration": 652.26,
-      "highlight": "开篇高光",
-      "highlightDesc": "每部剧第1集开头的默认高光点",
-      "hook": "对话留白型",
-      "hookDesc": "男主施法后，女主说“娘子我来了”，但画面突然结束，观众想知道男主接下来要做什么，以及女主会发生什么。",
-      "type": "开篇高光-对话留白型",
-      "episode": 1,
-      "hookEpisode": 5
-    },
-    {
-      "start": 0,
-      "end": 672.5,
-      "duration": 672.5,
-      "highlight": "开篇高光",
-      "highlightDesc": "每部剧第1集开头的默认高光点",
-      "hook": "关键信息被截断",
-      "hookDesc": "男主说出“这是十家天府还是灰死”，紧接着说“这是变相严同兄弟时间”，但“时间”之后被截断，想知道是什么时间，制造悬念。",
-      "type": "开篇高光-关键信息被截断",
-      "episode": 1,
-      "hookEpisode": 5
-    },
-    {
-      "start": 51.9,
-      "end": 229.5,
-      "duration": 177.6,
-      "highlight": "类型确认快",
-      "highlightDesc": "53秒处，画面从战场切换回室内，男主开始讲述自己的身世，交代了父亲是将军，哥哥是战神，快速确认了故事背景和人物关系。",
-      "hook": "情节重大转折",
-      "hookDesc": "男主说“你千万全没实力”，暗示男主发现了什么，情节发生转折，观众想知道后续。",
-      "type": "类型确认快-情节重大转折",
-      "episode": 1,
-      "hookEpisode": 1
-    },
-    {
-      "start": 51.9,
-      "end": 253.5,
-      "duration": 201.6,
-      "highlight": "类型确认快",
-      "highlightDesc": "53秒处，画面从战场切换回室内，男主开始讲述自己的身世，交代了父亲是将军，哥哥是战神，快速确认了故事背景和人物关系。",
-      "hook": "未完成事件型",
-      "hookDesc": "系统提示“拿下美女，即可获得丰厚奖励”，男主露出笑容，但具体如何行动，以及奖励是什么，都留有悬念。",
-      "type": "类型确认快-未完成事件型",
-      "episode": 1,
-      "hookEpisode": 1
-    },
-    {
-      "start": 51.9,
-      "end": 343.5,
-      "duration": 291.6,
-      "highlight": "类型确认快",
-      "highlightDesc": "53秒处，画面从战场切换回室内，男主开始讲述自己的身世，交代了父亲是将军，哥哥是战神，快速确认了故事背景和人物关系。",
-      "hook": "未完成事件型",
-      "hookDesc": "四嫂说“完了，这个家，他可是真的有人”，暗示林家唯一的男人可能出事，但具体什么事没说，属于未完成事件，引发观众好奇。",
-      "type": "类型确认快-未完成事件型",
-      "episode": 1,
-      "hookEpisode": 2
     }
   ],
   "statistics": {
     "totalHighlights": 8,
     "totalHooks": 30,
     "totalClips": 90,
-    "averageConfidence": 7.7631578947368425
+    "averageConfidence": 7.7631578947368425,
+    "totalCombinations": 3
   }
 }

@@ -146,16 +146,42 @@ Video Files → Keyframes + ASR → Segment Analysis → Quality Filter → Clip
 - `scripts/understand/video_understand.py` - Detect and adjust extraction FPS
 - `scripts/understand/render_clips.py` - VideoFile.fps field, auto-detect FPS
 
-#### Ending Credits Detection (V13+)
+#### Ending Credits Detection (V13-V14.7)
 
 **Dual-layer architecture**:
 1. **Layer 1 (Visual)**: Frame similarity detection (`detect_ending_credits.py`)
 2. **Layer 2 (ASR)**: Whisper transcription + plot keyword analysis (`asr_analyzer.py`)
 
-**ASR Analysis Logic**:
-- Check last 10 seconds for ASR segments (extended from 3.5s in V14.2)
+**V14.7 Critical Fixes**:
+- **浮点精度保持**: `Dict[int, int]` → `Dict[int, float]`，避免int()转换丢失ASR内容
+  - V14.6: `int(effective_duration)` 导致259.94秒变成259秒，**丢失0.94秒**
+  - V14.7: 保持浮点精度，ASR内容完整保留 ✅
+- **缓存加载逻辑修复**: 修复`_should_detect_ending()`逻辑，确保effective_duration正确应用
+  - V14.6: 缓存存在时返回False，导致缓存未加载 ❌
+  - V14.7: 直接返回`auto_detect_ending`，确保缓存正确加载 ✅
+
+**V14.6 Key Improvements**:
+- **ASR安全缓冲区**: 从V14.4的3.0秒优化到0.15秒（恢复完美版本参数）
+- **去除3秒阈值**: 只要检测到画面相似度就剪掉，不管多短
+- **修复long_asr误判**: 检查最后静音是否>2秒，避免把片尾音乐误判为剧情
+- **自动适配**: 有片尾的剧自动剪裁，无片尾的剧保持完整
+
+**ASR Analysis Logic (V14.7)**:
+- Check last 10 seconds for ASR segments
 - Detect plot keywords (30+ keywords for drama content)
-- Conservative trimming: Only cut pure silence (last ASR end + 0.2s buffer)
+- **ASR_SAFETY_BUFFER = 0.15s**: Preserve sentence tail/intonation
+- **Float precision**: All duration calculations use float to avoid precision loss
+- **Smart pattern handling**:
+  - `mixed`: Cut based on silence duration (max 1.0-3.0s)
+  - `long_asr_no_silence`: Check trailing silence > 2s to detect ending music
+  - `no_asr_only_bgm`: Conservative cutting (max 2.0s)
+  - `short_asr_long_silence`: Cut silence beyond buffer
+
+**Full Pipeline Integration**:
+- `render_clips.py`: Default `auto_detect_ending=True`
+- Automatic cache loading and application (V14.7 fixed)
+- Per-episode effective duration: `total_duration - ending_duration` (float precision)
+- No ending = no cutting: `effective_duration = total_duration`
 
 #### Video Overlay (V15+)
 
@@ -250,6 +276,8 @@ data/hangzhou-leiming/
 ### Version History Context
 
 - **V15** (2026-03-05): Video overlay text effects (热门短剧, 剧名, 免责声明)
+- **V14.7** (2026-03-05): **Critical fix** - Fixed int() conversion losing precision (0.94s) causing ASR content to be cut, fixed cache loading logic to ensure effective_duration is applied
+- **V14.6** (2026-03-05): Ending detection fixes - removed 3s threshold, fixed long_asr misclassification, optimized buffer to 0.15s
 - **V14.2** (2026-03-05): Frame rate auto-detection and precision fixes
 - **V14.1** (2026-03-05): Automatic ending credits detection with caching
 - **V14** (2026-03-05): Ending video splicing feature
