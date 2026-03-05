@@ -159,3 +159,41 @@ archive/杭州雷鸣-*.md
 # Ending credits detection cache
 data/hangzhou-leiming/ending_credits/
 data/hangzhou-leiming/ending_credits_asr/
+
+# V15 测试和开发文件
+test/test_*.py
+test/*_test.py
+scripts/test_*.py
+scripts/trim_*.py
+scripts/*_backup.py
+scripts/*.bak
+
+# 临时测试脚本
+test_*.py
+trim_*.py
+reprocess_*.py
+render_*.py
+monitor_*.py
+
+# 临时日志
+*.log
+render_clips.log
+test_*.log
+
+# 临时文档（保留正式文档）
+docs/OVERLAY-*.md
+docs/*-OPTIMIZATION-.md
+docs/*-FIX-.md
+docs/ai-detection-logic.md
+docs/clipping-improvement-guide.md
+docs/manual-clipping-*.md
+docs/overlay-coordinate-fix.md
+
+# 花字样式缓存
+.overlay_style_cache/
+
+# Examples目录（临时示例）
+examples/
+
+# 技能文件（太大了，不提交）
+data/hangzhou-leiming/skills/*.json
