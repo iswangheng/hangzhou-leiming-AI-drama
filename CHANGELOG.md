@@ -5,6 +5,75 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V14.1.1] - 2026-03-05
+
+### 修复 (Fixed)
+- **JSON序列化错误** - 修复片尾缓存保存时的numpy类型序列化失败
+  - 问题原因：`EndingInfo.to_dict()` 返回的字典包含 `numpy.bool_` 类型
+  - 修复方法：强制转换所有numpy类型为Python原生类型
+  - 影响：缓存现在可以正确保存，有效时长可以正常使用
+  - 测试状态：✅ 已验证，缓存成功保存（11KB），渲染成功（30/30）
+
+### 技术细节 (Technical Details)
+**修复代码**：
+```python
+# 修复前（错误）
+def to_dict(self) -> dict:
+    result = {
+        'has_ending': self.has_ending,  # ❌ 可能是 numpy.bool_
+        'duration': self.duration,
+        'confidence': self.confidence,
+        ...
+    }
+
+# 修复后（正确）
+def to_dict(self) -> dict:
+    result = {
+        'has_ending': bool(self.has_ending),  # ✅ 强制转换为 Python bool
+        'duration': float(self.duration),    # ✅ 强制转换为 Python float
+        'confidence': float(self.confidence), # ✅ 强制转换为 Python float
+        ...
+    }
+    # 处理 numpy 类型
+    if hasattr(value, 'dtype'):
+        if value.dtype == 'bool':
+            result['features'][key] = bool(value)
+        elif value.dtype in ['int64', 'int32']:
+            result['features'][key] = int(value)
+        elif value.dtype in ['float64', 'float32']:
+            result['features'][key] = float(value)
+```
+
+### 验证结果 (Testing)
+**测试项目**: 休书落纸（10集）
+
+| 验证项 | 结果 |
+|--------|------|
+| 片尾检测 | ✅ 成功检测10集（8集有片尾，2集无片尾） |
+| 缓存保存 | ✅ JSON格式正确，大小11KB |
+| 有效时长使用 | ✅ 正确使用有效时长进行跨集计算 |
+| 完整渲染 | ✅ 30/30个剪辑全部成功 |
+| 结尾视频拼接 | ✅ 100%拼接成功，随机分布均匀 |
+| 总文件大小 | ✅ 2.1GB |
+
+**结尾视频随机性验证**：
+- 点击下方链接观看完整剧情: 8个 (26.7%)
+- 点击下方链接观看完整版: 7个 (23.3%)
+- 点击下方按钮精彩剧集等你来看: 5个 (16.7%)
+- 点击下方观看全集: 7个 (23.3%)
+- 晓红姐团队-标准结尾帧视频: 3个 (10.0%)
+
+### AI分析更新 (AI Analysis)
+**休书落纸项目重新分析**：
+- 高光点: 1个 → **2个** (新增1个AI识别高光)
+- 钩子点: 14个 → **17个** (+3个，+21.4%)
+- 剪辑组合: 13个 → **30个** (+17个，+130.8%)
+
+### 文档 (Documentation)
+- 新增：[V14.1.1 Bug修复报告](./V14.1.1_BUGFIX_REPORT.md)
+
+---
+
 ## [V14.1.0] - 2026-03-05
 
 ### 新增 (Added)
