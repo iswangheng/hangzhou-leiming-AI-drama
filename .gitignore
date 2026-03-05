@@ -197,3 +197,7 @@ examples/
 
 # 技能文件（太大了，不提交）
 data/hangzhou-leiming/skills/*.json
+
+# Archive目录内容（归档文件不需要跟踪）
+archive/*/
+!archive/.gitkeep
