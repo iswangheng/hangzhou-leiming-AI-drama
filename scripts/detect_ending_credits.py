@@ -652,41 +652,47 @@ class EndingCreditsDetector:
         silence_after_asr = asr_pattern.get('silence_after_asr', 0.0)
         last_asr_end = asr_pattern.get('last_asr_end', None)
 
-        # 【V14.5关键修复】优化ASR安全缓冲区，平衡剪裁片尾和保留台词
+        # 【V14.6关键修复】优化ASR安全缓冲区，修复短片尾和long_asr误判问题
         # 因为最后一句台词可能在ASR检测窗口之外，或者台词的尾音需要保留
-        ASR_SAFETY_BUFFER = 0.15  # V14.5: ASR结束后0.15秒缓冲区（恢复之前完美版本的参数）
+        ASR_SAFETY_BUFFER = 0.15  # V14.6: ASR结束后0.15秒缓冲区
 
-        # V14.5: 对不同的ASR模式应用保守策略
+        # V14.6: 对不同的ASR模式应用保守策略
         if pattern == 'mixed':
             # 混合模式：有ASR但混合了静音
+            # V14.6修复：只要检测到画面相似度就剪掉，不管多短
             MAX_SAFE_ENDING = 6.0  # 超过6秒需要保守处理
 
             if sim_duration > MAX_SAFE_ENDING:
-                # 【V14.5修复】片尾过长时，考虑ASR缓冲区
+                # 【V14.6修复】片尾过长时，考虑ASR缓冲区
                 # 如果有last_asr_end信息，使用它来计算更精确的安全片尾
                 if last_asr_end is not None:
                     # 计算：纯静音部分 - ASR缓冲区
-                    # V14.5: 减少缓冲区从3秒到1秒，确保至少剪掉1秒
+                    # V14.6: 减少缓冲区从3秒到0.15秒，确保至少剪掉1秒
                     safe_ending = max(1.0, silence_after_asr - ASR_SAFETY_BUFFER)
-                    safe_ending = min(safe_ending, 3.0)  # 最多剪掉3秒（从2秒增加）
-                    print(f"    [V14.5优化剪裁] mixed模式，片尾过长({sim_duration:.2f}s)")
-                    print(f"    → 考虑ASR缓冲区1秒，纯静音{silence_after_asr:.2f}s - 缓冲区1s = {safe_ending:.2f}s")
+                    safe_ending = min(safe_ending, 3.0)  # 最多剪掉3秒
+                    print(f"    [V14.6优化剪裁] mixed模式，片尾过长({sim_duration:.2f}s)")
+                    print(f"    → 考虑ASR缓冲区0.15秒，纯静音{silence_after_asr:.2f}s - 缓冲区 = {safe_ending:.2f}s")
                     return safe_ending
                 else:
                     # 没有last_asr_end信息，使用旧逻辑
                     safe_ending = min(silence_after_asr, 2.0)
-                    print(f"    [V14.3保守剪裁] mixed模式，片尾过长({sim_duration:.2f}s) → {safe_ending:.2f}s")
+                    print(f"    [V14.6保守剪裁] mixed模式，片尾过长({sim_duration:.2f}s) → {safe_ending:.2f}s")
                     return safe_ending
             else:
-                # 片尾长度适中（3-6秒），需要剪掉一部分
-                # V14.5: 3-6秒的片尾应该剪掉2秒
-                if sim_duration > 3.0:
-                    print(f"    [V14.5优化剪裁] mixed模式，片尾适中({sim_duration:.2f}s)，剪掉2秒")
-                    return 2.0
+                # V14.6修复：只要检测到画面相似度就剪掉，不受3秒限制
+                # 根据ASR静音时长计算剪裁量
+                if last_asr_end is not None and silence_after_asr > 1.0:
+                    # 有足够的静音，可以剪掉
+                    safe_ending = max(1.0, silence_after_asr - ASR_SAFETY_BUFFER)
+                    safe_ending = min(safe_ending, 2.5)
+                    print(f"    [V14.6优化剪裁] mixed模式，检测到片尾({sim_duration:.2f}s)")
+                    print(f"    → 纯静音{silence_after_asr:.2f}s - 缓冲区0.15s = {safe_ending:.2f}s")
+                    return safe_ending
                 else:
-                    # 3秒以内保留
-                    print(f"    [V14.5优化剪裁] mixed模式，片尾较短({sim_duration:.2f}s ≤ 3s)，保留")
-                    return 0.0
+                    # 短片尾，剪掉固定值
+                    safe_ending = min(sim_duration, 2.0)
+                    print(f"    [V14.6优化剪裁] mixed模式，短片尾({sim_duration:.2f}s)，剪掉{safe_ending:.2f}s")
+                    return safe_ending
 
         elif pattern == 'no_asr_only_bgm':
             # 纯BGM模式：更严格的检查
@@ -703,9 +709,26 @@ class EndingCreditsDetector:
                 return 0.0
 
         elif pattern == 'long_asr_no_silence':
-            # 长ASR持续到结尾：正常剧情，不剪掉
-            print(f"    [V14.4判断] long_asr_no_silence模式，ASR持续到结尾，正常剧情，不剪掉")
-            return 0.0
+            # V14.6修复：长ASR持续到结尾，但要检查最后的静音是否真的是片尾
+            # 有些情况下，ASR检测窗口内有大段ASR，但最后几秒是纯静音/片尾
+            if last_asr_end is not None:
+                # 计算从last_asr_end到视频结尾的时长
+                # 如果这个时长>2秒，很可能是片尾音乐/字幕
+                trailing_silence = silence_after_asr
+                if trailing_silence > 2.0:
+                    # 最后有超过2秒的静音，这是典型的片尾特征
+                    safe_ending = trailing_silence - ASR_SAFETY_BUFFER
+                    safe_ending = min(safe_ending, 4.0)
+                    print(f"    [V14.6判断] long_asr_no_silence模式，但有{trailing_silence:.2f}秒尾部静音 → 剪掉{safe_ending:.2f}s")
+                    return safe_ending
+                else:
+                    # 真的是正常剧情，ASR持续到结尾
+                    print(f"    [V14.6判断] long_asr_no_silence模式，ASR持续到结尾，正常剧情，不剪掉")
+                    return 0.0
+            else:
+                # 没有last_asr_end信息，保守处理
+                print(f"    [V14.6判断] long_asr_no_silence模式，无详细ASR信息，不剪掉")
+                return 0.0
 
         elif pattern == 'short_asr_long_silence':
             # 短ASR + 长静音：可能是片尾旁白

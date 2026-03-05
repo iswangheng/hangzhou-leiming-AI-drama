@@ -104,99 +104,16 @@ data/**/*.JPEG
 data/**/*.png
 data/**/*.PNG
 
-# 测试和临时文件
-test/*.log
-test/*.pyc
-__pycache__/
-*.pyc
-*.pyo
-
-# Excel临时文件
-~$*.xlsx
-~$*.xls
-
-# Python
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual Environment
-venv/
-ENV/
-env/
-
-# Whisper models
-whisper_models/
-
-# FFmpeg temp files
-/tmp/
-
-# Test results (keep only final)
-test/comprehensive_test/results_20260304_*.json
-test/comprehensive_test/results_20260305_075748.json
-
-# Archive temp docs (keep organized archive)
-archive/GOOD_MORNING.md
-archive/NIGHT_WORK_SUMMARY.md
-archive/杭州雷鸣-*.md
-
-# Ending credits detection cache
-data/hangzhou-leiming/ending_credits/
-data/hangzhou-leiming/ending_credits_asr/
-
-# V15 测试和开发文件
-test/test_*.py
-test/*_test.py
-scripts/test_*.py
-scripts/trim_*.py
-scripts/*_backup.py
-scripts/*.bak
-
-# 临时测试脚本
-test_*.py
-trim_*.py
-reprocess_*.py
-render_*.py
-monitor_*.py
-
-# 临时日志
-*.log
-render_clips.log
-test_*.log
-
-# 临时文档（保留正式文档）
-docs/OVERLAY-*.md
-docs/*-OPTIMIZATION-.md
-docs/*-FIX-.md
-docs/ai-detection-logic.md
-docs/clipping-improvement-guide.md
-docs/manual-clipping-*.md
-docs/overlay-coordinate-fix.md
-
-# 花字样式缓存
-.overlay_style_cache/
-
-# Examples目录（临时示例）
-examples/
-
-# 技能文件（太大了，不提交）
+# 技能文件（v0.6及以后的版本需要提交，旧版本不提交）
+data/hangzhou-leiming/skills/v0.6.*
+data/hangzhou-leiming/skills/v0.6.2.*
+data/hangzhou-leiming/skills/v0.7.*
+data/hangzhou-leiming/skills/v0.*
+!data/hangzhou-leiming/skills/v0.5.*
+!data/hangzhou-leiming/skills/v0.4.*
+# 其他旧版本不提交
 data/hangzhou-leiming/skills/*.json
+data/hangzhou-leiming/skills/*.md
 
 # Archive目录内容（归档文件不需要跟踪）
 archive/*/

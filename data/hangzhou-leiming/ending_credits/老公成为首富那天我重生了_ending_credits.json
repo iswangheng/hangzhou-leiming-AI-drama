@@ -1,0 +1,386 @@
+{
+  "project_name": "老公成为首富那天我重生了",
+  "project_path": "晓红姐-3.4剧目/老公成为首富那天我重生了",
+  "episodes": [
+    {
+      "video_path": "晓红姐-3.4剧目/老公成为首富那天我重生了/1.mp4",
+      "episode": 1,
+      "total_duration": 220.5,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.7899999999999999,
+        "method": "comprehensive_high_confidence",
+        "features": {
+          "total_score": 0.8999999999999999,
+          "scores": {
+            "asr_timing": 0.6,
+            "cross_episode": 0.0,
+            "similarity": 0.3
+          },
+          "reasons": [
+            "✓ 纯BGM（无ASR，10.0秒全是BGM）",
+            "~ 跨集特征不明确",
+            "✓ 画面相似（6.28秒）"
+          ],
+          "asr_pattern": {
+            "asr_duration": 0.0,
+            "asr_coverage": 0.0,
+            "silence_after_asr": 10.0,
+            "has_long_asr": false,
+            "has_long_silence": true,
+            "pattern": "no_asr_only_bgm",
+            "reason": "无ASR，10.0秒全是BGM",
+            "consistency_ratio": 1.0,
+            "transcription_count": 3,
+            "pattern_distribution": {
+              "no_asr_only_bgm": 3
+            }
+          },
+          "cross_episode_stats": {
+            "ending_ratio": 0.2,
+            "normal_drama_ratio": 0.1,
+            "pattern_counts": {
+              "no_asr_only_bgm": 1,
+              "short_asr_long_silence": 1,
+              "long_asr_no_silence": 1,
+              "mixed": 7
+            }
+          }
+        }
+      },
+      "effective_duration": 217.5
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/老公成为首富那天我重生了/2.mp4",
+      "episode": 2,
+      "total_duration": 155.134671,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 8.519999999999982,
+        "confidence": 0.7833333333333333,
+        "method": "comprehensive_high_confidence",
+        "features": {
+          "total_score": 0.8333333333333333,
+          "scores": {
+            "asr_timing": 0.5333333333333333,
+            "cross_episode": 0.0,
+            "similarity": 0.3
+          },
+          "reasons": [
+            "~ 短ASR+长静音（短ASR(1.40秒) + 长静音(1.02秒) → 片尾特征，一致性67%）",
+            "~ 跨集特征不明确",
+            "✓ 画面相似（8.52秒）"
+          ],
+          "asr_pattern": "{'asr_duration': np.float64(1.3999999999999773), 'asr_coverage': np.float64(0.13999999999999774), 'silence_after_asr': np.float64(1.0200000000000102), 'has_long_asr': np.False_, 'has_long_silence': np.True_, 'pattern': 'short_asr_long_silence', 'reason': '短ASR(1.40秒) + 长静音(1.02秒) → 片尾特征', 'first_asr_start': np.float64(152.714671), 'last_asr_end': np.float64(154.114671), 'consistency_ratio': 0.6666666666666666, 'transcription_count': 3, 'pattern_distribution': {'short_asr_long_silence': 2, 'mixed': 1}}",
+          "cross_episode_stats": {
+            "ending_ratio": 0.2,
+            "normal_drama_ratio": 0.1,
+            "pattern_counts": {
+              "no_asr_only_bgm": 1,
+              "short_asr_long_silence": 1,
+              "long_asr_no_silence": 1,
+              "mixed": 7
+            }
+          }
+        }
+      },
+      "effective_duration": 146.61467100000002
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/老公成为首富那天我重生了/3.mp4",
+      "episode": 3,
+      "total_duration": 148.840998,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 0.76,
+        "method": "comprehensive_negative_high_confidence",
+        "features": {
+          "total_score": -0.6000000000000001,
+          "scores": {
+            "asr_timing": -0.9,
+            "cross_episode": 0.0,
+            "similarity": 0.3
+          },
+          "reasons": [
+            "✗ 长ASR+持续结尾（长ASR(9.58秒) + 持续到结尾 → 正常剧情特征）",
+            "~ 跨集特征不明确",
+            "✓ 画面相似（8.20秒）"
+          ],
+          "asr_pattern": "{'asr_duration': np.float64(9.580000000000013), 'asr_coverage': np.float64(0.9580000000000013), 'silence_after_asr': np.float64(0.4199999999999875), 'has_long_asr': np.True_, 'has_long_silence': np.False_, 'pattern': 'long_asr_no_silence', 'reason': '长ASR(9.58秒) + 持续到结尾 → 正常剧情特征', 'first_asr_start': np.float64(138.840998), 'last_asr_end': np.float64(148.42099800000003), 'consistency_ratio': 1.0, 'transcription_count': 3, 'pattern_distribution': {'long_asr_no_silence': 3}}",
+          "cross_episode_stats": {
+            "ending_ratio": 0.2,
+            "normal_drama_ratio": 0.1,
+            "pattern_counts": {
+              "no_asr_only_bgm": 1,
+              "short_asr_long_silence": 1,
+              "long_asr_no_silence": 1,
+              "mixed": 7
+            }
+          }
+        }
+      },
+      "effective_duration": 148.840998
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/老公成为首富那天我重生了/4.mp4",
+      "episode": 4,
+      "total_duration": 128.02,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.6400000000000006,
+        "confidence": 0.7,
+        "method": "comprehensive_moderate",
+        "features": {
+          "total_score": 0.3,
+          "scores": {
+            "asr_timing": 0.0,
+            "cross_episode": 0.0,
+            "similarity": 0.3
+          },
+          "reasons": [
+            "~ ASR模式不确定（mixed）",
+            "~ 跨集特征不明确",
+            "✓ 画面相似（10.20秒）"
+          ],
+          "asr_pattern": "{'asr_duration': np.float64(7.359999999999999), 'asr_coverage': np.float64(0.736), 'silence_after_asr': np.float64(2.6400000000000006), 'has_long_asr': np.True_, 'has_long_silence': np.True_, 'pattern': 'mixed', 'reason': '长ASR(7.36秒) + 长静音(2.64秒) → 混合特征', 'first_asr_start': np.float64(118.02000000000001), 'last_asr_end': np.float64(125.38000000000001), 'consistency_ratio': 1.0, 'transcription_count': 3, 'pattern_distribution': {'mixed': 3}}",
+          "cross_episode_stats": {
+            "ending_ratio": 0.2,
+            "normal_drama_ratio": 0.1,
+            "pattern_counts": {
+              "no_asr_only_bgm": 1,
+              "short_asr_long_silence": 1,
+              "long_asr_no_silence": 1,
+              "mixed": 7
+            }
+          }
+        }
+      },
+      "effective_duration": 125.38000000000001
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/老公成为首富那天我重生了/5.mp4",
+      "episode": 5,
+      "total_duration": 182.1,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.7,
+        "method": "comprehensive_moderate",
+        "features": {
+          "total_score": 0.3,
+          "scores": {
+            "asr_timing": 0.0,
+            "cross_episode": 0.0,
+            "similarity": 0.3
+          },
+          "reasons": [
+            "~ ASR模式不确定（mixed）",
+            "~ 跨集特征不明确",
+            "✓ 画面相似（10.20秒）"
+          ],
+          "asr_pattern": "{'asr_duration': np.float64(6.599999999999994), 'asr_coverage': np.float64(0.6599999999999995), 'silence_after_asr': np.float64(3.4000000000000057), 'has_long_asr': np.True_, 'has_long_silence': np.True_, 'pattern': 'mixed', 'reason': '长ASR(6.60秒) + 长静音(3.40秒) → 混合特征', 'first_asr_start': np.float64(172.1), 'last_asr_end': np.float64(178.7), 'consistency_ratio': 1.0, 'transcription_count': 3, 'pattern_distribution': {'mixed': 3}}",
+          "cross_episode_stats": {
+            "ending_ratio": 0.2,
+            "normal_drama_ratio": 0.1,
+            "pattern_counts": {
+              "no_asr_only_bgm": 1,
+              "short_asr_long_silence": 1,
+              "long_asr_no_silence": 1,
+              "mixed": 7
+            }
+          }
+        }
+      },
+      "effective_duration": 179.1
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/老公成为首富那天我重生了/6.mp4",
+      "episode": 6,
+      "total_duration": 115.006667,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.0,
+        "confidence": 0.7,
+        "method": "comprehensive_moderate",
+        "features": {
+          "total_score": 0.3,
+          "scores": {
+            "asr_timing": 0.0,
+            "cross_episode": 0.0,
+            "similarity": 0.3
+          },
+          "reasons": [
+            "~ ASR模式不确定（mixed）",
+            "~ 跨集特征不明确",
+            "✓ 画面相似（7.52秒）"
+          ],
+          "asr_pattern": "{'asr_duration': np.float64(7.459999999999994), 'asr_coverage': np.float64(0.7459999999999993), 'silence_after_asr': np.float64(2.0), 'has_long_asr': np.True_, 'has_long_silence': np.True_, 'pattern': 'mixed', 'reason': '长ASR(7.46秒) + 长静音(2.00秒) → 混合特征', 'first_asr_start': np.float64(105.546667), 'last_asr_end': np.float64(113.006667), 'consistency_ratio': 0.6666666666666666, 'transcription_count': 3, 'pattern_distribution': {'mixed': 2, 'long_asr_no_silence': 1}}",
+          "cross_episode_stats": {
+            "ending_ratio": 0.2,
+            "normal_drama_ratio": 0.1,
+            "pattern_counts": {
+              "no_asr_only_bgm": 1,
+              "short_asr_long_silence": 1,
+              "long_asr_no_silence": 1,
+              "mixed": 7
+            }
+          }
+        }
+      },
+      "effective_duration": 113.006667
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/老公成为首富那天我重生了/7.mp4",
+      "episode": 7,
+      "total_duration": 101.011995,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 5.1200000000000045,
+        "confidence": 0.7,
+        "method": "comprehensive_moderate",
+        "features": {
+          "total_score": 0.3,
+          "scores": {
+            "asr_timing": 0.0,
+            "cross_episode": 0.0,
+            "similarity": 0.3
+          },
+          "reasons": [
+            "~ ASR模式不确定（mixed）",
+            "~ 跨集特征不明确",
+            "✓ 画面相似（5.12秒）"
+          ],
+          "asr_pattern": "{'asr_duration': np.float64(2.4599999999999937), 'asr_coverage': np.float64(0.24599999999999939), 'silence_after_asr': np.float64(2.5), 'has_long_asr': np.True_, 'has_long_silence': np.True_, 'pattern': 'mixed', 'reason': '长ASR(2.46秒) + 长静音(2.50秒) → 混合特征', 'first_asr_start': np.float64(96.051995), 'last_asr_end': np.float64(98.511995), 'consistency_ratio': 1.0, 'transcription_count': 3, 'pattern_distribution': {'mixed': 3}}",
+          "cross_episode_stats": {
+            "ending_ratio": 0.2,
+            "normal_drama_ratio": 0.1,
+            "pattern_counts": {
+              "no_asr_only_bgm": 1,
+              "short_asr_long_silence": 1,
+              "long_asr_no_silence": 1,
+              "mixed": 7
+            }
+          }
+        }
+      },
+      "effective_duration": 95.891995
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/老公成为首富那天我重生了/8.mp4",
+      "episode": 8,
+      "total_duration": 126.014671,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.7,
+        "method": "comprehensive_moderate",
+        "features": {
+          "total_score": 0.3,
+          "scores": {
+            "asr_timing": 0.0,
+            "cross_episode": 0.0,
+            "similarity": 0.3
+          },
+          "reasons": [
+            "~ ASR模式不确定（mixed）",
+            "~ 跨集特征不明确",
+            "✓ 画面相似（7.12秒）"
+          ],
+          "asr_pattern": "{'asr_duration': np.float64(5.900000000000006), 'asr_coverage': np.float64(0.5900000000000005), 'silence_after_asr': np.float64(4.099999999999994), 'has_long_asr': np.True_, 'has_long_silence': np.True_, 'pattern': 'mixed', 'reason': '长ASR(5.90秒) + 长静音(4.10秒) → 混合特征', 'first_asr_start': np.float64(116.014671), 'last_asr_end': np.float64(121.91467100000001), 'consistency_ratio': 1.0, 'transcription_count': 3, 'pattern_distribution': {'mixed': 3}}",
+          "cross_episode_stats": {
+            "ending_ratio": 0.2,
+            "normal_drama_ratio": 0.1,
+            "pattern_counts": {
+              "no_asr_only_bgm": 1,
+              "short_asr_long_silence": 1,
+              "long_asr_no_silence": 1,
+              "mixed": 7
+            }
+          }
+        }
+      },
+      "effective_duration": 123.014671
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/老公成为首富那天我重生了/9.mp4",
+      "episode": 9,
+      "total_duration": 167.123991,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.0,
+        "confidence": 0.7,
+        "method": "comprehensive_moderate",
+        "features": {
+          "total_score": 0.3,
+          "scores": {
+            "asr_timing": 0.0,
+            "cross_episode": 0.0,
+            "similarity": 0.3
+          },
+          "reasons": [
+            "~ ASR模式不确定（mixed）",
+            "~ 跨集特征不明确",
+            "✓ 画面相似（2.00秒）"
+          ],
+          "asr_pattern": "{'asr_duration': np.float64(2.8000000000000114), 'asr_coverage': np.float64(0.28000000000000114), 'silence_after_asr': np.float64(7.199999999999989), 'has_long_asr': np.True_, 'has_long_silence': np.True_, 'pattern': 'mixed', 'reason': '长ASR(2.80秒) + 长静音(7.20秒) → 混合特征', 'first_asr_start': np.float64(157.123991), 'last_asr_end': np.float64(159.923991), 'consistency_ratio': 1.0, 'transcription_count': 3, 'pattern_distribution': {'mixed': 3}}",
+          "cross_episode_stats": {
+            "ending_ratio": 0.2,
+            "normal_drama_ratio": 0.1,
+            "pattern_counts": {
+              "no_asr_only_bgm": 1,
+              "short_asr_long_silence": 1,
+              "long_asr_no_silence": 1,
+              "mixed": 7
+            }
+          }
+        }
+      },
+      "effective_duration": 165.123991
+    },
+    {
+      "video_path": "晓红姐-3.4剧目/老公成为首富那天我重生了/10.mp4",
+      "episode": 10,
+      "total_duration": 182.889002,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.7,
+        "method": "comprehensive_moderate",
+        "features": {
+          "total_score": 0.3,
+          "scores": {
+            "asr_timing": 0.0,
+            "cross_episode": 0.0,
+            "similarity": 0.3
+          },
+          "reasons": [
+            "~ ASR模式不确定（mixed）",
+            "~ 跨集特征不明确",
+            "✓ 画面相似（8.16秒）"
+          ],
+          "asr_pattern": "{'asr_duration': np.float64(4.8799999999999955), 'asr_coverage': np.float64(0.48799999999999955), 'silence_after_asr': np.float64(5.1200000000000045), 'has_long_asr': np.True_, 'has_long_silence': np.True_, 'pattern': 'mixed', 'reason': '长ASR(4.88秒) + 长静音(5.12秒) → 混合特征', 'first_asr_start': np.float64(172.889002), 'last_asr_end': np.float64(177.769002), 'consistency_ratio': 1.0, 'transcription_count': 3, 'pattern_distribution': {'mixed': 3}}",
+          "cross_episode_stats": {
+            "ending_ratio": 0.2,
+            "normal_drama_ratio": 0.1,
+            "pattern_counts": {
+              "no_asr_only_bgm": 1,
+              "short_asr_long_silence": 1,
+              "long_asr_no_silence": 1,
+              "mixed": 7
+            }
+          }
+        }
+      },
+      "effective_duration": 179.889002
+    }
+  ],
+  "summary": {
+    "total_episodes": 10,
+    "episodes_with_ending": 9,
+    "total_ending_duration": 32.27999999999999,
+    "total_effective_duration": 1494.3619949999998,
+    "average_ending_duration": 3.586666666666665
+  }
+}

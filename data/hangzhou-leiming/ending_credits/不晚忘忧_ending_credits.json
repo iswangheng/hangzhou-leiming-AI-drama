@@ -1,0 +1,19 @@
+{
+  "project": "不晚忘忧",
+  "episodes": [
+    {
+      "video_path": "新的漫剧素材/不晚忘忧/1.mp4",
+      "episode": 1,
+      "total_duration": 669.316009,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_timing_normal_drama",
+        "features": {
+          "reason": "ASR时序模式修正误判",
+          "asr_timing_pattern": {
+            "asr_duration": 2.8799999999999955,
+            "asr_coverage": 0.8228571428571415,
+            "silence_after_asr": 0.20000000000004547,
+            "has_long_asr": 
