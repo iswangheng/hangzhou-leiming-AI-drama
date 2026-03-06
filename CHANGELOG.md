@@ -5,6 +5,24 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V15.1] - 2026-03-06
+
+### 优化 (Optimized) - 视频包装动态缩放
+
+#### V6倾斜角标模块
+- **问题**：不同分辨率视频(360p/1080p)字体大小固定，导致效果不一致
+- **解决方案**：
+  - 使用**平方根缩放**替代线性缩放，字体变化更平缓
+  - 位置使用**固定百分比**，无论分辨率都能正确显示
+- **修改文件**：
+  - `scripts/understand/video_overlay/tilted_label.py` - V6动态缩放版
+  - `test/test_complete_packaging.py` - 包装测试脚本
+  - `CLAUDE.md` - 更新文档
+
+#### 待解决问题
+- [ ] 360p视频热门短剧角标仍偏小
+- [ ] 1080p视频热门短剧角标偏大
+
 ## [V14.7] - 2026-03-05
 
 ### 修复 (Fixed) - 🔴 Critical: 片尾剪裁精度和缓存加载问题

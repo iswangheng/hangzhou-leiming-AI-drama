@@ -201,12 +201,35 @@ Video Files → Keyframes + ASR → Segment Analysis → Quality Filter → Clip
 - Per-episode effective duration: `total_duration - ending_duration` (float precision)
 - No ending = no cutting: `effective_duration = total_duration`
 
-#### Video Overlay (V15+)
+#### Video Overlay (V15+, V6倾斜角标更新)
 
 **Three-layer text overlay**:
-1. **热门短剧** (Hot Drama): 24pt font, alternating position (top-left/top-right), 50% display time (10s show+10s hide cycle)
-2. **剧名** (Drama Title): 18pt font, white/pale purple random, bottom center, full duration, thin border (1.0) for hollow effect
-3. **免责声明** (Disclaimer): 12pt font, bottom center (40px below title), full duration
+1. **热门短剧** (Hot Drama): 动态字体大小，倾斜45度角标，右上角/左上角交替
+2. **剧名** (Drama Title): 动态字体大小，底部居中，白色/淡紫色随机
+3. **免责声明** (Disclaimer): 动态字体大小，底部居中，剧名下方
+
+**视频分辨率自适应 (V6倾斜角标更新)**:
+
+项目视频分辨率统计：
+- 360×640 (竖屏标清): 46个视频
+- 1080×1920 (竖屏高清): 50个视频
+- 640×360 (横屏标清): 4个视频
+
+**动态缩放策略 (V6版本)**:
+- 使用**平方根缩放**：字体大小变化更平缓，不会因分辨率差异过大
+- 公式：`font_size = 基准值 × √(video_width / 360) × 0.8`
+- 位置使用**固定百分比**：
+  - X位置：视频宽度的25%处（右边留25%空间）
+  - Y位置：视频高度的8%处（顶部留8%空间）
+
+**参数对照表**:
+| 参数 | 360p | 1080p |
+|-----|------|-------|
+| 缩放比例 | 1.0x (sqrt:1.0) | 3.0x (sqrt:1.73) |
+| 角标字体 | 17px | 52px |
+| 剧名字体 | 14px | 24px |
+| 位置X | 270 (75%处) | 810 (75%处) |
+| 位置Y | -51 (8%处) | -153 (8%处) |
 
 **Style system**:
 - 10 preset styles: gold_luxury, red_passion, blue_cool, purple_mystery, green_fresh, orange_vitality, pink_romantic, silver_elegant, cyan_tech, retro_brown
@@ -217,24 +240,19 @@ Video Files → Keyframes + ASR → Segment Analysis → Quality Filter → Clip
 **Technical implementation**:
 - FFmpeg drawtext filter with **4 layers** (2 hot_drama + title + disclaimer)
 - **Dual-layer approach**: Two separate hot_drama layers for left-right alternation
-  - Left layer: shows at 0-10s, 40-50s, 80-90s... (x="20")
-  - Right layer: shows at 20-30s, 60-70s, 100-110s... (x="(w-tw)-20")
+- PNG预渲染：预生成倾斜角标PNG，使用overlay滤镜叠加（高性能）
 - Font detection: Prioritize Songti.ttc (macOS), fallback to system fonts
-- Coordinate system: `y="h-90"` (title), `y="h-50"` (disclaimer), `x="(w-tw)/2"` (horizontal center)
-- Expression parameters wrapped in single quotes: `y='h-90'`, `x='(w-tw)/2'`, `enable='between(t,0,10)+...'`
+- 动态坐标：`y="h-{height*0.05}"` (title), `y="h-{height*0.028}"` (disclaimer)
 
-**Critical configuration**:
-- **Display duration**: Remove `enable_animation` from drama_title to ensure full-duration display
-- **Position spacing**: 40px vertical spacing between drama title and disclaimer (h-90 vs h-50)
-- **Border optimization**: border_width=1.0 for drama title (hollow effect), border_width=2.0 for hot_drama
-- **Color scheme**: Drama title randomly selects white (#FFFFFF) or pale purple (#E6E6FA) with black border
-- **Font path**: Always use single quotes for fontfile parameter to handle spaces in paths
-- **Enable expressions**: Use `between(t,start,end)` combined with `+` for cyclic display
+**待解决问题**:
+- [ ] 360p视频热门短剧角标仍偏小，需微调基准值
+- [ ] 1080p视频热门短剧角标偏大，需进一步缩小
 
 **Files affected**:
+- `scripts/understand/video_overlay/tilted_label.py` - V6动态缩放版倾斜角标
 - `scripts/understand/video_overlay/overlay_styles.py` - 10 preset style definitions
-- `scripts/understand/video_overlay/video_overlay.py` - FFmpeg command builder, style cache manager, dual-layer alternation logic
-- `scripts/understand/render_clips.py` - Integration point for overlay rendering
+- `scripts/understand/video_overlay/video_overlay.py` - FFmpeg command builder, style cache manager
+- `test/test_complete_packaging.py` - 包装测试脚本
 
 #### Quality Filter Pipeline
 
