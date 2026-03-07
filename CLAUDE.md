@@ -201,7 +201,7 @@ Video Files → Keyframes + ASR → Segment Analysis → Quality Filter → Clip
 - Per-episode effective duration: `total_duration - ending_duration` (float precision)
 - No ending = no cutting: `effective_duration = total_duration`
 
-#### Video Overlay (V15+, V6倾斜角标更新)
+#### Video Overlay (V15+, V6倾斜角标更新, V2.1花字叠加更新)
 
 **Three-layer text overlay**:
 1. **热门短剧** (Hot Drama): 动态字体大小，倾斜45度角标，右上角/左上角交替
@@ -215,12 +215,26 @@ Video Files → Keyframes + ASR → Segment Analysis → Quality Filter → Clip
 - 1080×1920 (竖屏高清): 50个视频
 - 640×360 (横屏标清): 4个视频
 
-**动态缩放策略 (V6版本)**:
+**动态缩放策略 (V6版本 - 倾斜角标)**:
 - 使用**平方根缩放**：字体大小变化更平缓，不会因分辨率差异过大
 - 公式：`font_size = 基准值 × √(video_width / 360) × 0.8`
 - 位置使用**固定百分比**：
   - X位置：视频宽度的25%处（右边留25%空间）
   - Y位置：视频高度的8%处（顶部留8%空间）
+
+**动态字体策略 (V2.1版本 - 花字叠加)**:
+- 基于**视频原有字幕大小**作为参考基准（17px@360p）
+- 使用**平方根缩放**计算动态字体大小
+- 热门短剧 = 字幕×1.5倍（更醒目）
+- 剧名 = 字幕×1.2倍（略大）
+- 免责声明 = 字幕×0.9倍（不抢镜）
+
+**分辨率适配效果 (V2.1)**:
+| 分辨率 | scale_factor | sqrt_scale | 热门短剧 | 剧名 | 免责声明 |
+|--------|-------------|------------|---------|------|----------|
+| 360×640 竖屏 | 1.0x | 1.0x | 26px | 20px | 15px |
+| 640×360 横屏 | 1.78x | 1.33x | 34px | 27px | 20px |
+| 1080×1920 竖屏 | 3.0x | 1.73x | 44px | 35px | 28px |
 
 **参数对照表**:
 | 参数 | 360p | 1080p |
@@ -251,7 +265,7 @@ Video Files → Keyframes + ASR → Segment Analysis → Quality Filter → Clip
 **Files affected**:
 - `scripts/understand/video_overlay/tilted_label.py` - V6动态缩放版倾斜角标
 - `scripts/understand/video_overlay/overlay_styles.py` - 10 preset style definitions
-- `scripts/understand/video_overlay/video_overlay.py` - FFmpeg command builder, style cache manager
+- `scripts/understand/video_overlay/video_overlay.py` - V2.1 FFmpeg命令构建，动态字体计算
 - `test/test_complete_packaging.py` - 包装测试脚本
 
 #### Quality Filter Pipeline

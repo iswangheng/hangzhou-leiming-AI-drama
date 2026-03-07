@@ -364,6 +364,61 @@ class VideoOverlayRenderer:
             print("⚠️  花字叠加未启用，跳过处理")
             return input_video
 
+        # ===== V2.0: 动态分辨率自适应 =====
+        # 获取视频分辨率，用于动态计算字体大小和位置
+        probe_cmd = [
+            'ffprobe', '-v', 'error',
+            '-select_streams', 'v:0',
+            '-show_entries', 'stream=width,height',
+            '-of', 'csv=p=0', input_video
+        ]
+        result = subprocess.run(probe_cmd, capture_output=True, text=True)
+        video_width, video_height = map(int, result.stdout.strip().split(','))
+
+        # 使用视频宽度计算缩放比例（基准：竖屏360宽度）
+        base_width = 360  # 基准：竖屏视频的宽度
+        scale_factor = video_width / base_width
+        sqrt_scale = scale_factor ** 0.5  # 平方根平滑缩放
+
+        # V2.1: 基于视频原有字幕大小作为参考基准
+        # 原有字幕大约是 16-18px (以360宽度为基准)
+        # 热门短剧：比字幕大1.5倍（更醒目）
+        # 剧名：比字幕大1.2倍
+        # 免责声明：和字幕差不多大小
+        subtitle_estimate = 17 * sqrt_scale  # 估算的原有字幕大小
+
+        hot_drama_font_size = int(subtitle_estimate * 1.5)  # 1.5倍
+        drama_title_font_size = int(subtitle_estimate * 1.2)  # 1.2倍
+        disclaimer_font_size = int(subtitle_estimate * 0.9)  # 0.9倍（不抢镜）
+
+        print(f"\n📹 视频分辨率: {video_width}x{video_height}")
+        print(f"📐 缩放基准: 宽度 {base_width}px")
+        print(f"📐 缩放比例: {scale_factor:.2f}x (sqrt: {sqrt_scale:.2f})")
+        print(f"📝 参考字幕大小: 约{subtitle_estimate:.0f}px")
+        print(f"📝 动态字体大小（基于字幕参考）:")
+        print(f"   热门短剧: {hot_drama_font_size}px (字幕×1.5)")
+        print(f"   剧名: {drama_title_font_size}px (字幕×1.2)")
+        print(f"   免责声明: {disclaimer_font_size}px (字幕×0.9)")
+
+        print(f"📝 动态字体大小:")
+        print(f"   热门短剧: {hot_drama_font_size}px")
+        print(f"   剧名: {drama_title_font_size}px")
+        print(f"   免责声明: {disclaimer_font_size}px")
+
+        # 动态计算位置（使用视频高度的百分比）
+        # 热门短剧：顶部往下 12% 处（避开顶部边缘）
+        hot_drama_y = f"h*{0.12:.2f}"
+        # 剧名：底部往上 15% 处
+        drama_title_y = f"h-{int(video_height * 0.15)}"
+        # 免责声明：底部往上 6% 处（剧名下方）
+        disclaimer_y = f"h-{int(video_height * 0.06)}"
+
+        print(f"📍 动态位置:")
+        print(f"   热门短剧: y={hot_drama_y}")
+        print(f"   剧名: y={drama_title_y}")
+        print(f"   免责声明: y={disclaimer_y}")
+        # ===== 动态分辨率自适应结束 =====
+
         print(f"\n{'='*60}")
         print(f"🎬 开始应用花字叠加")
         print(f"  输入: {input_video}")
@@ -380,21 +435,90 @@ class VideoOverlayRenderer:
         # 构建滤镜链（四个drawtext滤镜：热门短剧左+右，剧名，免责声明）
         filters = []
 
-        # 创建两个热门短剧层，左右交替显示
-        # 左上角层：0-10秒, 40-50秒, 80-90秒...显示
-        hot_drama_left = self.style.hot_drama
-        hot_drama_left.x = "20"
+        # ===== 创建动态配置的文本图层 =====
+        from .overlay_styles import TextLayer
+
+        # 热门短剧（左上角层）
+        hot_drama_left = TextLayer(
+            text=self.style.hot_drama.text,
+            font_size=hot_drama_font_size,
+            font_color=self.style.hot_drama.font_color,
+            font_alpha=self.style.hot_drama.font_alpha,
+            border_color=self.style.hot_drama.border_color,
+            border_width=self.style.hot_drama.border_width,
+            shadow_color=self.style.hot_drama.shadow_color,
+            shadow_x=self.style.hot_drama.shadow_x,
+            shadow_y=self.style.hot_drama.shadow_y,
+            x="20",  # 固定左边距
+            y=hot_drama_y,  # 动态Y位置
+            rotation=self.style.hot_drama.rotation,
+            display_duration=self.style.hot_drama.display_duration,
+            enable_animation=self.style.hot_drama.enable_animation,
+            animation_type=self.style.hot_drama.animation_type
+        )
         left_enable = self._build_alternating_enable(left=True)
         filters.append(self._build_drawtext_filter(hot_drama_left, font_path, custom_enable=left_enable))
 
-        # 右上角层：20-30秒, 60-70秒, 100-110秒...显示
-        hot_drama_right = self.style.hot_drama
-        hot_drama_right.x = "(w-tw)-20"
+        # 热门短剧（右上角层）
+        hot_drama_right = TextLayer(
+            text=self.style.hot_drama.text,
+            font_size=hot_drama_font_size,
+            font_color=self.style.hot_drama.font_color,
+            font_alpha=self.style.hot_drama.font_alpha,
+            border_color=self.style.hot_drama.border_color,
+            border_width=self.style.hot_drama.border_width,
+            shadow_color=self.style.hot_drama.shadow_color,
+            shadow_x=self.style.hot_drama.shadow_x,
+            shadow_y=self.style.hot_drama.shadow_y,
+            x="(w-tw)-20",  # 右边距
+            y=hot_drama_y,  # 动态Y位置
+            rotation=self.style.hot_drama.rotation,
+            display_duration=self.style.hot_drama.display_duration,
+            enable_animation=self.style.hot_drama.enable_animation,
+            animation_type=self.style.hot_drama.animation_type
+        )
         right_enable = self._build_alternating_enable(left=False)
         filters.append(self._build_drawtext_filter(hot_drama_right, font_path, custom_enable=right_enable))
 
-        filters.append(self._build_drawtext_filter(self.style.drama_title, font_path))
-        filters.append(self._build_drawtext_filter(self.style.disclaimer, font_path))
+        # 剧名
+        drama_title_layer = TextLayer(
+            text=self.style.drama_title.text,
+            font_size=drama_title_font_size,
+            font_color=self.style.drama_title.font_color,
+            font_alpha=self.style.drama_title.font_alpha,
+            border_color=self.style.drama_title.border_color,
+            border_width=self.style.drama_title.border_width,
+            shadow_color=self.style.drama_title.shadow_color,
+            shadow_x=self.style.drama_title.shadow_x,
+            shadow_y=self.style.drama_title.shadow_y,
+            x="(w-tw)/2",  # 居中
+            y=drama_title_y,  # 动态Y位置
+            rotation=self.style.drama_title.rotation,
+            display_duration=self.style.drama_title.display_duration,
+            enable_animation=self.style.drama_title.enable_animation,
+            animation_type=self.style.drama_title.animation_type
+        )
+        filters.append(self._build_drawtext_filter(drama_title_layer, font_path))
+
+        # 免责声明
+        disclaimer_layer = TextLayer(
+            text=self.style.disclaimer.text,
+            font_size=disclaimer_font_size,
+            font_color=self.style.disclaimer.font_color,
+            font_alpha=self.style.disclaimer.font_alpha,
+            border_color=self.style.disclaimer.border_color,
+            border_width=self.style.disclaimer.border_width,
+            shadow_color=self.style.disclaimer.shadow_color,
+            shadow_x=self.style.disclaimer.shadow_x,
+            shadow_y=self.style.disclaimer.shadow_y,
+            x="(w-tw)/2",  # 居中
+            y=disclaimer_y,  # 动态Y位置
+            rotation=self.style.disclaimer.rotation,
+            display_duration=self.style.disclaimer.display_duration,
+            enable_animation=self.style.disclaimer.enable_animation,
+            animation_type=self.style.disclaimer.animation_type
+        )
+        filters.append(self._build_drawtext_filter(disclaimer_layer, font_path))
 
         # 组合滤镜（使用逗号分隔多个滤镜）
         filter_complex = ','.join(filters)

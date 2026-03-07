@@ -77,11 +77,11 @@ def _create_style_1_gold_luxury() -> OverlayStyle:
 
         hot_drama=TextLayer(
             text="热门短剧",
-            font_size=24,
-            font_color="#FFD700",  # 金黄色（鲜艳活泼）
+            font_size=36,  # V2.0: 基准字体调大
+            font_color="#FFD700",  # 金黄色
             font_alpha=1.0,
-            border_color="#FFA500",  # 橙色描边
-            border_width=2.0,
+            border_color="#FF6600",  # V2.0: 调整为更明显的橙色
+            border_width=1.5,  # V2.0: 减少描边宽度
             shadow_color="#000000",
             shadow_x=2,
             shadow_y=2,
@@ -94,30 +94,30 @@ def _create_style_1_gold_luxury() -> OverlayStyle:
 
         drama_title=TextLayer(
             text="《{title}》",
-            font_size=18,
-            font_color="#FFD700",  # 橙色
+            font_size=28,  # V2.0: 基准字体调大
+            font_color="#FFFFFF",  # V2.0: 改为白色，更清晰
             font_alpha=1.0,
-            border_color="#FFA500",  # 深棕色描边
-            border_width=7.0,
+            border_color="#000000",  # 黑色描边
+            border_width=1.0,  # V2.0: 减少到1.0，不再太粗
             shadow_color="#000000",
-            shadow_x=5,
-            shadow_y=5,
+            shadow_x=2,
+            shadow_y=2,
             x="(w-tw)/2",  # 底部居中
             y="h-90",  # 距离底部90像素
         ),
 
         disclaimer=TextLayer(
             text="{disclaimer}",  # 会被替换为随机免责声明
-            font_size=12,
-            font_color="#FFFF00",  # 黄色
-            font_alpha=0.9,
-            border_color="#000000",
-            border_width=2.0,
+            font_size=18,  # V2.0: 基准字体调大
+            font_color="#FFFF00",  # V2.0: 改为黄色，更明显
+            font_alpha=0.9,  # V2.0: 提高透明度
+            border_color="#000000",  # 黑色描边
+            border_width=1.0,  # V2.0: 适当增加描边
             shadow_color="#000000",
             shadow_x=1,
             shadow_y=1,
             x="(w-tw)/2",  # 底部居中
-            y="h-50"  # 修复：从h-110改为h-70，避免与剧名重叠
+            y="h-50"
         )
     )
 
@@ -148,14 +148,14 @@ def _create_style_2_red_passion() -> OverlayStyle:
 
         drama_title=TextLayer(
             text="《{title}》",
-            font_size=18,
-            font_color="#FFD700",
+            font_size=28,  # V2.0: 基准字体调大
+            font_color="#FFFFFF",  # V2.0: 改为白色，更清晰
             font_alpha=1.0,
-            border_color="#FFA500",
-            border_width=7.0,
+            border_color="#000000",  # 黑色描边
+            border_width=1.0,  # V2.0: 减少到1.0，不再太粗
             shadow_color="#000000",
-            shadow_x=5,
-            shadow_y=5,
+            shadow_x=2,
+            shadow_y=2,
             x="(w-tw)/2",
             y="h-90"
         ),
@@ -163,13 +163,13 @@ def _create_style_2_red_passion() -> OverlayStyle:
         disclaimer=TextLayer(
             text="{disclaimer}",
             font_size=12,
-            font_color="#FFB6C1",  # 浅粉色
-            font_alpha=0.95,
-            border_color="#8B0000",
-            border_width=2.5,
+            font_color="#FFFFFF",  # 白色（不显眼）
+            font_alpha=0.7,  # 降低透明度使其更不显眼
+            border_color="#808080",  # 灰色描边（确保可见）
+            border_width=0.5,  # 很细的描边
             shadow_color="#000000",
-            shadow_x=2,
-            shadow_y=2,
+            shadow_x=1,
+            shadow_y=1,
             x="(w-tw)/2",
             y="h-50"
         )
@@ -201,14 +201,14 @@ def _create_style_3_blue_cool() -> OverlayStyle:
 
         drama_title=TextLayer(
             text="《{title}》",
-            font_size=18,
-            font_color="#FFD700",
+            font_size=28,  # V2.0: 基准字体调大
+            font_color="#FFFFFF",  # V2.0: 改为白色，更清晰
             font_alpha=1.0,
-            border_color="#FFA500",
-            border_width=7.0,
+            border_color="#000000",  # 黑色描边
+            border_width=1.0,  # V2.0: 减少到1.0，不再太粗
             shadow_color="#000000",
-            shadow_x=5,
-            shadow_y=5,
+            shadow_x=2,
+            shadow_y=2,
             x="(w-tw)/2",
             y="h-90"
         ),
@@ -216,10 +216,10 @@ def _create_style_3_blue_cool() -> OverlayStyle:
         disclaimer=TextLayer(
             text="{disclaimer}",
             font_size=12,
-            font_color="#87CEFA",  # 淡天蓝
-            font_alpha=0.9,
-            border_color="#191970",
-            border_width=2.0,
+            font_color="#FFFFFF",  # 白色（不显眼）
+            font_alpha=0.7,  # 降低透明度使其更不显眼
+            border_color="#808080",  # 灰色描边（确保可见）
+            border_width=0.5,  # 很细的描边
             shadow_color="#000000",
             shadow_x=1,
             shadow_y=1,
@@ -255,14 +255,14 @@ def _create_style_4_purple_mystery() -> OverlayStyle:
 
         drama_title=TextLayer(
             text="《{title}》",
-            font_size=18,
-            font_color="#FFD700",
+            font_size=28,  # V2.0: 基准字体调大
+            font_color="#FFFFFF",  # V2.0: 改为白色，更清晰
             font_alpha=1.0,
-            border_color="#FFA500",
-            border_width=7.0,
+            border_color="#000000",  # 黑色描边
+            border_width=1.0,  # V2.0: 减少到1.0，不再太粗
             shadow_color="#000000",
-            shadow_x=5,
-            shadow_y=5,
+            shadow_x=2,
+            shadow_y=2,
             x="(w-tw)/2",
             y="h-90"
         ),
@@ -270,13 +270,13 @@ def _create_style_4_purple_mystery() -> OverlayStyle:
         disclaimer=TextLayer(
             text="{disclaimer}",
             font_size=12,
-            font_color="#DDA0DD",  # 梅红色
-            font_alpha=0.92,
-            border_color="#4B0082",
-            border_width=2.3,
+            font_color="#FFFFFF",  # 白色（不显眼）
+            font_alpha=0.7,  # 降低透明度使其更不显眼
+            border_color="#808080",  # 灰色描边（确保可见）
+            border_width=0.5,  # 很细的描边
             shadow_color="#000000",
-            shadow_x=2,
-            shadow_y=2,
+            shadow_x=1,
+            shadow_y=1,
             x="(w-tw)/2",
             y="h-50"
         )
@@ -308,14 +308,14 @@ def _create_style_5_green_fresh() -> OverlayStyle:
 
         drama_title=TextLayer(
             text="《{title}》",
-            font_size=18,
-            font_color="#FFD700",
+            font_size=28,  # V2.0: 基准字体调大
+            font_color="#FFFFFF",  # V2.0: 改为白色，更清晰
             font_alpha=1.0,
-            border_color="#FFA500",
-            border_width=7.0,
+            border_color="#000000",  # 黑色描边
+            border_width=1.0,  # V2.0: 减少到1.0，不再太粗
             shadow_color="#000000",
-            shadow_x=5,
-            shadow_y=5,
+            shadow_x=2,
+            shadow_y=2,
             x="(w-tw)/2",
             y="h-90"
         ),
@@ -323,10 +323,10 @@ def _create_style_5_green_fresh() -> OverlayStyle:
         disclaimer=TextLayer(
             text="{disclaimer}",
             font_size=12,
-            font_color="#98FB98",  # 苍绿
-            font_alpha=0.93,
-            border_color="#006400",
-            border_width=2.0,
+            font_color="#FFFFFF",  # 白色（不显眼）
+            font_alpha=0.7,  # 降低透明度使其更不显眼
+            border_color="#808080",  # 灰色描边（确保可见）
+            border_width=0.5,  # 很细的描边
             shadow_color="#000000",
             shadow_x=1,
             shadow_y=1,
@@ -362,14 +362,14 @@ def _create_style_6_orange_vitality() -> OverlayStyle:
 
         drama_title=TextLayer(
             text="《{title}》",
-            font_size=18,
-            font_color="#FFD700",
+            font_size=28,  # V2.0: 基准字体调大
+            font_color="#FFFFFF",  # V2.0: 改为白色，更清晰
             font_alpha=1.0,
-            border_color="#FFA500",
-            border_width=7.0,
+            border_color="#000000",  # 黑色描边
+            border_width=1.0,  # V2.0: 减少到1.0，不再太粗
             shadow_color="#000000",
-            shadow_x=5,
-            shadow_y=5,
+            shadow_x=2,
+            shadow_y=2,
             x="(w-tw)/2",
             y="h-90"
         ),
@@ -377,15 +377,15 @@ def _create_style_6_orange_vitality() -> OverlayStyle:
         disclaimer=TextLayer(
             text="{disclaimer}",
             font_size=12,
-            font_color="#FFD700",  # 金色
-            font_alpha=0.9,
-            border_color="#8B4500",
-            border_width=2.2,
+            font_color="#FFFFFF",  # 白色（不显眼）
+            font_alpha=0.7,  # 降低透明度使其更不显眼
+            border_color="#808080",  # 灰色描边（确保可见）
+            border_width=0.5,  # 很细的描边
             shadow_color="#000000",
-            shadow_x=2,
-            shadow_y=2,
+            shadow_x=1,
+            shadow_y=1,
             x="(w-tw)/2",
-            y="h-50"  # 修复：从h-110改为h-70，避免与剧名重叠
+            y="h-50"
         )
     )
 
@@ -415,14 +415,14 @@ def _create_style_7_pink_romantic() -> OverlayStyle:
 
         drama_title=TextLayer(
             text="《{title}》",
-            font_size=18,
-            font_color="#FFD700",
+            font_size=28,  # V2.0: 基准字体调大
+            font_color="#FFFFFF",  # V2.0: 改为白色，更清晰
             font_alpha=1.0,
-            border_color="#FFA500",
-            border_width=7.0,
+            border_color="#000000",  # 黑色描边
+            border_width=1.0,  # V2.0: 减少到1.0，不再太粗
             shadow_color="#000000",
-            shadow_x=5,
-            shadow_y=5,
+            shadow_x=2,
+            shadow_y=2,
             x="(w-tw)/2",
             y="h-90"
         ),
@@ -430,10 +430,10 @@ def _create_style_7_pink_romantic() -> OverlayStyle:
         disclaimer=TextLayer(
             text="{disclaimer}",
             font_size=12,
-            font_color="#FFB6C1",  # 浅粉色
-            font_alpha=0.95,
-            border_color="#C71585",
-            border_width=2.0,
+            font_color="#FFFFFF",  # 白色（不显眼）
+            font_alpha=0.7,  # 降低透明度使其更不显眼
+            border_color="#808080",  # 灰色描边（确保可见）
+            border_width=0.5,  # 很细的描边
             shadow_color="#000000",
             shadow_x=1,
             shadow_y=1,
@@ -469,14 +469,14 @@ def _create_style_8_silver_elegant() -> OverlayStyle:
 
         drama_title=TextLayer(
             text="《{title}》",
-            font_size=18,
-            font_color="#FFD700",
+            font_size=28,  # V2.0: 基准字体调大
+            font_color="#FFFFFF",  # V2.0: 改为白色，更清晰
             font_alpha=1.0,
-            border_color="#FFA500",
-            border_width=7.0,
+            border_color="#000000",  # 黑色描边
+            border_width=1.0,  # V2.0: 减少到1.0，不再太粗
             shadow_color="#000000",
-            shadow_x=5,
-            shadow_y=5,
+            shadow_x=2,
+            shadow_y=2,
             x="(w-tw)/2",
             y="h-90"
         ),
@@ -484,10 +484,10 @@ def _create_style_8_silver_elegant() -> OverlayStyle:
         disclaimer=TextLayer(
             text="{disclaimer}",
             font_size=12,
-            font_color="#F5F5F5",  # 白烟色
-            font_alpha=0.9,
-            border_color="#696969",
-            border_width=2.0,
+            font_color="#FFFFFF",  # 白色（不显眼）
+            font_alpha=0.7,  # 降低透明度使其更不显眼
+            border_color="#808080",  # 灰色描边（确保可见）
+            border_width=0.5,  # 很细的描边
             shadow_color="#000000",
             shadow_x=1,
             shadow_y=1,
@@ -522,14 +522,14 @@ def _create_style_9_cyan_tech() -> OverlayStyle:
 
         drama_title=TextLayer(
             text="《{title}》",
-            font_size=18,
-            font_color="#FFD700",
+            font_size=28,  # V2.0: 基准字体调大
+            font_color="#FFFFFF",  # V2.0: 改为白色，更清晰
             font_alpha=1.0,
-            border_color="#FFA500",
-            border_width=7.0,
+            border_color="#000000",  # 黑色描边
+            border_width=1.0,  # V2.0: 减少到1.0，不再太粗
             shadow_color="#000000",
-            shadow_x=5,
-            shadow_y=5,
+            shadow_x=2,
+            shadow_y=2,
             x="(w-tw)/2",
             y="h-90"
         ),
@@ -537,10 +537,10 @@ def _create_style_9_cyan_tech() -> OverlayStyle:
         disclaimer=TextLayer(
             text="{disclaimer}",
             font_size=12,
-            font_color="#AFEEEE",  # 苍宝石绿
-            font_alpha=0.92,
-            border_color="#008B8B",
-            border_width=2.0,
+            font_color="#FFFFFF",  # 白色（不显眼）
+            font_alpha=0.7,  # 降低透明度使其更不显眼
+            border_color="#808080",  # 灰色描边（确保可见）
+            border_width=0.5,  # 很细的描边
             shadow_color="#000000",
             shadow_x=1,
             shadow_y=1,
@@ -576,14 +576,14 @@ def _create_style_10_retro_brown() -> OverlayStyle:
 
         drama_title=TextLayer(
             text="《{title}》",
-            font_size=18,
-            font_color="#FFD700",
+            font_size=28,  # V2.0: 基准字体调大
+            font_color="#FFFFFF",  # V2.0: 改为白色，更清晰
             font_alpha=1.0,
-            border_color="#FFA500",
-            border_width=7.0,
+            border_color="#000000",  # 黑色描边
+            border_width=1.0,  # V2.0: 减少到1.0，不再太粗
             shadow_color="#000000",
-            shadow_x=5,
-            shadow_y=5,
+            shadow_x=2,
+            shadow_y=2,
             x="(w-tw)/2",
             y="h-90"
         ),
@@ -591,15 +591,15 @@ def _create_style_10_retro_brown() -> OverlayStyle:
         disclaimer=TextLayer(
             text="{disclaimer}",
             font_size=12,
-            font_color="#F4A460",  # 沙褐色
-            font_alpha=0.9,
-            border_color="#8B4513",
-            border_width=2.0,
+            font_color="#FFFFFF",  # 白色（不显眼）
+            font_alpha=0.7,  # 降低透明度使其更不显眼
+            border_color="#808080",  # 灰色描边（确保可见）
+            border_width=0.5,  # 很细的描边
             shadow_color="#000000",
             shadow_x=1,
             shadow_y=1,
             x="(w-tw)/2",
-            y="h-50"  # 修复：从h-110改为h-70，避免与剧名重叠
+            y="h-50"
         )
     )
 
