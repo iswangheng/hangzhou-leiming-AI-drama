@@ -948,22 +948,24 @@ class ClipRenderer:
         # V14.8: 确保输出目录存在
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        # V14.8: 修复的FFmpeg命令 - 确保音视频完全同步
-        # 关键修复：
-        # 1. 使用 -t 参数明确指定时长（基于视频流时长）
-        # 2. 使用 -af apad 填充音频，确保音频时长与视频完全一致
+        # V14.9: 修复的FFmpeg命令 - 彻底解决音视频不同步问题
+        # 关键修复（Agent Team分析结果）：
+        # 1. 移除 -t 参数（时间戳截取精度不够，会导致音视频不同步）
+        # 2. 移除 -af apad（过度填充音频，导致音频比视频长）
+        # 3. 添加 -vsync 2（保留时间戳，确保帧同步）
+        # 4. 添加 -async 1（音频自动同步到视频）
         cmd = [
             'ffmpeg',
             '-y',
             '-i', ending_video,
-            '-t', str(video_duration),  # V14.8: 明确指定时长
             '-vf', f'scale={clip_width}:{clip_height}:force_original_aspect_ratio=decrease,pad={clip_width}:{clip_height}:(ow-iw)/2:(oh-ih)/2',  # 缩放并添加黑边
             '-c:v', 'libx264',  # 统一使用h264编码
             '-preset', self.preset,
             '-crf', str(self.crf),
             '-c:a', 'aac',  # 统一音频编码
             '-b:a', '128k',
-            '-af', f'apad=whole_dur={video_duration}',  # V14.8: 确保音频时长与视频一致
+            '-vsync', '2',  # V14.9: 保留时间戳，确保帧同步
+            '-async', '1',  # V14.9: 音频自动同步到视频
             '-movflags', '+faststart',
             str(temp_ending)
         ]
@@ -1039,14 +1041,22 @@ class ClipRenderer:
                 video_path = Path(video_file).resolve()
                 f.write(f"file '{video_path}'\n")
 
-        # FFmpeg命令 - 使用 concat demuxer 快速拼接
+        # V14.9: FFmpeg命令 - 使用重新编码拼接（彻底解决流不兼容问题）
+        # 关键修复（Agent Team分析结果）：
+        # - 原剪辑（copy模式）和结尾视频（重编码）的流不兼容
+        # - -c copy 会导致视频流截断，出现"有声音无画面"
+        # - 改用重新编码可以确保流完全兼容，音视频完美同步
         cmd = [
             'ffmpeg',
             '-y',
             '-f', 'concat',  # concat demuxer
             '-safe', '0',  # 允许任意文件路径
             '-i', str(concat_file),  # 输入列表文件
-            '-c', 'copy',  # 复制流，不重编码（因为已经预处理为相同格式）
+            '-c:v', 'libx264',  # V14.9: 重新编码视频（解决流不兼容）
+            '-preset', 'ultrafast',  # V14.9: 超快预设（减少处理时间）
+            '-crf', '18',  # V14.9: 高质量（几乎无损）
+            '-c:a', 'aac',  # V14.9: 重新编码音频
+            '-b:a', '192k',  # V14.9: 高质量音频
             '-movflags', '+faststart',  # 优化Web播放
             output_path
         ]
@@ -1054,6 +1064,7 @@ class ClipRenderer:
         # 执行命令
         try:
             print(f"  🔄 拼接视频...")
+            print(f"  📋 FFmpeg命令: {' '.join(cmd)}")  # V14.9调试：打印完整命令
 
             process = subprocess.Popen(
                 cmd,
