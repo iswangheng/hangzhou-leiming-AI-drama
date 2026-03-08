@@ -1,26 +1,34 @@
 """
-视频花字叠加核心模块
+视频花字叠加核心模块（V15.6 集成V4.9修复投影计算版）
 
 基于FFmpeg实现视频花字叠加功能
 
-技术方案：
-- 使用FFmpeg的drawtext滤镜叠加文本
+技术方案（V15.6）：
+- 热门短剧：使用倾斜角标（V4.9 修复投影计算）+ overlay滤镜
+- 剧名、免责声明：使用drawtext滤镜
 - 支持自定义字体、颜色、描边、阴影
 - 支持多行文本独立配置
 - 避免遮挡原字幕（位置可配置）
 - 项目级样式统一（缓存项目样式选择）
+
+V15.6关键更新：
+- 集成V4.9倾斜角标模块（修复投影计算错误）
+- 使用canvas_half=200px而非projection=141px计算overlay位置
+- 解决360p视频"过于靠中间"的问题
+- 确保360p和1080p的角标都真正靠近角落
 
 依赖：
 - FFmpeg（支持drawtext滤镜，需要启用--enable-libfreetype）
 - 可选：中文字体文件（用于更好的中文显示）
 
 作者：杭州雷鸣AI短剧项目
-版本：V1.0
+版本：V15.6 - 集成V4.9修复投影计算倾斜角标
 """
 import os
 import json
 import subprocess
 import hashlib
+import tempfile
 from pathlib import Path
 from typing import Optional, Dict, List
 from dataclasses import dataclass
@@ -33,6 +41,7 @@ from .overlay_styles import (
     get_random_disclaimer,
     DISCLAIMER_TEXTS
 )
+from .tilted_label import TiltedLabelConfig, TiltedLabelRenderer
 
 
 @dataclass
@@ -46,6 +55,7 @@ class OverlayConfig:
     font_path: Optional[str] = None         # 自定义字体路径
     subtitle_safe_zone: int = 150           # 字幕安全区（底部像素）
     cache_dir: str = ".overlay_style_cache" # 样式缓存目录
+    hot_drama_position: str = "top-right"   # 热门短剧角标位置（"top-left" 或 "top-right"）
 
 
 class VideoOverlayRenderer:
@@ -75,7 +85,7 @@ class VideoOverlayRenderer:
         # 随机化免责声明文案
         # 位置和显示时长由apply_overlay直接控制
 
-        print(f"🎲 热门短剧显示模式: 左右交替显示（每10秒切换位置）")
+        print(f"🎲 热门短剧显示模式: 倾斜角标（V4.1 PNG预渲染）")
 
     def _get_style_cache_file(self) -> Path:
         """获取样式缓存文件路径"""
@@ -182,27 +192,9 @@ class VideoOverlayRenderer:
             "{disclaimer}", disclaimer
         )
 
-    def _build_alternating_enable(self, left: bool) -> str:
-        """构建热门短剧左右交替显示的enable表达式
-
-        Args:
-            left: True表示左上角层，False表示右上角层
-
-        Returns:
-            enable表达式字符串
-        """
-        enable_parts = []
-
-        if left:
-            # 左上角层：0-10秒, 40-50秒, 80-90秒...
-            for cycle_start in range(0, 300, 40):  # 40秒一个完整周期
-                enable_parts.append(f'between(t,{cycle_start},{cycle_start+10})')
-        else:
-            # 右上角层：20-30秒, 60-70秒, 100-110秒...
-            for cycle_start in range(20, 300, 40):
-                enable_parts.append(f'between(t,{cycle_start},{cycle_start+10})')
-
-        return '+'.join(enable_parts)
+    # V15.4: _build_alternating_enable方法已移除
+    # 热门短剧现在使用tilted_label.py的倾斜角标（静态PNG预渲染）
+    # 不再支持左右交替显示功能
 
     def _find_font_file(self) -> str:
         """查找中文字体文件
@@ -299,27 +291,9 @@ class VideoOverlayRenderer:
         # 如需倾斜效果，可以通过使用特殊的斜体字体实现
 
         # 添加显示时长控制
-        # 优先使用custom_enable（用于热门短剧左右交替）
+        # V15.6: 删除了animation相关功能（FFmpeg drawtext不支持）
         if custom_enable:
             params['enable'] = custom_enable
-        # 特殊处理热门短剧：显示50%的时间（10秒显示+10秒隐藏循环）
-        elif layer == self.style.hot_drama:
-            # 构建循环显示表达式：显示10秒，隐藏10秒，循环往复
-            # between(t,0,10)+between(t,20,30)+between(t,40,50)+between(t,60,70)+...
-            enable_parts = []
-            for cycle_start in range(0, 300, 20):  # 支持最长300秒的视频
-                enable_parts.append(f'between(t,{cycle_start},{cycle_start+10})')
-            enable_expr = '+'.join(enable_parts)
-            params['enable'] = enable_expr  # format_param_value会自动添加单引号
-            print(f"📺 热门短剧显示模式: 循环显示（10秒显示+10秒隐藏）")
-        # 优先使用display_duration，如果没有则使用淡入动画
-        elif hasattr(layer, 'display_duration') and layer.display_duration > 0:
-            # 使用display_duration: 在指定时间段内显示
-            params['enable'] = f'between(t,0,{layer.display_duration})'
-        elif layer.enable_animation and layer.animation_type == "fade_in":
-            params['enable'] = f'between(t,0,{self.style.fade_in_duration})'
-            # 使用alpha表达式实现淡入
-            # 注意：这里简化处理，实际淡入效果可能需要更复杂的表达式
 
         # 构建参数字符串
         # 注意：FFmpeg drawtext滤镜参数格式化规则：
@@ -378,45 +352,52 @@ class VideoOverlayRenderer:
         # 使用视频宽度计算缩放比例（基准：竖屏360宽度）
         base_width = 360  # 基准：竖屏视频的宽度
         scale_factor = video_width / base_width
-        sqrt_scale = scale_factor ** 0.5  # 平方根平滑缩放
 
-        # V2.1: 基于视频原有字幕大小作为参考基准
-        # 原有字幕大约是 16-18px (以360宽度为基准)
-        # 热门短剧：比字幕大1.5倍（更醒目）
-        # 剧名：比字幕大1.2倍
-        # 免责声明：和字幕差不多大小
-        subtitle_estimate = 17 * sqrt_scale  # 估算的原有字幕大小
+        # V2.3 Final Ultimate v3: 精简优化版
+        # 设计理念：简洁精致，避免字体过大
+        # 热门短剧(×1.2), 剧名(×0.95), 免责(×0.85)
 
-        hot_drama_font_size = int(subtitle_estimate * 1.5)  # 1.5倍
-        drama_title_font_size = int(subtitle_estimate * 1.2)  # 1.2倍
-        disclaimer_font_size = int(subtitle_estimate * 0.9)  # 0.9倍（不抢镜）
+        # 判断是否为横屏
+        is_landscape = video_width > video_height
 
-        print(f"\n📹 视频分辨率: {video_width}x{video_height}")
-        print(f"📐 缩放基准: 宽度 {base_width}px")
-        print(f"📐 缩放比例: {scale_factor:.2f}x (sqrt: {sqrt_scale:.2f})")
-        print(f"📝 参考字幕大小: 约{subtitle_estimate:.0f}px")
-        print(f"📝 动态字体大小（基于字幕参考）:")
-        print(f"   热门短剧: {hot_drama_font_size}px (字幕×1.5)")
-        print(f"   剧名: {drama_title_font_size}px (字幕×1.2)")
-        print(f"   免责声明: {disclaimer_font_size}px (字幕×0.9)")
+        # 计算分辨率倍数（基于较小边）
+        smaller_dimension = min(video_width, video_height)
+        resolution_ratio = smaller_dimension / 360.0
 
-        print(f"📝 动态字体大小:")
-        print(f"   热门短剧: {hot_drama_font_size}px")
-        print(f"   剧名: {drama_title_font_size}px")
-        print(f"   免责声明: {disclaimer_font_size}px")
+        # 估算原始字幕大小（基于360p实测：18px，精简后）
+        base_subtitle_size = int(18 * resolution_ratio)
+
+        # 根据原始字幕大小计算花字大小（精简系数）
+        hot_drama_font_size = int(base_subtitle_size * 1.2)  # 热门短剧略大
+        drama_title_font_size = int(base_subtitle_size * 0.95)  # 剧名略小于字幕
+        disclaimer_font_size = int(base_subtitle_size * 0.85)    # 免责声明精简
+
+        # 确保字体大小为偶数（FFmpeg渲染更稳定）
+        hot_drama_font_size = hot_drama_font_size if hot_drama_font_size % 2 == 0 else hot_drama_font_size + 1
+        drama_title_font_size = drama_title_font_size if drama_title_font_size % 2 == 0 else drama_title_font_size + 1
+        disclaimer_font_size = disclaimer_font_size if disclaimer_font_size % 2 == 0 else disclaimer_font_size + 1
+
+        print(f"\n📹 视频分辨率: {video_width}x{video_height} {'横屏' if is_landscape else '竖屏'}")
+        print(f"📐 缩放算法: V2.3 Final Ultimate v3 (精简优化版)")
+        print(f"📐 较小边: {smaller_dimension}px, 分辨率倍数: {resolution_ratio:.1f}x")
+        print(f"📝 设计逻辑: 简洁精致, 热门短剧×1.2, 剧名×0.95, 免责×0.85")
+        print(f"📝 估算原始字幕: {base_subtitle_size}px (基于360p精简值18px×倍数)")
+        print(f"📝 FFmpeg fontsize设置值:")
+        print(f"   原始字幕(估算): {base_subtitle_size}px")
+        print(f"   热门短剧: {hot_drama_font_size}px (原始×1.2)")
+        print(f"   剧名: {drama_title_font_size}px (原始×0.95, 略小于字幕)")
+        print(f"   免责声明: {disclaimer_font_size}px (原始×0.85, 精简)")
 
         # 动态计算位置（使用视频高度的百分比）
-        # 热门短剧：顶部往下 12% 处（避开顶部边缘）
-        hot_drama_y = f"h*{0.12:.2f}"
         # 剧名：底部往上 15% 处
         drama_title_y = f"h-{int(video_height * 0.15)}"
         # 免责声明：底部往上 6% 处（剧名下方）
         disclaimer_y = f"h-{int(video_height * 0.06)}"
 
         print(f"📍 动态位置:")
-        print(f"   热门短剧: y={hot_drama_y}")
         print(f"   剧名: y={drama_title_y}")
         print(f"   免责声明: y={disclaimer_y}")
+        print(f"   热门短剧: 由tilted_label模块自动计算（倾斜角标）")
         # ===== 动态分辨率自适应结束 =====
 
         print(f"\n{'='*60}")
@@ -432,53 +413,89 @@ class VideoOverlayRenderer:
         # 查找字体
         font_path = self._find_font_file()
 
-        # 构建滤镜链（四个drawtext滤镜：热门短剧左+右，剧名，免责声明）
-        filters = []
+        # ===== V15.6 集成V4.9修复投影计算逻辑 =====
+        # 获取视频尺寸
+        probe_cmd = [
+            'ffprobe', '-v', 'error',
+            '-select_streams', 'v:0',
+            '-show_entries', 'stream=width,height',
+            '-of', 'csv=p=0', input_video
+        ]
+        result = subprocess.run(probe_cmd, capture_output=True, text=True)
+        video_width, video_height = map(int, result.stdout.strip().split(','))
 
-        # ===== 创建动态配置的文本图层 =====
+        # 完全复制tilted_label.py的apply_label缩放逻辑（V4.9版本）
+        smaller_dimension = min(video_width, video_height)
+        resolution_ratio = smaller_dimension / 360.0
+
+        # 基准值（360p）
+        original_font_size = 28
+        original_box_height = 60
+        original_box_y = 170  # (400-60)/2
+        original_corner_offset = 70
+
+        # V4.9: 使用0.8缩放系数
+        scale_factor = resolution_ratio * 0.8
+
+        # 计算缩放后的值（完全复制tilted_label的逻辑）
+        scaled_font_size = int(original_font_size * scale_factor)
+        scaled_box_height = int(original_box_height * scale_factor)
+        scaled_corner_offset = int(original_corner_offset * scale_factor)
+        scaled_box_y = int((400 - scaled_box_height) / 2)  # 保持居中
+
+        # 确保字体大小为偶数（FFmpeg渲染更稳定）
+        scaled_font_size = scaled_font_size if scaled_font_size % 2 == 0 else scaled_font_size + 1
+        scaled_corner_offset = scaled_corner_offset if scaled_corner_offset % 2 == 0 else scaled_corner_offset + 1
+
+        print(f"\n🖼️  步骤1：生成倾斜角标PNG...")
+        print(f"📹 视频分辨率: {video_width}x{video_height}")
+        print(f"📐 V4.9定位算法: 修复投影计算 (canvas_half=200px)")
+        print(f"📐 缩放系数: ratio={resolution_ratio:.2f}x, scale={scale_factor:.2f}x")
+        print(f"📐 字体: {original_font_size}px -> {scaled_font_size}px")
+        print(f"📐 条幅: {original_box_height}px -> {scaled_box_height}px")
+        print(f"📐 留白: {original_corner_offset}px -> {scaled_corner_offset}px")
+
+        tilted_png_path = None
+
+        try:
+            # 创建倾斜角标配置（传递已缩放的值，因为_generate_png不会自动缩放）
+            tilted_config = TiltedLabelConfig(
+                label_text=self.style.hot_drama.text,
+                font_size=scaled_font_size,  # 已缩放
+                label_color="red@0.95",
+                text_color="white",
+                position=self.config.hot_drama_position,  # 使用配置的位置
+                box_height=scaled_box_height,  # 已缩放
+                box_y=scaled_box_y,  # 已缩放
+                corner_offset=scaled_corner_offset  # 已缩放
+            )
+
+            tilted_renderer = TiltedLabelRenderer(tilted_config)
+
+            # 生成临时PNG
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
+                tilted_png_path = tmp.name
+
+            # 预渲染PNG
+            tilted_renderer._generate_png(tilted_png_path)
+            print(f"✅ 倾斜角标PNG生成完成")
+
+            # 计算overlay位置
+            x, y = tilted_renderer._get_overlay_position(video_width, video_height)
+            print(f"📍 倾斜角标位置: x={x}, y={y}")
+
+        except Exception as e:
+            print(f"⚠️  倾斜角标生成失败: {e}")
+            print(f"   将使用传统drawtext方式渲染热门短剧")
+            tilted_png_path = None
+
+        # ===== 构建滤镜链 =====
+        print(f"\n🎨 步骤2：构建视频叠加滤镜链...")
+
+        # 从overlay_styles导入TextLayer
         from .overlay_styles import TextLayer
 
-        # 热门短剧（左上角层）
-        hot_drama_left = TextLayer(
-            text=self.style.hot_drama.text,
-            font_size=hot_drama_font_size,
-            font_color=self.style.hot_drama.font_color,
-            font_alpha=self.style.hot_drama.font_alpha,
-            border_color=self.style.hot_drama.border_color,
-            border_width=self.style.hot_drama.border_width,
-            shadow_color=self.style.hot_drama.shadow_color,
-            shadow_x=self.style.hot_drama.shadow_x,
-            shadow_y=self.style.hot_drama.shadow_y,
-            x="20",  # 固定左边距
-            y=hot_drama_y,  # 动态Y位置
-            rotation=self.style.hot_drama.rotation,
-            display_duration=self.style.hot_drama.display_duration,
-            enable_animation=self.style.hot_drama.enable_animation,
-            animation_type=self.style.hot_drama.animation_type
-        )
-        left_enable = self._build_alternating_enable(left=True)
-        filters.append(self._build_drawtext_filter(hot_drama_left, font_path, custom_enable=left_enable))
-
-        # 热门短剧（右上角层）
-        hot_drama_right = TextLayer(
-            text=self.style.hot_drama.text,
-            font_size=hot_drama_font_size,
-            font_color=self.style.hot_drama.font_color,
-            font_alpha=self.style.hot_drama.font_alpha,
-            border_color=self.style.hot_drama.border_color,
-            border_width=self.style.hot_drama.border_width,
-            shadow_color=self.style.hot_drama.shadow_color,
-            shadow_x=self.style.hot_drama.shadow_x,
-            shadow_y=self.style.hot_drama.shadow_y,
-            x="(w-tw)-20",  # 右边距
-            y=hot_drama_y,  # 动态Y位置
-            rotation=self.style.hot_drama.rotation,
-            display_duration=self.style.hot_drama.display_duration,
-            enable_animation=self.style.hot_drama.enable_animation,
-            animation_type=self.style.hot_drama.animation_type
-        )
-        right_enable = self._build_alternating_enable(left=False)
-        filters.append(self._build_drawtext_filter(hot_drama_right, font_path, custom_enable=right_enable))
+        drawtext_filters = []
 
         # 剧名
         drama_title_layer = TextLayer(
@@ -492,13 +509,9 @@ class VideoOverlayRenderer:
             shadow_x=self.style.drama_title.shadow_x,
             shadow_y=self.style.drama_title.shadow_y,
             x="(w-tw)/2",  # 居中
-            y=drama_title_y,  # 动态Y位置
-            rotation=self.style.drama_title.rotation,
-            display_duration=self.style.drama_title.display_duration,
-            enable_animation=self.style.drama_title.enable_animation,
-            animation_type=self.style.drama_title.animation_type
+            y=drama_title_y  # 动态Y位置
         )
-        filters.append(self._build_drawtext_filter(drama_title_layer, font_path))
+        drawtext_filters.append(self._build_drawtext_filter(drama_title_layer, font_path))
 
         # 免责声明
         disclaimer_layer = TextLayer(
@@ -512,33 +525,76 @@ class VideoOverlayRenderer:
             shadow_x=self.style.disclaimer.shadow_x,
             shadow_y=self.style.disclaimer.shadow_y,
             x="(w-tw)/2",  # 居中
-            y=disclaimer_y,  # 动态Y位置
-            rotation=self.style.disclaimer.rotation,
-            display_duration=self.style.disclaimer.display_duration,
-            enable_animation=self.style.disclaimer.enable_animation,
-            animation_type=self.style.disclaimer.animation_type
+            y=disclaimer_y  # 动态Y位置
         )
-        filters.append(self._build_drawtext_filter(disclaimer_layer, font_path))
+        drawtext_filters.append(self._build_drawtext_filter(disclaimer_layer, font_path))
 
-        # 组合滤镜（使用逗号分隔多个滤镜）
-        filter_complex = ','.join(filters)
+        # 组合drawtext滤镜
+        if drawtext_filters:
+            drawtext_filter_complex = ','.join(drawtext_filters)
+        else:
+            drawtext_filter_complex = None
 
         # FFmpeg命令
-        cmd = [
-            'ffmpeg',
-            '-y',  # 覆盖输出文件
-            '-i', input_video,
-            '-vf', filter_complex,
-            '-c:a', 'copy',  # 音频直接复制，不重新编码
-            '-movflags', '+faststart',  # 优化Web播放
-            output_video
-        ]
+        if tilted_png_path and Path(tilted_png_path).exists():
+            # 有倾斜角标PNG：两阶段叠加
+            # 阶段1：overlay倾斜角标PNG
+            # 阶段2：应用drawtext滤镜（剧名、免责声明）
+            if drawtext_filter_complex:
+                # 先overlay PNG，再应用drawtext滤镜
+                filter_complex = f"[0:v][1:v]overlay=x={x}:y={y}[v1];[v1]{drawtext_filter_complex}"
+                cmd = [
+                    'ffmpeg',
+                    '-y',  # 覆盖输出文件
+                    '-i', input_video,
+                    '-i', tilted_png_path,  # 第二个输入：PNG
+                    '-filter_complex', filter_complex,
+                    '-c:a', 'copy',  # 音频直接复制，不重新编码
+                    '-movflags', '+faststart',  # 优化Web播放
+                    output_video
+                ]
+            else:
+                # 只有overlay PNG
+                filter_complex = f"[0:v][1:v]overlay=x={x}:y={y}"
+                cmd = [
+                    'ffmpeg',
+                    '-y',
+                    '-i', input_video,
+                    '-i', tilted_png_path,
+                    '-filter_complex', filter_complex,
+                    '-c:a', 'copy',
+                    '-movflags', '+faststart',
+                    output_video
+                ]
+        elif drawtext_filter_complex:
+            # 只有drawtext滤镜
+            cmd = [
+                'ffmpeg',
+                '-y',  # 覆盖输出文件
+                '-i', input_video,
+                '-vf', drawtext_filter_complex,
+                '-c:a', 'copy',  # 音频直接复制，不重新编码
+                '-movflags', '+faststart',  # 优化Web播放
+                output_video
+            ]
+        else:
+            # 没有滤镜，直接复制
+            cmd = [
+                'ffmpeg',
+                '-y',
+                '-i', input_video,
+                '-c:a', 'copy',
+                '-movflags', '+faststart',
+                output_video
+            ]
 
         print(f"📝 叠加内容:")
-        print(f"  1. 热门短剧（左上角）- 奇数时段显示")
-        print(f"  2. 热门短剧（右上角）- 偶数时段显示")
-        print(f"  3. {self.style.drama_title.text}")
-        print(f"  4. {self.style.disclaimer.text}")
+        if tilted_png_path and Path(tilted_png_path).exists():
+            print(f"  1. 热门短剧（倾斜角标，右上角）- PNG预渲染，位置({x}, {y})")
+        else:
+            print(f"  1. 热门短剧（跳过，PNG生成失败或未启用）")
+        print(f"  2. {self.style.drama_title.text}")
+        print(f"  3. {self.style.disclaimer.text}")
         print(f"\n🔄 正在处理...\n")
 
         # 执行命令
@@ -578,6 +634,15 @@ class VideoOverlayRenderer:
         except Exception as e:
             raise RuntimeError(f"花字叠加处理失败: {e}")
 
+        finally:
+            # 清理临时PNG文件
+            if tilted_png_path and Path(tilted_png_path).exists():
+                try:
+                    os.remove(tilted_png_path)
+                    print(f"🗑️  已清理临时PNG: {tilted_png_path}")
+                except Exception as e:
+                    print(f"⚠️  清理临时PNG失败: {e}")
+
 
 def apply_overlay_to_video(
     input_video: str,
@@ -587,6 +652,7 @@ def apply_overlay_to_video(
     style_id: Optional[str] = None,
     disclaimer: Optional[str] = None,
     enabled: bool = True,
+    hot_drama_position: str = "top-right",
     on_progress: Optional[callable] = None
 ) -> str:
     """便捷函数：为单个视频应用花字叠加
@@ -599,6 +665,7 @@ def apply_overlay_to_video(
         style_id: 样式ID（可选，None表示自动选择）
         disclaimer: 免责声明（可选，None表示随机选择）
         enabled: 是否启用花字叠加
+        hot_drama_position: 热门短剧角标位置（"top-left" 或 "top-right"）
         on_progress: 进度回调函数
 
     Returns:
@@ -609,7 +676,8 @@ def apply_overlay_to_video(
         style_id=style_id,
         project_name=project_name,
         drama_title=drama_title or project_name,
-        disclaimer=disclaimer
+        disclaimer=disclaimer,
+        hot_drama_position=hot_drama_position
     )
 
     renderer = VideoOverlayRenderer(config)
