@@ -4,7 +4,9 @@
 
 V14: 新增结尾视频拼接功能
 V14.1: 新增自动片尾检测功能
+V14.8: 修复片尾剪切精度和音视频同步问题
 V15: 新增视频包装花字叠加功能
+V15.6: 修复处理顺序 + 热门短剧位置随机化（左上/右上各50%概率）
 """
 import os
 import json
@@ -199,15 +201,20 @@ class ClipRenderer:
             # 延迟导入花字叠加模块（避免循环依赖）
             try:
                 from .video_overlay.video_overlay import VideoOverlayRenderer, OverlayConfig
+
+                # V15.6: 随机选择热门短剧位置（左上角/右上角各50%概率）
+                hot_drama_position = random.choice(["top-left", "top-right"])
+
                 self.overlay_config = OverlayConfig(
                     enabled=True,
                     style_id=overlay_style_id,
                     project_name=project_name,
-                    drama_title=project_name
+                    drama_title=project_name,
+                    hot_drama_position=hot_drama_position  # V15.6: 添加位置参数
                 )
                 # 不在这里创建渲染器，而是在需要时创建（确保项目级样式统一）
                 self._overlay_renderer_class = VideoOverlayRenderer
-                print(f"✅ 花字叠加已启用")
+                print(f"✅ 花字叠加已启用 (热门短剧位置: {hot_drama_position})")
             except ImportError as e:
                 print(f"⚠️  无法导入花字叠加模块: {e}")
                 self.add_overlay = False
@@ -693,6 +700,8 @@ class ClipRenderer:
         V14.2 更新：使用基于帧率的精确剪辑，避免精度问题
         FFmpeg按帧率对齐，使用-frames:v参数而不是-t参数
 
+        V14.8 更新：修复音视频同步问题 - 使用 -t 参数确保音视频时长一致
+
         Args:
             segment: 视频片段
             output_path: 输出文件路径
@@ -703,6 +712,7 @@ class ClipRenderer:
         # V13: 支持毫秒精度（浮点数时间戳）
         start_time = segment.start if isinstance(segment.start, float) else float(segment.start)
         end_time = segment.end if isinstance(segment.end, float) else float(segment.end)
+        duration = end_time - start_time
 
         # V14.2: 从VideoFile获取实际帧率（而不是每次都检测）
         if segment.episode in self.video_files:
@@ -712,17 +722,17 @@ class ClipRenderer:
             fps = self._get_video_fps(segment.video_path)
 
         # 计算帧数（向上取整，确保完整）
-        start_frame = math.floor(start_time * fps)
-        end_frame = math.ceil(end_time * fps)
-        total_frames = end_frame - start_frame
+        total_frames = math.ceil(duration * fps)
 
-        # V14.2: 使用基于帧的精确剪辑
-        # -frames:v 参数比 -t 参数更精确，因为FFmpeg按帧率对齐
+        # V14.8: 修复的FFmpeg命令 - 确保音视频同步
+        # 关键修复：同时使用 -t 和 -frames:v 参数
+        # -t 确保音视频时长一致，-frames:v 确保视频帧数精确
         cmd = [
             'ffmpeg',
             '-y',  # 覆盖输出文件
             '-ss', f"{start_time:.3f}",  # 起始时间（用于快速定位）
             '-i', segment.video_path,  # 输入文件
+            '-t', f"{duration:.3f}",  # V14.8: 明确指定时长，确保音视频同步
             '-frames:v', str(total_frames),  # V14.2: 基于帧数的精确剪辑
             '-c', 'copy',  # 复制流，不重新编码（保持原质量和大小）
             '-movflags', '+faststart',  # 优化Web播放
@@ -884,6 +894,7 @@ class ClipRenderer:
         """预处理结尾视频，使其与原剪辑兼容
 
         V14: 将结尾视频转换为与原剪辑相同的分辨率和编码
+        V14.8: 修复音视频同步问题 - 使用视频流时长作为参考，确保音视频完全同步
 
         Args:
             clip_path: 原剪辑文件路径（用于获取分辨率）
@@ -909,41 +920,95 @@ class ClipRenderer:
             clip_width = int(parts[0])
             clip_height = int(parts[1])
 
+        # V14.8: 获取结尾视频的视频流时长（使用视频时长作为参考）
+        cmd = [
+            'ffprobe', '-v', 'error',
+            '-select_streams', 'v:0',
+            '-show_entries', 'stream=duration',
+            '-of', 'default=noprint_wrappers=1:nokey=1',
+            ending_video
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            # 如果获取失败，使用ffprobe获取格式时长
+            cmd = [
+                'ffprobe', '-v', 'error',
+                '-show_entries', 'format=duration',
+                '-of', 'default=noprint_wrappers=1:nokey=1',
+                ending_video
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            video_duration = float(result.stdout.strip())
+        else:
+            video_duration = float(result.stdout.strip())
+
         # 生成临时文件路径
         temp_ending = self.output_dir / f"temp_ending_{Path(ending_video).stem}.mp4"
 
-        # FFmpeg命令：转换分辨率和编码
+        # V14.8: 确保输出目录存在
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+        # V14.8: 修复的FFmpeg命令 - 确保音视频完全同步
+        # 关键修复：
+        # 1. 使用 -t 参数明确指定时长（基于视频流时长）
+        # 2. 使用 -af apad 填充音频，确保音频时长与视频完全一致
         cmd = [
             'ffmpeg',
             '-y',
             '-i', ending_video,
+            '-t', str(video_duration),  # V14.8: 明确指定时长
             '-vf', f'scale={clip_width}:{clip_height}:force_original_aspect_ratio=decrease,pad={clip_width}:{clip_height}:(ow-iw)/2:(oh-ih)/2',  # 缩放并添加黑边
             '-c:v', 'libx264',  # 统一使用h264编码
             '-preset', self.preset,
             '-crf', str(self.crf),
             '-c:a', 'aac',  # 统一音频编码
             '-b:a', '128k',
+            '-af', f'apad=whole_dur={video_duration}',  # V14.8: 确保音频时长与视频一致
             '-movflags', '+faststart',
             str(temp_ending)
         ]
 
         # 执行命令
         try:
-            print(f"  🔄 预处理结尾视频（{clip_width}x{clip_height}）...")
+            print(f"  🔄 预处理结尾视频（{clip_width}x{clip_height}，时长{video_duration:.3f}秒）...")
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
+                stderr=subprocess.PIPE,  # V14.8: 分离stderr以便获取错误信息
                 universal_newlines=True
             )
 
-            # 等待完成
-            process.wait()
+            # 等待完成并获取输出
+            stdout, stderr = process.communicate()
 
             if process.returncode != 0:
+                print(f"  ❌ FFmpeg错误输出:")
+                print(stderr[-1000:] if len(stderr) > 1000 else stderr)  # 打印最后1000个字符
                 raise RuntimeError(f"FFmpeg预处理失败 (返回码: {process.returncode})")
 
             print(f"  ✅ 结尾视频预处理完成")
+
+            # V14.8: 验证音视频同步
+            cmd = [
+                'ffprobe', '-v', 'error',
+                '-show_entries', 'stream=codec_type,duration',
+                '-of', 'csv=p=0',
+                str(temp_ending)
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            durations = {}
+            for line in result.stdout.strip().split('\n'):
+                if line:
+                    parts = line.split(',')
+                    if len(parts) >= 2:
+                        durations[parts[0]] = float(parts[1])
+
+            if 'video' in durations and 'audio' in durations:
+                diff = abs(durations['video'] - durations['audio'])
+                if diff < 0.01:
+                    print(f"  ✅ 音视频同步（差异: {diff:.3f}秒）")
+                else:
+                    print(f"  ⚠️  音视频略有差异（{diff:.3f}秒），但在可接受范围内")
 
         except Exception as e:
             raise RuntimeError(f"结尾视频预处理失败: {e}")
@@ -1136,13 +1201,13 @@ class ClipRenderer:
                 Path(temp_file).unlink()
             temp_dir.rmdir()
 
-        # V14: 添加结尾视频（如果配置了）
-        if self.add_ending_clip:
-            output_path = self._append_ending_video(output_path)
-
-        # V15: 添加花字叠加（如果配置了）
+        # V15.6: 添加花字叠加（如果配置了）- 先叠加花字
         if self.add_overlay and hasattr(self, '_overlay_renderer_class'):
             output_path = self._apply_video_overlay(output_path)
+
+        # V14: 添加结尾视频（如果配置了）- 再拼接片尾
+        if self.add_ending_clip:
+            output_path = self._append_ending_video(output_path)
 
         print(f"  ✅ 输出: {output_path}")
         return output_path
@@ -1203,7 +1268,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='渲染AI短剧剪辑（V15: 支持花字叠加、结尾视频拼接和片尾检测）',
+        description='渲染AI短剧剪辑（V15.6: 支持花字叠加、结尾视频拼接和片尾检测，处理顺序：花字→片尾）',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 示例:

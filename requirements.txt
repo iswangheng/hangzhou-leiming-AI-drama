@@ -1,0 +1,26 @@
+# 杭州雷鸣 AI 短剧剪辑服务 - Python 依赖
+
+# 视频处理
+ffmpeg-python>=0.2.0  # FFmpeg Python 绑定
+
+# ASR（语音识别）
+openai-whisper>=20231117  # OpenAI Whisper 模型
+torch>=2.0.0  # PyTorch（Whisper 依赖）
+torchaudio>=2.0.0  # Torch Audio（Whisper 依赖）
+
+# 视觉分析
+opencv-python>=4.13.0  # OpenCV（画面相似度检测，V14.8新增）
+imagehash>=4.3.0  # 图像哈希（画面相似度检测）
+Pillow>=10.0.0  # 图像处理
+
+# AI 分析
+google-generativeai>=0.3.0  # Gemini API
+pydantic>=2.0.0  # 数据验证
+
+# 数据处理
+pandas>=2.0.0  # Excel 处理
+openpyxl>=3.1.0  # Excel 文件读写
+
+# 工具库
+python-dotenv>=1.0.0  # 环境变量管理
+tqdm>=4.65.0  # 进度条

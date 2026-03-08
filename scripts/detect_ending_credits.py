@@ -17,6 +17,11 @@ V14.2 更新（2026-03-05）：
 - 【重要】实施保守剪辑策略：只剪纯静音部分（最后ASR结束后+0.2秒）
 - 【重要】确保不会剪掉任何台词，优先保证剧情完整性
 
+V14.8 更新（2026-03-08）：
+- 【重要修复】修复 mixed 模式判断逻辑：检查静音时长，>2秒判定为有片尾
+- 解决"未完待续"类片尾（ASR旁白+静音画面）的检测问题
+- 针对"烈日重生"等项目的片尾误判问题进行优化
+
 作者：V14
 创建时间：2026-03-04
 更新时间：2026-03-05（V14.2 保守剪辑策略）
@@ -340,15 +345,36 @@ class EndingCreditsDetector:
                         }
                     )
                 else:
-                    # 混合特征，保守判断
-                    print(f"❌ 未检测到明显的片尾特征")
-                    ending_info = EndingCreditsInfo(
-                        has_ending=False,
-                        duration=0.0,
-                        confidence=0.0,
-                        method='none',
-                        features={'methods_used': [], 'features_found': []}
-                    )
+                    # V14.8修复：混合特征需要检查静音时长
+                    silence_after_asr = asr_timing_pattern.get('silence_after_asr', 0.0)
+
+                    if silence_after_asr > 2.0:
+                        # 最后有超过2秒的纯静音，这是典型的片尾特征（如"未完待续"画面）
+                        ending_duration = min(silence_after_asr - 0.15, 4.0)  # 减去ASR缓冲区，最多剪掉4秒
+                        print(f"✅ mixed模式但有{silence_after_asr:.2f}秒静音 → 判定为有片尾（时长{ending_duration:.2f}秒）")
+                        ending_info = EndingCreditsInfo(
+                            has_ending=True,
+                            duration=ending_duration,
+                            confidence=0.70,
+                            method='asr_mixed_with_long_silence',
+                            features={
+                                'reason': f'ASR混合模式，但有{silence_after_asr:.2f}秒尾部静音',
+                                'asr_timing_pattern': asr_timing_pattern
+                            }
+                        )
+                    else:
+                        # 静音不够长，保守判断
+                        print(f"❌ mixed模式且静音不足({silence_after_asr:.2f}秒) → 判定为无片尾")
+                        ending_info = EndingCreditsInfo(
+                            has_ending=False,
+                            duration=0.0,
+                            confidence=0.6,
+                            method='asr_mixed_short_silence',
+                            features={
+                                'reason': f'ASR混合模式，静音时长仅{silence_after_asr:.2f}秒',
+                                'asr_timing_pattern': asr_timing_pattern
+                            }
+                        )
             else:
                 # 无ASR数据
                 print(f"❌ 未检测到明显的片尾特征")
@@ -1141,7 +1167,13 @@ def detect_project_endings(
     print("=" * 70)
 
     # 查找视频文件（按文件名中的数字排序）
-    video_files = sorted(Path(project_path).glob('*.mp4'), key=lambda x: int(x.stem))
+    def extract_episode_number(filename):
+        """从文件名提取集数"""
+        import re
+        match = re.search(r'(\d+)', filename.stem)
+        return int(match.group(1)) if match else 0
+
+    video_files = sorted(Path(project_path).glob('*.mp4'), key=extract_episode_number)
 
     if not video_files:
         print(f"❌ 未找到视频文件: {project_path}")

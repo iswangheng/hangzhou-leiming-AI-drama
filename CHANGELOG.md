@@ -5,6 +5,80 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V14.8] - 2026-03-08
+
+### 修复 (Fixed) - 🎯 片尾检测关键修复：mixed模式判断 + ASR关键词缺失
+
+**核心修复**：
+- ✅ **mixed模式判断逻辑修复**：`mixed`模式（长ASR+长静音）现在检查静音时长，>2秒判定为有片尾
+- ✅ **ASR关键词属性缺失修复**：添加`ending_keywords`和`drama_keywords`类属性，修复关键词检查失效问题
+- ✅ **视觉检测启用**：安装`opencv-python`依赖，启用画面相似度检测
+- ✅ **文件名排序修复**：支持"烈日重生-1.mp4"等非纯数字文件名
+
+**问题分析**：
+```python
+# 修复前：mixed模式直接判定为无片尾
+else:  # pattern == 'mixed'
+    ending_info = EndingCreditsInfo(
+        has_ending=False,  # ❌ 太保守
+        ...
+    )
+
+# 修复后：检查静音时长
+else:  # pattern == 'mixed'
+    silence_after_asr = asr_timing_pattern.get('silence_after_asr', 0.0)
+
+    if silence_after_asr > 2.0:
+        # ✅ 有片尾（如"未完待续"画面）
+        ending_duration = min(silence_after_asr - 0.15, 4.0)
+        ending_info = EndingCreditsInfo(
+            has_ending=True,
+            duration=ending_duration,
+            ...
+        )
+    else:
+        # 静音不够长，保守判断
+        ending_info = EndingCreditsInfo(
+            has_ending=False,
+            ...
+        )
+```
+
+**ASR关键词修复**：
+```python
+# 修复前：属性不存在，关键词检查永远失效
+class ASRContentAnalyzer:
+    def _check_ending_keywords(self, text: str) -> bool:
+        return any(kw in text for kw in self.ending_keywords)  # ❌ AttributeError
+
+# 修复后：添加类属性
+class ASRContentAnalyzer:
+    ending_keywords = [
+        "未完待续", "敬请期待", "精彩继续", "下集预告",
+        "仅剩", "只剩", "最后机会", ...
+    ]
+
+    drama_keywords = [
+        "你", "我", "他", "她", "我们", "他们", ...
+    ]
+```
+
+**测试验证**：
+- **烈日重生**：1-5集有片尾（mixed+静音3.0秒），6-8集无片尾（long_asr_no_silence）
+- **锦庭别后意**：所有集无片尾（正常剧情结尾）
+- **多子多福**：所有集有片尾（传统慢动作片尾）
+
+**依赖更新**：
+```bash
+pip install opencv-python==4.13.0
+```
+
+**修改文件**：
+- `scripts/detect_ending_credits.py`：mixed模式判断逻辑 + 文件名排序
+- `scripts/asr_analyzer.py`：添加关键词类属性
+
+---
+
 ## [V15.6] - 2026-03-08
 
 ### 修复 (Fixed) - 🎯 V4.9倾斜角标投影计算错误 + 完整包装集成
@@ -54,6 +128,23 @@ scaled_corner_offset = int(original_corner_offset * scale_factor)
 1. 热门短剧 - V4.9倾斜角标（支持左上角/右上角）
 2. 剧名 - 底部居中，动态字体大小
 3. 免责声明 - 底部居中，剧名下方，动态字体大小
+
+**补充修复（V15.6补充）**：
+- ✅ **热门短剧位置随机化**：添加`hot_drama_position`参数，随机选择top-left或top-right（各50%概率）
+- ✅ **位置信息打印**：在渲染时显示选择的位置，方便调试
+
+```python
+# render_clips.py - 位置随机化
+hot_drama_position = random.choice(["top-left", "top-right"])
+
+self.overlay_config = OverlayConfig(
+    ...
+    hot_drama_position=hot_drama_position  # 随机位置
+)
+```
+
+**修改文件**：
+- `scripts/understand/render_clips.py`：热门短剧位置随机化逻辑
 
 ---
 
