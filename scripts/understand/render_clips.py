@@ -475,6 +475,8 @@ class ClipRenderer:
             r'第(\d+)集',
             r'EP?(\d+)',
             r'^(\d+)',
+            r'[-_](\d+)\.mp4$',  # 支持: 项目名-1.mp4, 项目名_1.mp4
+            r'(\d+)(?=\.mp4)',   # 匹配任何 .mp4 前的数字
         ]
 
         for pattern in patterns:
@@ -581,6 +583,8 @@ class ClipRenderer:
             f"E{episode:02d}.mp4",
             f"{episode:02d}.mp4",
             f"{episode}.mp4",
+            f"*-{episode}.mp4",    # V15.1: 支持 项目名-1.mp4
+            f"*_{episode}.mp4",    # V15.1: 支持 项目名_1.mp4
         ]
 
         for pattern in patterns:
