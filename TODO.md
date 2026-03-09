@@ -20,12 +20,6 @@
 - 结尾视频帧率：24 fps
 - 不同帧率的视频拼接时，FFmpeg无法正确处理，导致视频流被截断
 
-```python
-# 原始视频: 30 fps
-# 结尾视频: 24 fps
-# 拼接结果: 视频时长 音频时长 - 2.58秒（正好是结尾视频时长）
-```
-
 **修复方案** (V14.10):
 在 `_preprocess_ending_video` 方法中添加帧率转换：
 
@@ -111,7 +105,7 @@ cmd = [
 
 ## 📋 中优先级
 
-### 2. 集成视频包装花字模块到默认渲染流程 [NEW]
+### 3. 集成视频包装花字模块到默认渲染流程
 
 **问题描述**：
 视频包装花字模块已实现（V15功能），但还没有集成到默认渲染流程中。
@@ -123,7 +117,7 @@ cmd = [
 
 **功能说明**：
 - **三层花字叠加**：
-  1. **热门短剧**（24pt字体）：随机位置（左上/右上），随机显示3-8秒
+  1. **热门短剧**（24pt字体）：随机位置（左上/右上)，随机显示3-8秒
   2. **剧名**（16pt字体）：底部居中，全时长显示
   3. **免责声明**（12pt字体）：底部居中，剧名下方40px，全时长显示
 - **10种预设样式**：gold_luxury, red_passion, blue_cool, purple_mystery等
@@ -166,12 +160,12 @@ python -m scripts.understand.render_clips \
 **文件位置**：
 - 核心模块：`scripts/understand/video_overlay/video_overlay.py`
 - 样式定义：`scripts/understand/video_overlay/overlay_styles.py`
-- 已集成到：`scripts/understand/render_clips.py`（第96-964行）
+- 已集成到：`scripts/understand/render_clips.py`
 - 测试脚本：`scripts/understand/video_overlay/test_overlay.py`
 
 ---
 
-### 3. 添加标准结尾帧视频功能
+### 4. 添加标准结尾帧视频功能
 
 **问题描述**：
 生成的剪辑没有自动添加标准结尾帧视频
@@ -190,9 +184,9 @@ python -m scripts.understand.render_clips \
 ```
 
 **待办事项**：
-- [ ] 验证标准结尾帧视频素材是否存在
-- [ ] 测试--add-ending功能是否正常工作
-- [ ] 确认结尾帧拼接的准确性
+- [x] 验证标准结尾帧视频素材是否存在 ✅
+- [x] 测试--add-ending功能是否正常工作 ✅ (2026-03-09)
+- [x] 确认结尾帧拼接的准确性 ✅ (已修复帧率问题)
 
 **文件位置**：
 - 功能已实现：`scripts/understand/render_clips.py`
@@ -200,12 +194,12 @@ python -m scripts.understand.render_clips \
 
 ---
 
-### 3. 性能优化
+### 5. 性能优化
 - [ ] 并行处理多个项目（当前是串行）
 - [ ] 关键帧提取进度显示（当前没有进度条）
 - [ ] ASR转录速度优化（考虑使用更快的模型）
 
-### 3. 质量改进
+### 6. 质量改进
 - [ ] 优化AI分析prompt提高准确率
 - [ ] 增加更多质量过滤器
 - [ ] 支持人工审核和修正AI标记
@@ -214,12 +208,12 @@ python -m scripts.understand.render_clips \
 
 ## 💡 低优先级
 
-### 4. 功能增强
+### 7. 功能增强
 - [ ] 支持批量项目管理（一次性处理多个项目）
 - [ ] Web界面可视化查看分析结果
 - [ ] 导出分析报告为PDF/Excel
 
-### 5. 文档完善
+### 8. 文档完善
 - [ ] 添加更多示例到文档
 - [ ] 录制视频教程
 - [ ] 编写故障排查指南
