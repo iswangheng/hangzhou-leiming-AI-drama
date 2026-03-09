@@ -5,6 +5,53 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V14.10] - 2026-03-09
+
+### 修复 (Fixed) - 🎯 片尾拼接"有声音无画面"BUG - 真正根因
+
+**问题描述**：
+拼接结尾视频后，出现"只有声音没有画面"的现象：
+- 音频正常播放（包括片尾音频）
+- 视频画面定格在主剪辑最后一帧
+- 片尾视频的画面没有显示出来
+
+**真正根因**（通过对比 V14.0.1 成功版本发现）：
+问题出在 `_trim_segment` 方法，而非拼接方法！
+
+当使用 `-c copy`（流复制）模式时，**同时使用 `-t` 和 `-frames:v` 会导致视频流被截断**！
+
+```python
+# V14.9 失败代码（问题在 _trim_segment 方法）
+cmd = [
+    'ffmpeg',
+    '-ss', f"{start_time:.3f}",
+    '-i', segment.video_path,
+    '-t', f"{duration:.3f}",
+    '-frames:v', str(total_frames),  # ← 罪魁祸首！
+    '-c', 'copy',
+    ...
+]
+
+# 修复后（V14.10）
+cmd = [
+    'ffmpeg',
+    '-ss', f"{start_time:.3f}",
+    '-i', segment.video_path,
+    '-t', f"{duration:.3f}",  # ← 只用 -t，足够精确
+    '-c', 'copy',
+    ...
+]
+```
+
+**修复内容**：
+- 移除 `_trim_segment` 方法中的 `-frames:v` 参数
+- 回滚到 V14.0.1 的实现方式
+
+**文件修改**：
+- `scripts/understand/render_clips.py` - `_trim_segment()` 方法（第 730-740 行）
+
+---
+
 ## [V14.9] - 2026-03-08
 
 ### 修复 (Fixed) - 🎯 片尾拼接音视频不同步：彻底解决"有声音无画面"

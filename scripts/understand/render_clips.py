@@ -724,16 +724,16 @@ class ClipRenderer:
         # 计算帧数（向上取整，确保完整）
         total_frames = math.ceil(duration * fps)
 
-        # V14.8: 修复的FFmpeg命令 - 确保音视频同步
-        # 关键修复：同时使用 -t 和 -frames:v 参数
-        # -t 确保音视频时长一致，-frames:v 确保视频帧数精确
+        # V14.10: 修复片尾拼接"有声音无画面"BUG
+        # 关键修复：移除 -frames:v 参数
+        # 问题根源：当使用 -c copy 时，同时使用 -t 和 -frames:v 会导致视频流被截断
+        # -t 参数已经足够精确，无需额外的 -frames:v 参数
         cmd = [
             'ffmpeg',
             '-y',  # 覆盖输出文件
             '-ss', f"{start_time:.3f}",  # 起始时间（用于快速定位）
             '-i', segment.video_path,  # 输入文件
             '-t', f"{duration:.3f}",  # V14.8: 明确指定时长，确保音视频同步
-            '-frames:v', str(total_frames),  # V14.2: 基于帧数的精确剪辑
             '-c', 'copy',  # 复制流，不重新编码（保持原质量和大小）
             '-movflags', '+faststart',  # 优化Web播放
             output_path
