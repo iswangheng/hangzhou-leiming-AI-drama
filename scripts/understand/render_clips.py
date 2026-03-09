@@ -948,24 +948,51 @@ class ClipRenderer:
         # V14.8: 确保输出目录存在
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
+        # V14.10: 修复帧率不一致问题 - 添加帧率转换
+        # 问题：原始视频30fps，结尾视频24fps，帧率不一致导致拼接时视频流被截断
+        # 解决方案：在预处理时将结尾视频转换为与原视频相同的帧率
+
+        # 获取原剪辑的帧率
+        cmd = [
+            'ffprobe', '-v', 'error',
+            '-select_streams', 'v:0',
+            '-show_entries', 'stream=r_frame_rate',
+            '-of', 'csv=p=0',
+            clip_path
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode == 0:
+            fps_str = result.stdout.strip()
+            # 解析帧率（如 "30/1" -> 30.0）
+            if '/' in fps_str:
+                num, den = fps_str.split('/')
+                clip_fps = float(num) / float(den)
+            else:
+                clip_fps = float(fps_str)
+            print(f"  📊 原剪辑帧率: {clip_fps} fps")
+        else:
+            clip_fps = 30.0  # 默认30fps
+            print(f"  ⚠️  无法获取帧率，使用默认30fps")
+
         # V14.9: 修复的FFmpeg命令 - 彻底解决音视频不同步问题
         # 关键修复（Agent Team分析结果）：
         # 1. 移除 -t 参数（时间戳截取精度不够，会导致音视频不同步）
         # 2. 移除 -af apad（过度填充音频，导致音频比视频长）
         # 3. 添加 -vsync 2（保留时间戳，确保帧同步）
         # 4. 添加 -async 1（音频自动同步到视频）
+        # 5. V14.10: 添加帧率转换，确保帧率一致
         cmd = [
             'ffmpeg',
             '-y',
             '-i', ending_video,
-            '-vf', f'scale={clip_width}:{clip_height}:force_original_aspect_ratio=decrease,pad={clip_width}:{clip_height}:(ow-iw)/2:(oh-ih)/2',  # 缩放并添加黑边
+            '-vf', f'fps={clip_fps},scale={clip_width}:{clip_height}:force_original_aspect_ratio=decrease,pad={clip_width}:{clip_height}:(ow-iw)/2:(oh-ih)/2',  # V14.10: 添加fps转换 + 缩放并添加黑边
+            '-r', str(clip_fps),  # V14.10: 明确指定输出帧率（与原视频一致）
             '-c:v', 'libx264',  # 统一使用h264编码
             '-preset', self.preset,
             '-crf', str(self.crf),
             '-c:a', 'aac',  # 统一音频编码
             '-b:a', '128k',
-            '-vsync', '2',  # V14.9: 保留时间戳，确保帧同步
-            '-async', '1',  # V14.9: 音频自动同步到视频
+            '-vsync', 'cfr',  # V14.10: 使用CFR模式确保帧率一致
             '-movflags', '+faststart',
             str(temp_ending)
         ]

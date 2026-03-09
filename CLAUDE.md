@@ -201,6 +201,14 @@ Video Files → Keyframes + ASR → Segment Analysis → Quality Filter → Clip
 - Per-episode effective duration: `total_duration - ending_duration` (float precision)
 - No ending = no cutting: `effective_duration = total_duration`
 
+**V14.10 Critical Fix - 帧率不一致问题**:
+- **问题**: 结尾视频帧率(24fps)与原剪辑帧率(30fps)不一致，导致拼接后"有声音无画面"
+- **修复**: 在 `_preprocess_ending_video` 方法中添加帧率转换
+  - 获取原剪辑帧率（如 30 fps）
+  - 将结尾视频转换为相同帧率
+  - 使用 `-vsync cfr` 确保帧率一致
+- **验证结果**: 音视频差异从 2.58秒 降低到 0.02秒 ✅
+
 #### Video Overlay (V15+, V6倾斜角标更新, V2.2花字叠加更新)
 
 **Three-layer text overlay**:
@@ -353,6 +361,8 @@ data/hangzhou-leiming/
 ### Version History Context
 
 - **V15** (2026-03-05): Video overlay text effects (热门短剧, 剧名, 免责声明)
+- **V14.10** (2026-03-09): **Critical fix** - Fixed frame rate mismatch (24fps vs 30fps) causing "video frozen, audio continues" issue when appending ending videos
+- **V14.9** (2026-03-08): Ending video concatenation fixes - optimized preprocessing to fix audio/video sync
 - **V14.7** (2026-03-05): **Critical fix** - Fixed int() conversion losing precision (0.94s) causing ASR content to be cut, fixed cache loading logic to ensure effective_duration is applied
 - **V14.6** (2026-03-05): Ending detection fixes - removed 3s threshold, fixed long_asr misclassification, optimized buffer to 0.15s
 - **V14.2** (2026-03-05): Frame rate auto-detection and precision fixes

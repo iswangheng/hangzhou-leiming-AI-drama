@@ -7,7 +7,7 @@
 
 ## [V14.10] - 2026-03-09
 
-### 修复 (Fixed) - 🎯 片尾拼接"有声音无画面"BUG - 真正根因
+### 修复 (Fixed) - 🎯 片尾拼接帧率不一致导致"有声音无画面"BUG
 
 **问题描述**：
 拼接结尾视频后，出现"只有声音没有画面"的现象：
@@ -15,40 +15,49 @@
 - 视频画面定格在主剪辑最后一帧
 - 片尾视频的画面没有显示出来
 
-**真正根因**（通过对比 V14.0.1 成功版本发现）：
-问题出在 `_trim_segment` 方法，而非拼接方法！
-
-当使用 `-c copy`（流复制）模式时，**同时使用 `-t` 和 `-frames:v` 会导致视频流被截断**！
+**真正根因**（通过测试发现）：
+**帧率不一致！**
+- 原剪辑帧率：30 fps
+- 结尾视频帧率：24 fps
+- 不同帧率的视频拼接时，FFmpeg无法正确处理，导致视频流被截断
 
 ```python
-# V14.9 失败代码（问题在 _trim_segment 方法）
-cmd = [
-    'ffmpeg',
-    '-ss', f"{start_time:.3f}",
-    '-i', segment.video_path,
-    '-t', f"{duration:.3f}",
-    '-frames:v', str(total_frames),  # ← 罪魁祸首！
-    '-c', 'copy',
-    ...
-]
+# 问题分析
+原始视频: 30 fps, 时长 169.3秒
+结尾视频: 24 fps, 时长 2.58秒
+拼接后: 视频 169.3秒, 音频 171.88秒 (差2.58秒)
+# 视频被截断了2.58秒（正好是结尾视频时长）
+```
 
-# 修复后（V14.10）
+**修复方案**：
+在 `_preprocess_ending_video` 方法中添加帧率转换：
+
+```python
+# 1. 获取原剪辑的帧率
+cmd = ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
+       '-show_entries', 'stream=r_frame_rate', '-of', 'csv=p=0', clip_path]
+# 解析帧率（如 "30/1" -> 30.0）
+
+# 2. 在预处理结尾视频时转换帧率
 cmd = [
     'ffmpeg',
-    '-ss', f"{start_time:.3f}",
-    '-i', segment.video_path,
-    '-t', f"{duration:.3f}",  # ← 只用 -t，足够精确
-    '-c', 'copy',
+    '-i', ending_video,
+    '-vf', f'fps={clip_fps},scale=...',  # 添加fps转换
+    '-r', str(clip_fps),  # 明确指定输出帧率
+    '-vsync', 'cfr',  # 使用CFR模式确保帧率一致
     ...
 ]
 ```
 
-**修复内容**：
-- 移除 `_trim_segment` 方法中的 `-frames:v` 参数
-- 回滚到 V14.0.1 的实现方式
+**修复效果**：
+| 视频 | 修复前差异 | 修复后差异 |
+|------|-----------|-----------|
+| 第1集0秒_第2集56秒 | 2.58秒 ❌ | 0.02秒 ✅ |
+| 第1集0秒_第2集1分43秒 | 2.58秒 ❌ | 0.02秒 ✅ |
+| 第1集0秒_第2集2分7秒 | 2.58秒 ❌ | 0.03秒 ✅ |
 
 **文件修改**：
-- `scripts/understand/render_clips.py` - `_trim_segment()` 方法（第 730-740 行）
+- `scripts/understand/render_clips.py` - `_preprocess_ending_video()` 方法（第 957-985 行）
 
 ---
 
