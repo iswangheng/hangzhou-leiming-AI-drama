@@ -53,9 +53,9 @@ cmd = [
 
 ---
 
-### 2. [BUG-V15.1] 钩子点时间戳不精确 - 话没说完就被截断 **🔄 开发中**
+### 2. [BUG-V15.1] 钩子点时间戳不精确 - 话没说完就被截断 **✅ 已实现**
 
-**状态**: 🔄 开发中 (2026-03-09)
+**状态**: ✅ 已实现 (2026-03-09)
 **优先级**: P0 - 最高优先级
 **发现日期**: 2026-03-09
 
@@ -86,7 +86,7 @@ cmd = [
 
 ---
 
-### 3. [FEATURE-V15.2] 智能多维度切割点查找 **📋 设计中**
+### 3. [FEATURE-V15.2] 智能多维度切割点查找 **✅ 已实现**
 
 **目标**：实现基于帧级精度的智能切割点查找
 
@@ -172,9 +172,51 @@ def find_optimal_cut_point(
 | 音频判断 | 固定100ms缓冲 | 静音区域检测 |
 | 决策逻辑 | 简单延伸 | 多维度加权 |
 
-**文件位置**：
-- 待修改：`scripts/understand/timestamp_optimizer.py`
-- 待新增：`scripts/understand/smart_cut_finder.py`（智能切割点查找）
+**文件位置（已实现）**：
+- ✅ `scripts/understand/smart_cut_finder.py` - 智能切割点查找模块
+- ✅ `scripts/understand/timestamp_optimizer.py` - 集成智能切割算法
+- ✅ `scripts/understand/generate_clips.py` - 传递视频路径和帧率
+- ✅ `scripts/understand/video_understand.py` - 自动获取视频帧率
+
+**实现细节 (2026-03-09)**:
+- 创建 `SmartCutFinder` 类，实现多维度智能切割
+- `find_sentence_end()`: 找到包含钩子点的整句话结束时间（间隔<0.5秒视为连续）
+- `detect_silence_regions()`: 使用 FFmpeg silencedetect 检测静音区域
+- `find_optimal_cut_point()`: 综合决策，优先选择静音区域开始点
+- 帧级精度：基于实际帧率转换切割时间
+
+---
+
+### 4. [FEATURE-V15.3] 高光点帧级精度优化 **✅ 已实现**
+
+**状态**: ✅ 已实现 (2026-03-10)
+**优先级**: P0 - 最高优先级
+
+**问题描述**:
+高光点之前使用毫秒级精度，没有考虑视频帧率，可能导致：
+- 剪辑起点不在关键帧上
+- 不同帧率视频精度不一致
+
+**解决方案**:
+- 为高光点添加智能算法，找到包含高光点的那句话的**开始时间**
+- 使用帧级精度：基于实际视频帧率转换时间戳
+- 与钩子点使用相同的ASR句子边界检测逻辑
+
+**实现细节**:
+- 在 `SmartCutFinder` 中添加 `find_sentence_start()` 方法
+- 添加 `smart_adjust_highlight_point()` 智能调整函数
+- 修改 `adjust_highlight_point()` 接收视频路径和帧率参数
+
+**对比**:
+| 特性 | 优化前 | 优化后 |
+|-----|-------|-------|
+| 精度 | 毫秒级 | 帧级 |
+| 句子判断 | 第一个ASR片段 | 整句话开始 |
+| 帧率考虑 | 无 | 基于实际FPS |
+
+**文件位置**:
+- ✅ `scripts/understand/smart_cut_finder.py` - 添加 find_sentence_start 和 smart_adjust_highlight_point
+- ✅ `scripts/understand/timestamp_optimizer.py` - 修改 adjust_highlight_point 使用智能算法
 
 ---
 

@@ -360,6 +360,7 @@ def video_understand(
         print("  第1集已有开篇高光点,跳过")
 
     # 6. 生成剪辑组合（V13: 传入ASR数据进行时间戳优化）
+    # V15.2: 传入视频路径和帧率用于智能切割
     print("\n生成剪辑组合...")
 
     # 收集所有ASR片段（用于时间戳优化）
@@ -369,11 +370,37 @@ def video_understand(
 
     print(f"已收集 {len(all_asr_segments)} 个ASR片段，用于时间戳精度优化")
 
+    # V15.2: 获取第一个视频的路径和帧率（用于智能切割）
+    from pathlib import Path
+    video_dir = Path(project_path)
+    mp4_files = sorted(video_dir.glob("*.mp4"))
+    video_path = str(mp4_files[0]) if mp4_files else None
+
+    # 获取视频帧率
+    video_fps = 30.0
+    if video_path:
+        try:
+            import subprocess
+            cmd = ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
+                   '-show_entries', 'stream=r_frame_rate', '-of', 'csv=p=0', video_path]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            fps_str = result.stdout.strip()
+            if '/' in fps_str:
+                num, denom = fps_str.split('/')
+                video_fps = float(num) / float(denom)
+            else:
+                video_fps = float(fps_str)
+            print(f"视频帧率: {video_fps:.2f}fps")
+        except Exception as e:
+            print(f"⚠️ 无法获取视频帧率，使用默认值: {video_fps}fps")
+
     clips = generate_clips(
         analyses,
         episode_durations,
         asr_segments=all_asr_segments,  # V13: 传入ASR数据
-        enable_timestamp_optimization=True  # V13: 启用时间戳优化
+        enable_timestamp_optimization=True,  # V13: 启用时间戳优化
+        video_path=video_path,  # V15.2: 传入视频路径
+        video_fps=video_fps  # V15.2: 传入视频帧率
     )
 
     # 7. 保存结果

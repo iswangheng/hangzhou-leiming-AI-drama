@@ -182,13 +182,16 @@ def generate_clips(
     max_duration: int = MAX_CLIP_DURATION,
     dedup_window: int = DEDUP_WINDOW,
     asr_segments: List[ASRSegment] = None,
-    enable_timestamp_optimization: bool = True
+    enable_timestamp_optimization: bool = True,
+    video_path: str = None,
+    video_fps: float = 30.0
 ) -> List[Clip]:
     """生成剪辑组合（笛卡尔积）
 
     每个高光点 × 每个钩子点 = 所有可能的组合
     支持跨集组合，使用累积时长计算
     V13: 支持ASR辅助的时间戳精度优化（毫秒级）
+    V15.2: 支持智能多维度切割点查找（帧级精度）
 
     Args:
         analyses: 所有分析结果
@@ -198,6 +201,8 @@ def generate_clips(
         dedup_window: 去重时间窗口（秒）
         asr_segments: ASR语音识别数据（用于时间戳优化，可选）
         enable_timestamp_optimization: 是否启用时间戳优化（默认True）
+        video_path: 视频文件路径（用于V15.2智能切割）
+        video_fps: 视频帧率（用于V15.2智能切割）
 
     Returns:
         剪辑组合列表
@@ -209,13 +214,19 @@ def generate_clips(
     print(f"原始高光点: {len(highlights)}, 钩子点: {len(hooks)}")
 
     # V13: ASR辅助的时间戳优化（在去重之前进行优化）
+    # V15.2: 支持智能多维度切割（需要传入视频路径和帧率）
     if enable_timestamp_optimization and asr_segments and TIMESTAMP_OPTIMIZATION_ENABLED:
-        print("\n[时间戳优化] 启用ASR辅助的毫秒级精度优化...")
+        if video_path:
+            print("\n[V15.2时间戳优化] 启用智能多维度切割点优化（帧级精度）...")
+        else:
+            print("\n[时间戳优化] 启用ASR辅助的毫秒级精度优化...")
         highlights, hooks = optimize_clips_timestamps(
             highlights=highlights,
             hooks=hooks,
             asr_segments=asr_segments,
-            buffer_ms=100.0  # 100ms缓冲
+            buffer_ms=100.0,  # 100ms缓冲
+            video_path=video_path,
+            video_fps=video_fps
         )
     elif not asr_segments:
         print("\n[时间戳优化] 未提供ASR数据，跳过优化（使用原始秒级时间戳）")
