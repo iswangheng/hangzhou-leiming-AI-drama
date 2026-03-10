@@ -1,18 +1,23 @@
 """
-智能多维度切割点查找模块 (V15.3)
+智能切割点查找模块 (V15.7)
 
-基于帧级精度的智能切割点查找：
-1. 钩子点优化：找到包含钩子点的那句话的结束时间（话说完再截断）
-2. 高光点优化：找到包含高光点的那句话的开始时间（从话开始处剪辑）
+V15.7 核心理念 - 时间戳优化是"二次确认"，不是重新计算：
+1. AI 分析阶段（V15.5）：让 AI 看到带时间戳的 ASR，返回精确时间
+2. 时间戳优化阶段（V15.7）：确认 AI 返回的时间是否正好是 segment 边界
+   - 如果是 → 保持不变
+   - 如果不是 → 修正为 segment 边界
+
+修复 V15.2 的"串联句子"问题：
+- V15.2 错误：相邻 ASR 片段间隔 < 0.5 秒会全部合并，导致钩子点跳跃过大
+- V15.7 修复：直接返回包含时间戳的 segment 边界，不做串联
 
 综合考虑：
-- 时间维度：ASR句子边界检测
-- 音频维度：静音区域检测
+- 时间维度：ASR segment 边界
 - 帧级精度：基于实际视频帧率转换时间戳
 """
 import subprocess
 import math
-from typing import List, Tuple, Optional, Dict, Any
+from typing import List, Tuple, Optional, Dict, Any, Union
 from dataclasses import dataclass
 
 try:
@@ -59,116 +64,71 @@ class SmartCutFinder:
 
     def find_sentence_end(self, hook_timestamp: float, asr_segments: List[ASRSegment]) -> float:
         """
-        找到包含钩子点的那句话的结束时间
+        找到包含钩子点的 ASR 片段的结束时间
 
-        策略：如果相邻ASR片段间隔<0.5秒，认为是同一句话
+        V15.6 简化逻辑：
+        - 找到包含钩子点的 segment
+        - 直接返回该 segment 的结束时间
+        - 不再做"串联句子"的复杂逻辑
 
         Args:
             hook_timestamp: 钩子点时间戳（秒）
             asr_segments: ASR片段列表
 
         Returns:
-            句子结束时间（秒）
+            segment 结束时间（秒）
         """
         if not asr_segments:
             return hook_timestamp
 
-        # 找到包含钩子点的第一个ASR片段
-        first_segment = None
+        # 找到包含钩子点的 ASR 片段
+        target_segment = None
         for seg in asr_segments:
             if seg.start <= hook_timestamp <= seg.end:
-                first_segment = seg
-                break
-            elif seg.start > hook_timestamp:
-                first_segment = seg
+                target_segment = seg
                 break
 
-        if not first_segment:
-            # 钩子点在所有片段之后，返回最后一个片段的结束时间
-            return asr_segments[-1].end
+        if target_segment:
+            print(f"    📝 钩子点{hook_timestamp}秒 → 找到ASR片段: {target_segment.start:.2f}-{target_segment.end:.2f}秒, 文本: '{target_segment.text[:30]}...'")
+            return target_segment.end
 
-        # 从该片段开始，查找同一句话的所有连续片段
-        sentence_end = first_segment.end
-
-        # 找到该片段在列表中的索引
-        seg_idx = asr_segments.index(first_segment)
-
-        # 向前查找同一句话的后续片段（间隔<0.5秒视为连续）
-        for i in range(seg_idx + 1, len(asr_segments)):
-            prev_end = asr_segments[i - 1].end
-            curr_start = asr_segments[i].start
-            gap = curr_start - prev_end
-
-            # 如果间隔<0.5秒，认为是同一句话
-            if gap < 0.5:
-                sentence_end = asr_segments[i].end
-            else:
-                # 间隔超过0.5秒，认为是下一句话
-                break
-
-        return sentence_end
+        # 如果钩子点不在任何 segment 内，返回原始时间戳
+        print(f"    ⚠️ 钩子点{hook_timestamp}秒未落在任何ASR片段内，保持原时间戳")
+        return hook_timestamp
 
     def find_sentence_start(self, highlight_timestamp: float, asr_segments: List[ASRSegment]) -> float:
         """
-        找到包含高光点的那句话的开始时间
+        找到包含高光点的 ASR 片段的开始时间
 
-        策略：如果相邻ASR片段间隔<0.5秒，认为是同一句话
+        V15.6 简化逻辑：
+        - 找到包含高光点的 segment
+        - 直接返回该 segment 的开始时间
+        - 不再做"串联句子"的复杂逻辑
 
         Args:
             highlight_timestamp: 高光点时间戳（秒）
             asr_segments: ASR片段列表
 
         Returns:
-            句子开始时间（秒）
+            segment 开始时间（秒）
         """
         if not asr_segments:
             return highlight_timestamp
 
-        # 找到包含高光点的第一个ASR片段
-        first_segment = None
+        # 找到包含高光点的 ASR 片段
+        target_segment = None
         for seg in asr_segments:
             if seg.start <= highlight_timestamp <= seg.end:
-                first_segment = seg
-                break
-            elif seg.start > highlight_timestamp:
-                first_segment = seg
+                target_segment = seg
                 break
 
-        if not first_segment:
-            # 高光点在所有片段之后，返回最后一个片段的开始时间
-            return asr_segments[-1].start
+        if target_segment:
+            print(f"    📝 高光点{highlight_timestamp}秒 → 找到ASR片段: {target_segment.start:.2f}-{target_segment.end:.2f}秒, 文本: '{target_segment.text[:30]}...'")
+            return target_segment.start
 
-        # 找到该片段在列表中的索引
-        seg_idx = asr_segments.index(first_segment)
-
-        # 从该片段开始，向后查找同一句话的开始（间隔<0.5秒视为连续）
-        sentence_start = first_segment.start
-
-        # 向后查找同一句话的后续片段
-        for i in range(seg_idx + 1, len(asr_segments)):
-            prev_end = asr_segments[i - 1].end
-            curr_start = asr_segments[i].start
-            gap = curr_start - prev_end
-
-            # 如果间隔>=0.5秒，认为是下一句话，停止查找
-            if gap >= 0.5:
-                break
-
-        # 向后查找同一句话的开始（间隔<0.5秒视为连续）
-        sentence_start = first_segment.start
-        for i in range(seg_idx - 1, -1, -1):
-            curr_end = asr_segments[i].end
-            next_start = asr_segments[i + 1].start
-            gap = next_start - curr_end
-
-            # 如果间隔<0.5秒，认为是同一句话
-            if gap < 0.5:
-                sentence_start = asr_segments[i].start
-            else:
-                # 间隔超过0.5秒，认为是上一句话
-                break
-
-        return sentence_start
+        # 如果高光点不在任何 segment 内，返回原始时间戳
+        print(f"    ⚠️ 高光点{highlight_timestamp}秒未落在任何ASR片段内，保持原时间戳")
+        return highlight_timestamp
 
     def detect_silence_regions(self, start_time: float, end_time: float, threshold_db: float = -40.0) -> List[Tuple[float, float]]:
         """
@@ -379,6 +339,7 @@ class SmartCutFinder:
         final_timestamp = frame_number / self.video_fps
 
         print(f"\n最终切割点: {final_timestamp:.4f}秒 (第{frame_number}帧)")
+        print(f"    ✅ 优化结果: {hook_timestamp}秒 → {final_timestamp:.4f}秒")
         print(f"置信度: {confidence:.0%}")
         print(f"决策原因: {reasoning}")
         print(f"{'=' * 60}")
@@ -404,7 +365,8 @@ def smart_adjust_hook_point(
     asr_segments: List[ASRSegment],
     video_path: str,
     video_fps: float = 30.0,
-    search_window: float = 2.0
+    search_window: float = 2.0,
+    max_duration: Optional[float] = None  # V15.4: 新增最大时长限制
 ) -> float:
     """
     智能调整钩子点时间戳（外部调用接口）
@@ -417,6 +379,7 @@ def smart_adjust_hook_point(
         video_path: 视频文件路径
         video_fps: 视频帧率（默认30fps）
         search_window: 搜索窗口大小（秒）
+        max_duration: V15.4新增 - 该集的最大有效时长（秒），优化结果不会超过此值
 
     Returns:
         调整后的时间戳（秒，帧级精度）
@@ -436,6 +399,14 @@ def smart_adjust_hook_point(
         asr_segments=asr_segments,
         search_window=search_window
     )
+
+    # V15.4: 检查是否超过最大时长限制
+    if max_duration is not None and result.timestamp > max_duration:
+        # 超过最大时长，使用最大时长 - 0.15秒作为安全缓冲
+        safe_timestamp = max_duration - 0.15
+        print(f"  ⚠️ V15.4 时间戳优化: 鲜子点 {hook_timestamp:.3f}秒 蠖超出最大时长 {max_duration:.3f}秒")
+        print(f"  🔧 V15.4 安全限制: {safe_timestamp:.3f}秒 (总时长 {max_duration}秒 - 0.15秒缓冲)")
+        return safe_timestamp
 
     return result.timestamp
 
@@ -495,6 +466,7 @@ def smart_adjust_highlight_point(
     final_timestamp = max(0.0, final_timestamp)
 
     print(f"最终起始点: {final_timestamp:.4f}秒 (第{frame_number}帧)")
+    print(f"    ✅ 优化结果: {highlight_timestamp}秒 → {final_timestamp:.4f}秒")
     print(f"{'=' * 60}")
 
     return final_timestamp

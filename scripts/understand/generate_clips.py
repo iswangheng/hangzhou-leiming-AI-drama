@@ -181,7 +181,7 @@ def generate_clips(
     min_duration: int = MIN_CLIP_DURATION,
     max_duration: int = MAX_CLIP_DURATION,
     dedup_window: int = DEDUP_WINDOW,
-    asr_segments: List[ASRSegment] = None,
+    episode_asr: Dict[int, List[ASRSegment]] = None,  # V13时间戳修复: 按集分组的ASR字典
     enable_timestamp_optimization: bool = True,
     video_path: str = None,
     video_fps: float = 30.0
@@ -192,6 +192,7 @@ def generate_clips(
     支持跨集组合，使用累积时长计算
     V13: 支持ASR辅助的时间戳精度优化（毫秒级）
     V15.2: 支持智能多维度切割点查找（帧级精度）
+    V13时间戳修复: 使用按集分组的ASR数据，避免跨集查找
 
     Args:
         analyses: 所有分析结果
@@ -199,7 +200,7 @@ def generate_clips(
         min_duration: 最短时长（秒）
         max_duration: 最长时长（秒）
         dedup_window: 去重时间窗口（秒）
-        asr_segments: ASR语音识别数据（用于时间戳优化，可选）
+        episode_asr: 按集分组的ASR数据字典 {集数: [ASRSegment...]}（V13时间戳修复）
         enable_timestamp_optimization: 是否启用时间戳优化（默认True）
         video_path: 视频文件路径（用于V15.2智能切割）
         video_fps: 视频帧率（用于V15.2智能切割）
@@ -215,20 +216,23 @@ def generate_clips(
 
     # V13: ASR辅助的时间戳优化（在去重之前进行优化）
     # V15.2: 支持智能多维度切割（需要传入视频路径和帧率）
-    if enable_timestamp_optimization and asr_segments and TIMESTAMP_OPTIMIZATION_ENABLED:
+    # V13时间戳修复: 传入episode_asr字典而不是平铺的asr_segments
+    # V15.4: 传入episode_durations限制钩子点最大时长
+    if enable_timestamp_optimization and episode_asr and TIMESTAMP_OPTIMIZATION_ENABLED:
         if video_path:
-            print("\n[V15.2时间戳优化] 启用智能多维度切割点优化（帧级精度）...")
+            print("\n[V15.4时间戳优化] 启用智能多维度切割点优化（帧级精度 + 时长限制）...")
         else:
             print("\n[时间戳优化] 启用ASR辅助的毫秒级精度优化...")
         highlights, hooks = optimize_clips_timestamps(
             highlights=highlights,
             hooks=hooks,
-            asr_segments=asr_segments,
+            episode_asr_dict=episode_asr,  # V13时间戳修复: 传入按集分组的ASR字典
             buffer_ms=100.0,  # 100ms缓冲
             video_path=video_path,
-            video_fps=video_fps
+            video_fps=video_fps,
+            episode_durations=episode_durations  # V15.4: 传入各集时长限制
         )
-    elif not asr_segments:
+    elif not episode_asr:
         print("\n[时间戳优化] 未提供ASR数据，跳过优化（使用原始秒级时间戳）")
     elif not TIMESTAMP_OPTIMIZATION_ENABLED:
         print("\n[时间戳优化] 时间戳优化模块未加载，跳过优化")

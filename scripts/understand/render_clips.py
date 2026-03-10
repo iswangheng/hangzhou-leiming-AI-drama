@@ -1252,27 +1252,44 @@ class ClipRenderer:
 
     def render_all_clips(
         self,
-        on_clip_progress: Optional[Callable[[int, int, float], None]] = None
+        on_clip_progress: Optional[Callable[[int, int, float], None]] = None,
+        max_clips: int = 0,
+        clip_indices: Optional[List[int]] = None
     ) -> List[str]:
         """渲染所有剪辑
 
         Args:
             on_clip_progress: 进度回调函数(current, total, progress)
+            max_clips: 最多渲染的剪辑数量（0=全部）
+            clip_indices: 指定要渲染的剪辑索引列表（如 [0, 2, 7]）
 
         Returns:
             输出文件路径列表
         """
         clips_data = self.result.get('clips', [])
-        total_clips = len(clips_data)
 
-        print(f"\n开始渲染 {total_clips} 个剪辑...")
+        # V15.7: 支持限制剪辑数量
+        if clip_indices:
+            # 渲染指定索引的剪辑
+            clips_to_render = [(i, clips_data[i]) for i in clip_indices if i < len(clips_data)]
+            print(f"\n渲染指定 {len(clips_to_render)} 个剪辑（索引: {clip_indices}）...")
+        elif max_clips > 0:
+            # 渲染前 max_clips 个剪辑
+            clips_to_render = list(enumerate(clips_data[:max_clips]))
+            print(f"\n渲染前 {len(clips_to_render)} 个剪辑（共 {len(clips_data)} 个）...")
+        else:
+            # 渲染全部
+            clips_to_render = list(enumerate(clips_data))
+            print(f"\n渲染全部 {len(clips_to_render)} 个剪辑...")
+
+        total_clips = len(clips_to_render)
         print(f"输出目录: {self.output_dir}")
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         output_paths = []
 
-        for idx, clip_data in enumerate(clips_data, 1):
+        for render_idx, (original_idx, clip_data) in enumerate(clips_to_render, 1):
             clip = Clip(**clip_data)
 
             # V13.1: 修复progress变量未定义的bug
@@ -1281,16 +1298,16 @@ class ClipRenderer:
             def clip_progress(progress: float):
                 last_progress[0] = progress  # 更新进度值
                 if on_clip_progress:
-                    on_clip_progress(idx, total_clips, progress)
+                    on_clip_progress(render_idx, total_clips, progress)
 
             try:
                 output_path = self.render_clip(clip, on_progress=clip_progress)
                 output_paths.append(output_path)
 
-                # 总体进度 (V13.1: 修复progress变量作用域问题)
+                # 总体进度 (V15.7: 修复idx变量未定义问题)
                 if on_clip_progress:
-                    overall_progress = (idx - 1 + last_progress[0]) / total_clips
-                    on_clip_progress(idx, total_clips, overall_progress)
+                    overall_progress = (render_idx - 1 + last_progress[0]) / total_clips
+                    on_clip_progress(render_idx, total_clips, overall_progress)
 
             except Exception as e:
                 print(f"  ❌ 渲染失败: {e}")
@@ -1351,6 +1368,10 @@ def main():
 
     # 缓存清理参数
     parser.add_argument('--no-cleanup', action='store_true', help='渲染完成后跳过清理中间缓存')
+
+    # V15.7: 剪辑数量限制
+    parser.add_argument('--max-clips', type=int, default=0, help='最多渲染的剪辑数量（0=全部渲染）')
+    parser.add_argument('--clip-indices', type=str, default='', help='指定要渲染的剪辑索引（逗号分隔，如：0,2,7）')
 
     args = parser.parse_args()
 
@@ -1415,7 +1436,20 @@ def main():
         percent = progress * 100
         print(f"\r进度: [{current}/{total}] {percent:.1f}%", end='', flush=True)
 
-    output_paths = renderer.render_all_clips(on_clip_progress=on_progress)
+    # V15.7: 解析剪辑索引参数
+    clip_indices = None
+    if args.clip_indices:
+        try:
+            clip_indices = [int(x.strip()) for x in args.clip_indices.split(',')]
+            print(f"指定渲染剪辑索引: {clip_indices}")
+        except ValueError:
+            print(f"⚠️ 无效的剪辑索引格式: {args.clip_indices}")
+
+    output_paths = renderer.render_all_clips(
+        on_clip_progress=on_progress,
+        max_clips=args.max_clips,
+        clip_indices=clip_indices
+    )
 
     print(f"\n\n完成！输出文件:")
     for path in output_paths:

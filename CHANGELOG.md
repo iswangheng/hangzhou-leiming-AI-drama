@@ -5,6 +5,46 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V15.7] - 2026-03-10
+
+### 修复 (Fixed) - 时间戳优化"串联句子"导致过度优化
+
+**问题描述**：
+时间戳优化算法把钩子点推到不正确的位置（如 29秒 → 66秒）：
+- 根本原因：`find_sentence_end()` 和 `find_sentence_start()` 有"串联句子"逻辑
+- 当相邻 ASR 片段间隔 < 0.5 秒时，会全部合并成"同一句话"
+- 导致钩子点跳跃过大（一句话不可能说 40 秒）
+
+**修复方案**：
+
+1. **简化 `find_sentence_end()` 方法**
+   - 找到包含钩子点的 ASR segment
+   - 直接返回该 segment 的结束时间
+   - 不再做"串联后续片段"的复杂逻辑
+
+2. **简化 `find_sentence_start()` 方法**
+   - 找到包含高光点的 ASR segment
+   - 直接返回该 segment 的开始时间
+   - 不再做"串联前续片段"的复杂逻辑
+
+**设计理念**：
+
+时间戳优化是**二次确认**，不是重新计算：
+- AI 分析阶段（V15.5）：让 AI 看到带时间戳的 ASR，返回精确时间
+- 时间戳优化阶段（V15.7）：确认 AI 返回的时间是否正好是 segment 边界
+  - 如果是 → 保持不变
+  - 如果不是 → 修正为 segment 边界
+
+**效果对比**：
+
+| 场景 | 修复前 | 修复后 |
+|------|--------|--------|
+| 钩子点 29秒 | 优化到 66秒（错误）| 优化到 31秒（正确）|
+| 高光点 18秒 | 优化到 5秒（错误）| 优化到 19秒（正确）|
+
+**修改文件**：
+- `scripts/understand/smart_cut_finder.py` - 简化两个核心方法
+
 ## [V15.2] - 2026-03-09
 
 ### 修复 (Fixed) - 🎯 钩子点时间戳不精确："话没说完就被截断"问题
@@ -54,6 +94,65 @@
 - `scripts/understand/timestamp_optimizer.py` - 集成智能切割算法
 - `scripts/understand/generate_clips.py` - 新增视频路径和帧率参数
 - `scripts/understand/video_understand.py` - 自动获取视频帧率
+
+---
+
+## [V15.5] - 2026-03-10
+
+### 修复 (Fixed) - AI分析时间戳精度问题
+
+**问题描述**：
+AI分析时ASR文本丢失了精确时间戳信息，导致AI无法准确定位钩子点位置
+
+**解决方案**：
+
+1. **修改ASR文本格式** (`analyze_segment.py`)
+   - 每句话都标注精确的时间戳范围
+   - 格式：`[19.0-24.0秒] 在过十小时真正的高温末世就要开始了`
+
+2. **更新AI Prompt** (`analyze_segment.py`)
+   - 添加时间戳格式说明
+   - 提醒AI根据时间戳精确定位
+
+**效果**：
+- AI能精确定位钩子点位置
+- 解决"AI猜测时间戳不准确"的问题
+
+---
+
+## [V15.4] - 2026-03-10
+
+### 修复 (Fixed) - 钩子点时间戳优化超出视频时长
+
+**问题描述**：
+时间戳优化算法将钩子点推到超出视频有效时长：
+- 例如第4集总时长67秒，但钩子点被优化到64.3秒
+- 片尾检测后有效时长可能更短（如64.2秒），导致超出
+- 根本原因：时间戳优化没有考虑视频时长限制
+
+**解决方案**：
+
+1. **修改智能切割模块** (`smart_cut_finder.py`)
+   - `smart_adjust_hook_point()`: 新增 `max_duration` 参数
+   - 优化结果超过 max_duration 时，返回 max_duration - 0.15秒（安全缓冲）
+
+2. **修改时间戳优化模块** (`timestamp_optimizer.py`)
+   - `adjust_hook_point()`: 新增 `max_duration` 参数，传递给智能切割
+   - `optimize_clips_timestamps()`: 新增 `episode_durations` 参数
+   - 调用时传入各集时长，确保钩子点不超出该集总时长
+
+3. **修改剪辑生成模块** (`generate_clips.py`)
+   - 调用 `optimize_clips_timestamps()` 时传入 `episode_durations`
+
+**关键改进**：
+- 时间戳优化现在会检查最大时长限制
+- 超出时自动裁剪到安全边界（max_duration - 0.15秒）
+- 解决钩子点超出视频有效时长的问题
+
+**修改文件**：
+- `scripts/understand/smart_cut_finder.py` - 新增 max_duration 参数
+- `scripts/understand/timestamp_optimizer.py` - 新增 episode_durations 参数
+- `scripts/understand/generate_clips.py` - 传递 episode_durations
 
 ---
 

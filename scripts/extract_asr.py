@@ -129,11 +129,12 @@ def transcribe_audio(
     return load_asr_from_file(output_path)
 
 
-def load_asr_from_file(json_path: str) -> List[ASRSegment]:
+def load_asr_from_file(json_path: str, episode: int = 0) -> List[ASRSegment]:
     """从JSON文件加载ASR结果
 
     Args:
         json_path: JSON文件路径
+        episode: 集数编号，默认为0
 
     Returns:
         ASR片段列表
@@ -149,7 +150,8 @@ def load_asr_from_file(json_path: str) -> List[ASRSegment]:
         segments.append(ASRSegment(
             text=seg.get('text', '').strip(),
             start=seg.get('start', 0.0),
-            end=seg.get('end', 0.0)
+            end=seg.get('end', 0.0),
+            episode=episode
         ))
 
     print(f"加载了 {len(segments)} 个ASR片段")

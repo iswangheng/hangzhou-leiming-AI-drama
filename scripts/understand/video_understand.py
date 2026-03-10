@@ -128,7 +128,8 @@ def load_episode_data(project_path: str, auto_extract: bool = True) -> tuple:
 
         if os.path.exists(asr_path):
             # ASR已存在，直接加载
-            asr_segments = load_asr_from_file(asr_path)
+            # V13时间戳修复: 传入episode参数，确保ASR数据包含集数信息
+            asr_segments = load_asr_from_file(asr_path, episode=episode)
             if asr_segments:
                 print(f"  第{episode}集: ASR已加载 ({len(asr_segments)}片段)")
         else:
@@ -156,6 +157,10 @@ def load_episode_data(project_path: str, auto_extract: bool = True) -> tuple:
                     asr_segments = []
             else:
                 asr_segments = []
+
+        # V15.4修复: 确保每个ASRSegment都有正确的episode字段
+        for seg in asr_segments:
+            seg.episode = episode
 
         episode_asr[episode] = asr_segments
 
@@ -361,17 +366,14 @@ def video_understand(
 
     # 6. 生成剪辑组合（V13: 传入ASR数据进行时间戳优化）
     # V15.2: 传入视频路径和帧率用于智能切割
+    # V13时间戳修复: 传递按集分组的ASR数据，而不是平铺的列表
     print("\n生成剪辑组合...")
 
-    # 收集所有ASR片段（用于时间戳优化）
-    all_asr_segments = []
-    for asr_list in episode_asr.values():
-        all_asr_segments.extend(asr_list)
-
-    print(f"已收集 {len(all_asr_segments)} 个ASR片段，用于时间戳精度优化")
+    # V13时间戳修复: 直接传递按集分组的episode_asr字典
+    # 不再需要收集为平铺列表，保留集数信息用于精确匹配
+    print(f"已准备 {len(episode_asr)} 集的ASR数据，用于时间戳精度优化")
 
     # V15.2: 获取第一个视频的路径和帧率（用于智能切割）
-    from pathlib import Path
     video_dir = Path(project_path)
     mp4_files = sorted(video_dir.glob("*.mp4"))
     video_path = str(mp4_files[0]) if mp4_files else None
@@ -397,7 +399,7 @@ def video_understand(
     clips = generate_clips(
         analyses,
         episode_durations,
-        asr_segments=all_asr_segments,  # V13: 传入ASR数据
+        episode_asr=episode_asr,  # V13时间戳修复: 传入按集分组的ASR字典
         enable_timestamp_optimization=True,  # V13: 启用时间戳优化
         video_path=video_path,  # V15.2: 传入视频路径
         video_fps=video_fps  # V15.2: 传入视频帧率

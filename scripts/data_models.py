@@ -33,6 +33,7 @@ class ASRSegment:
     text: str              # 文本内容
     start: float           # 开始时间（秒）
     end: float             # 结束时间（秒）
+    episode: int = 0       # 所属集数（V15.4新增，用于时间戳优化）
 
 
 @dataclass
