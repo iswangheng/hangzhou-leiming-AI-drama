@@ -80,48 +80,105 @@ class ClipSegment:
     video_path: str
 
 
-def cleanup_project_cache(project_name: str) -> dict:
-    """清理项目的中间缓存文件
+def cleanup_project_cache(project_name: str, min_age_hours: float = 3.0) -> dict:
+    """清理项目的中间缓存文件（仅清理超过指定小时数的缓存）
 
     项目渲染完成后，清理关键帧、音频、ASR等中间产物。
+    为了方便后续测试，只清理超过 min_age_hours 小时的缓存文件。
 
     Args:
         project_name: 项目名称
+        min_age_hours: 最小缓存保留时长（小时），默认3.0小时
 
     Returns:
-        清理结果统计
+        清理结果统计，包含跳过的文件数量
     """
+    import time
+
     cache_dir = TrainingConfig.CACHE_DIR
+    cutoff_time = time.time() - (min_age_hours * 3600)  # 计算截止时间戳
+
     result = {
         "keyframes_cleaned": 0,
         "audio_cleaned": 0,
         "asr_cleaned": 0,
+        "skipped": 0,  # 新增：跳过的文件数
         "total_size_freed_mb": 0,
     }
 
+    def clean_directory_with_age_check(dir_path: Path, cache_type: str) -> tuple:
+        """清理目录中的文件，只删除超过指定时间的文件
+
+        Args:
+            dir_path: 目录路径
+            cache_type: 缓存类型（用于日志）
+
+        Returns:
+            (清理的文件数, 跳过的文件数, 释放的空间MB)
+        """
+        if not dir_path.exists():
+            return 0, 0, 0.0
+
+        cleaned = 0
+        skipped = 0
+        size_freed = 0.0
+
+        # 收集所有文件
+        all_files = list(dir_path.rglob("*"))
+        if not all_files:
+            # 空目录，直接删除
+            shutil.rmtree(dir_path)
+            return 0, 0, 0.0
+
+        for file_path in all_files:
+            if not file_path.is_file():
+                continue
+
+            # 检查文件修改时间
+            file_mtime = file_path.stat().st_mtime
+            if file_mtime >= cutoff_time:
+                # 文件还在保留期内，跳过
+                skipped += 1
+                continue
+
+            # 文件超过保留期，删除
+            size_freed += file_path.stat().st_size / (1024 * 1024)
+            file_path.unlink()
+            cleaned += 1
+
+        # 如果所有文件都被删除或跳过，清理空目录
+        if cleaned > 0:
+            # 尝试删除空目录
+            try:
+                # 检查是否还有文件
+                remaining = list(dir_path.rglob("*"))
+                if not any(f.is_file() for f in remaining):
+                    shutil.rmtree(dir_path)
+            except Exception:
+                pass
+
+        return cleaned, skipped, size_freed
+
     # 清理关键帧缓存
     keyframes_dir = cache_dir / "keyframes" / project_name
-    if keyframes_dir.exists():
-        size = sum(f.stat().st_size for f in keyframes_dir.rglob("*") if f.is_file())
-        shutil.rmtree(keyframes_dir)
-        result["keyframes_cleaned"] = 1
-        result["total_size_freed_mb"] += size / (1024 * 1024)
+    cleaned, skipped, size = clean_directory_with_age_check(keyframes_dir, "关键帧")
+    result["keyframes_cleaned"] = 1 if cleaned > 0 else 0
+    result["skipped"] += skipped
+    result["total_size_freed_mb"] += size
 
     # 清理音频缓存
     audio_dir = cache_dir / "audio" / project_name
-    if audio_dir.exists():
-        size = sum(f.stat().st_size for f in audio_dir.rglob("*") if f.is_file())
-        shutil.rmtree(audio_dir)
-        result["audio_cleaned"] = 1
-        result["total_size_freed_mb"] += size / (1024 * 1024)
+    cleaned, skipped, size = clean_directory_with_age_check(audio_dir, "音频")
+    result["audio_cleaned"] = 1 if cleaned > 0 else 0
+    result["skipped"] += skipped
+    result["total_size_freed_mb"] += size
 
     # 清理ASR缓存
     asr_dir = cache_dir / "asr" / project_name
-    if asr_dir.exists():
-        size = sum(f.stat().st_size for f in asr_dir.rglob("*") if f.is_file())
-        shutil.rmtree(asr_dir)
-        result["asr_cleaned"] = 1
-        result["total_size_freed_mb"] += size / (1024 * 1024)
+    cleaned, skipped, size = clean_directory_with_age_check(asr_dir, "ASR")
+    result["asr_cleaned"] = 1 if cleaned > 0 else 0
+    result["skipped"] += skipped
+    result["total_size_freed_mb"] += size
 
     return result
 
@@ -1457,11 +1514,13 @@ def main():
 
     # 渲染完成后清理中间缓存
     if not args.no_cleanup:
-        print(f"\n清理项目 {project_name} 的中间缓存...")
+        print(f"\n清理项目 {project_name} 的中间缓存（仅清理超过3小时的缓存）...")
         cleanup_result = cleanup_project_cache(project_name)
         print(f"  已清理: 关键帧={cleanup_result['keyframes_cleaned']}, "
               f"音频={cleanup_result['audio_cleaned']}, "
               f"ASR={cleanup_result['asr_cleaned']}")
+        if cleanup_result['skipped'] > 0:
+            print(f"  ⏭️  跳过（未到3小时）: {cleanup_result['skipped']} 个文件")
         print(f"  释放空间: {cleanup_result['total_size_freed_mb']:.2f} MB")
 
 

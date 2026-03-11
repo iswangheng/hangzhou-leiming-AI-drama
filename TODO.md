@@ -222,51 +222,31 @@ def find_optimal_cut_point(
 
 ## 🔄 高优先级
 
-### 2. 自动清理缓存机制 [CRITICAL]
+### 2. 自动清理缓存机制 [CRITICAL] **✅ 已完成 (V15.8)**
+
+**状态**: ✅ 已完成 (2026-03-11)
 
 **问题描述**：
-缓存文件占用大量空间（当前约1.7GB）：
-- `cache/keyframes/`: ~1.4GB（关键帧图片）
-- `cache/audio/`: ~335MB（提取的音频文件）
-- `cache/asr/`: ~4.6MB（ASR转录文本，很小）
+缓存文件占用大量空间（当前约1.7GB），且原来的清理机制在分析/渲染完成后立即删除，太着急了。
 
-**需求**：
-- 实现自动清理机制
-- 清理过期的关键帧和音频文件
-- 保留ASR文本（很小且有用）
+**解决方案 (V15.8)**：
+- 修改 `cleanup_project_cache()` 函数，添加 `min_age_hours` 参数（默认3.0小时）
+- 基于文件 mtime 判断，只清理超过指定小时数的缓存
+- 添加日志显示跳过了多少文件
 
-**实现建议**：
+**修改文件**：
+- `scripts/understand/video_understand.py` - cleanup_project_cache()
+- `scripts/understand/render_clips.py` - cleanup_project_cache()
+- `scripts/train.py` - cleanup_project_cache()
+- `test/test_cache_cleanup_with_age.py` - 测试脚本
 
-1. **基于时间的清理策略**
-   ```python
-   # 示例配置
-   CACHE_RETENTION_DAYS = {
-       'keyframes': 7,      # 关键帧保留7天
-       'audio': 7,          # 音频保留7天
-       'asr': -1,           # ASR文本永久保留（-1表示不删除）
-   }
-   ```
-
-2. **实现位置**
-   - 创建 `scripts/cache_cleaner.py`
-   - 集成到 `video_understand.py` 流程末尾
-   - 或作为独立的定时任务
-
-3. **清理逻辑**
-   ```bash
-   # 示例命令
-   python -m scripts.cache_cleaner --days 7 --dry-run
-   python -m scripts.cache_cleaner --days 7 --execute
-   ```
-
-4. **安全性考虑**
-   - 清理前检查是否有项目正在使用这些缓存
-   - 提供 `--dry-run` 选项预览要删除的文件
-   - 记录清理日志
-
-**文件位置**：
-- 待创建：`scripts/cache_cleaner.py`
-- 待修改：`scripts/understand/video_understand.py`（集成清理调用）
+**日志示例**：
+```
+清理项目 项目名 的中间缓存（仅清理超过3小时的缓存）...
+  已清理: 关键帧=1, 音频=1, ASR=1
+  ⏭️  跳过（未到3小时）: 5 个文件
+  释放空间: 123.45 MB
+```
 
 ---
 

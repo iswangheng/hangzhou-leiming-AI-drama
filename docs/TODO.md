@@ -1,5 +1,40 @@
 # 开发任务清单
 
+## 缓存清理机制优化 (2026-03-11) ✅ 已完成
+
+### 问题描述
+- `cleanup_project_cache()` 函数在分析/渲染完成后立即删除所有缓存
+- 太着急了，用户希望保留3小时方便后续测试
+
+### 解决方案
+修改 `cleanup_project_cache()` 函数，从"立即清理"改为"清理3小时以前的缓存"
+
+### 已完成的工作
+- [x] 修改函数签名：`cleanup_project_cache(project_name: str, min_age_hours: float = 3.0) -> dict`
+- [x] 基于文件 mtime 判断，只清理超过 min_age_hours 小时的缓存
+- [x] 添加日志打印，显示跳过了多少文件（因为时间未到）
+- [x] 更新三个文件中的清理调用逻辑：
+  - `scripts/understand/video_understand.py`
+  - `scripts/understand/render_clips.py`
+  - `scripts/train.py`
+- [x] 创建测试脚本验证功能
+
+### 测试结果
+```
+✅ 测试通过！缓存清理的时间保留策略工作正常
+  - 旧文件（4小时前）已删除: True
+  - 新文件（1小时前）已保留: True
+  - 跳过文件数正确: 3
+```
+
+### 相关文件
+- `scripts/understand/video_understand.py` - cleanup_project_cache() 函数
+- `scripts/understand/render_clips.py` - cleanup_project_cache() 函数
+- `scripts/train.py` - cleanup_project_cache() 函数
+- `test/test_cache_cleanup_with_age.py` - 测试脚本
+
+---
+
 ## 敏感词遮盖功能 (2026-03-10)
 
 ### ✅ 已完成
@@ -26,12 +61,20 @@
 - [x] 遮盖记录保存
 - [x] **烈日重生测试通过**
 
-### 🚧 进行中
+### ✅ 已完成
 
 #### 4. OCR字幕识别模块 (`scripts/preprocess/ocr_subtitle.py`)
 - [x] 代码已创建
-- [ ] 安装OCR库（EasyOCR/PaddleOCR）
-- [ ] 测试敏感词检测
+- [x] 安装OCR库（EasyOCR已安装）
+- [x] 修复语法错误（第143行）
+- [x] 测试敏感词检测功能
+- [x] **测试结果**：
+  - ✅ OCR引擎初始化：通过
+  - ✅ 帧提取功能：通过
+  - ✅ 字幕区域检测：通过
+  - ✅ 敏感词检测：通过
+  - ✅ 真实视频OCR：识别出字幕 "迟到5分钟[卫"
+  - 测试通过率：100% (6/6)
 
 ### 📝 待开发
 
@@ -51,17 +94,17 @@
 
 ---
 
-## 下一步计划
-
-1. 安装OCR库
-2. 测试OCR字幕识别
-3. 集成到视频分析流程
-4. 更新文档
-
----
-
 ## 当前状态
 
 **字幕区域检测**: ✅ 完成
 **马赛克遮盖**: ✅ 完成
-**OCR字幕识别**: 🚧 待安装OCR库
+**OCR字幕识别**: ✅ 完成
+
+---
+
+## 下一步计划
+
+1. ✅ ~~安装OCR库~~
+2. ✅ ~~测试OCR字幕识别~~
+3. 集成到视频分析流程
+4. 更新文档

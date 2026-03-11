@@ -5,6 +5,59 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V15.8] - 2026-03-11
+
+### 新增 (Added)
+
+#### 1. 缓存清理机制优化 - 3小时保留策略
+
+**问题描述**：
+缓存清理机制在分析/渲染完成后立即删除所有缓存，太着急了，不方便后续测试或重新生成。
+
+**解决方案**：
+- 修改 `cleanup_project_cache()` 函数，添加 `min_age_hours` 参数（默认3.0小时）
+- 基于文件 mtime 判断，只清理超过指定小时数的缓存
+- 添加日志显示跳过了多少文件
+
+**修改文件**：
+- `scripts/understand/video_understand.py` - cleanup_project_cache()
+- `scripts/understand/render_clips.py` - cleanup_project_cache()
+- `scripts/train.py` - cleanup_project_cache()
+
+**日志示例**：
+```
+清理项目 项目名 的中间缓存（仅清理超过3小时的缓存）...
+  已清理: 关键帧=1, 音频=1, ASR=1
+  ⏭️  跳过（未到3小时）: 5 个文件
+  释放空间: 123.45 MB
+```
+
+#### 2. OCR字幕识别模块完善
+
+**功能描述**：
+- 对视频帧进行 OCR 识别字幕文本
+- 检测字幕中的敏感词
+- 返回敏感词出现的时间戳
+
+**完成工作**：
+- ✅ EasyOCR 库安装（支持中英文识别）
+- ✅ 修复代码语法错误
+- ✅ 测试通过率 100% (6/6)
+- ✅ 敏感词检测功能验证
+
+**新增文件**：
+- `scripts/preprocess/ocr_subtitle.py` - OCR字幕识别模块
+- `test/test_ocr_subtitle.py` - 完整测试套件
+- `test/test_ocr_quick.py` - 快速验证测试
+- `docs/ocr_subtitle_usage.md` - 使用文档
+
+**测试结果**：
+- 使用烈日重生项目测试
+- 成功识别字幕文本
+- 字幕区域检测：y=60.00%, h=6.11%（置信度95%）
+
+---
+
 ## [V15.7] - 2026-03-10
 
 ### 修复 (Fixed) - 时间戳优化"串联句子"导致过度优化
