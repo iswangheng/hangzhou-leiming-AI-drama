@@ -212,15 +212,17 @@ def load_episode_data(project_path: str, auto_extract: bool = True,
         # ===== 自动检查并提取关键帧 =====
         keyframe_path = get_keyframe_output_path(video_dir.name, episode)
 
+        # 加载现有关键帧（如果存在且非空）
+        keyframes = None
         if os.path.exists(keyframe_path):
-            # 关键帧已存在，直接加载
             keyframes = load_existing_keyframes(keyframe_path)
             if keyframes:
                 print(f"  第{episode}集: 关键帧已加载 ({len(keyframes)}帧)")
-        else:
-            # 关键帧不存在，自动提取
+
+        # 如果没有关键帧（或目录为空），则提取
+        if not keyframes:
             if auto_extract:
-                print(f"  ⚠️  第{episode}集关键帧不存在，开始自动提取...")
+                print(f"  ⚠️  第{episode}集关键帧不存在或为空，开始自动提取...")
 
                 # V14.2: 检测视频实际帧率
                 import subprocess
