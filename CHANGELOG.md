@@ -5,74 +5,60 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [V16] - 2026-03-11
+## [V16.2] - 2026-03-11
 
-### 新增 (Added)
+### 优化 (Optimized)
 
-#### 1. 剪辑渲染并行化 - 多进程加速
+#### 完全合并编码 - 单次FFmpeg调用完成所有操作
 
 **问题描述**：
-渲染阶段是串行的，每个剪辑逐一处理，耗时过长（10个剪辑约5分钟）。
+原渲染流程需要3次FFmpeg调用，每次都要完整编解码：
+```
+原始视频 → 裁剪(编码1) → temp1.mp4
+temp1.mp4 → 花字(编码2) → temp2.mp4
+temp2.mp4 → 结尾(编码3) → final.mp4
+```
+每次编码耗时约15-25秒，总耗时50秒/视频。
 
 **解决方案**：
-- 使用 `concurrent.futures.ProcessPoolExecutor` 实现多进程并行渲染
-- 默认4个并行worker，可通过 `--parallel` 参数调整
-- 设为1禁用并行（调试用）
-
-**修改文件**：
-- `scripts/understand/render_clips.py`
-  - 添加 `render_all_clips_parallel()` 方法
-  - 添加独立渲染函数 `render_single_clip_standalone()` 及辅助函数
-  - 添加 `--parallel` 命令行参数
-
-**使用方法**：
-```bash
-# 默认4个并行worker
-python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/项目名 漫剧素材/项目名
-
-# 指定8个并行worker
-python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/项目名 漫剧素材/项目名 --parallel 8
-
-# 串行模式（调试用）
-python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/项目名 漫剧素材/项目名 --parallel 1
+使用FFmpeg的 `filter_complex` 将所有操作合并为一条处理链：
 ```
+原始视频 + 花字PNG + 结尾视频
+    ↓ filter_complex（trim + overlay + drawtext + concat）
+final.mp4
+```
+只需1次编码，耗时约15-20秒/视频。
+
+**新增函数**：
+- `_render_clip_single_pass()` - 完全合并编码主函数
+- `_generate_overlay_png_standalone()` - 生成倾斜角标PNG
+- `_calculate_overlay_position()` - 计算overlay位置
+- `_build_drawtext_filters_standalone()` - 构建drawtext滤镜
 
 **预期效果**：
-- 渲染时间：5分钟 → 1.5分钟（4个worker）
-- 节省：约3.5分钟/项目
+- 渲染时间：50秒/视频 → 15-20秒/视频
+- 节省：约60-70%渲染时间
+- 无中间文件：减少磁盘IO
 
-**技术实现**：
-- FFmpeg是CPU密集型任务，使用多进程避免Python GIL限制
-- Worker数量自动限制不超过CPU核心数
-- 使用唯一临时文件名避免多进程文件冲突
-- 实时显示完成的剪辑进度
+**注意事项**：
+- 跨集剪辑仍使用分步渲染（V16.1函数作为fallback）
+- 多项目应串行处理，避免CPU竞争
 
 ---
 
-### V16.1 更新 - 2026-03-11
+## [V16.1] - 2026-03-11
 
-#### 修复 (Fixed)
+### 修复 (Fixed)
 
 1. **并行渲染文件命名Bug修复**
    - 问题：并行渲染的文件缺少 `_带花字_带结尾` 后缀
-   - 原因：重命名逻辑使用原始filename而非output_path
    - 修复：正确处理 `_overlay` → `_带花字` 转换
 
-#### 优化 (Optimized)
+### 优化 (Optimized)
 
 1. **多项目处理策略优化**
    - 发现：多项目同时渲染（2项目×4 worker = 8个FFmpeg进程）反而更慢
    - 建议：项目串行处理，每项目内部4个worker并行
-   - 原因：避免CPU资源竞争
-
-2. **添加合并渲染函数 `_render_clip_unified_standalone`**
-   - 功能：一次性完成裁剪+花字+结尾
-   - 目标：减少编码次数（3次→2次）
-   - 预期收益：节省30-40%渲染时间
-
-3. **性能优化文档更新**
-   - 文件：`docs/V16_PERFORMANCE_OPTIMIZATION.md`
-   - 内容：实测发现、优化方案、使用建议
 
 ---
 

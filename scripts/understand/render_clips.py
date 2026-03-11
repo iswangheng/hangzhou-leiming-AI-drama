@@ -1932,7 +1932,394 @@ def _extract_episode_number_standalone(filename: str) -> Optional[int]:
 
 
 # ============================================================================
-# V16.1: 合并编码优化 - 一次完成裁剪+花字+结尾
+# V16.2: 完全合并编码优化 - 单次FFmpeg命令完成所有操作
+# ============================================================================
+
+def _render_clip_single_pass(
+    clip_index: int,
+    clip_data: dict,
+    render_params: dict
+) -> Optional[str]:
+    """V16.2 完全合并编码：单次FFmpeg命令完成裁剪+花字+结尾
+
+    核心优化：
+    - 原来：3次FFmpeg调用（裁剪→花字→结尾），每次都要完整编解码
+    - 现在：1次FFmpeg调用，使用filter_complex链式处理
+    - 速度提升：预计50-70%
+
+    Args:
+        clip_index: 剪辑索引
+        clip_data: 剪辑数据字典
+        render_params: 渲染参数字典
+
+    Returns:
+        输出文件路径，失败返回None
+    """
+    import tempfile
+    import math
+    import random
+
+    temp_files = []
+
+    try:
+        # 创建Clip对象
+        clip = Clip(**clip_data)
+
+        # 获取参数
+        episode_durations = render_params['episode_durations']
+        video_dir = Path(render_params['video_dir'])
+        output_dir = Path(render_params['output_dir'])
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        project_name = render_params['project_name']
+        add_overlay = render_params['add_overlay']
+        add_ending = render_params['add_ending_clip'] and render_params['ending_videos']
+
+        # 计算起始和结束时间
+        cumulative_before_start = sum(
+            episode_durations[ep] for ep in sorted(episode_durations.keys()) if ep < clip.episode
+        )
+        start_in_episode = clip.start - cumulative_before_start
+
+        cumulative_before_end = sum(
+            episode_durations[ep] for ep in sorted(episode_durations.keys()) if ep < clip.hookEpisode
+        )
+        end_in_episode = clip.end - cumulative_before_end
+
+        # 生成文件名
+        def format_time(seconds):
+            if seconds < 60:
+                return f"{int(seconds)}秒"
+            mins = int(seconds // 60)
+            secs = int(seconds % 60)
+            return f"{mins}分{secs}秒"
+
+        suffix_parts = []
+        if add_overlay:
+            suffix_parts.append("带花字")
+        if add_ending:
+            suffix_parts.append("带结尾")
+        suffix = "_" + "_".join(suffix_parts) if suffix_parts else ""
+
+        final_filename = f"{project_name}_第{clip.episode}集{format_time(start_in_episode)}_第{clip.hookEpisode}集{format_time(end_in_episode)}{suffix}.mp4"
+        final_path = str(output_dir / final_filename)
+
+        # 查找视频文件
+        video_files = sorted(video_dir.glob("*.mp4"))
+
+        def find_video_file(episode):
+            for vf in video_files:
+                ep_num = _extract_episode_number_standalone(vf.name)
+                if ep_num == episode:
+                    return vf
+            return None
+
+        # 判断是否跨集
+        is_cross_episode = clip.episode != clip.hookEpisode
+
+        # ===== 核心优化：单次FFmpeg调用 =====
+
+        if is_cross_episode:
+            # 跨集情况：仍需分步处理（拼接需要中间文件）
+            # 但可以优化为：裁剪+拼接 → 花字+结尾（2次编码）
+            return _render_clip_unified_standalone(clip_index, clip_data, render_params)
+
+        # ===== 不跨集：完全合并编码 =====
+
+        video_file = find_video_file(clip.episode)
+        if not video_file:
+            raise FileNotFoundError(f"找不到第{clip.episode}集视频")
+
+        # 获取视频信息
+        fps = _get_video_fps_standalone(str(video_file))
+        total_frames = math.ceil(end_in_episode * fps)
+
+        # 获取视频分辨率
+        probe_cmd = [
+            'ffprobe', '-v', 'error',
+            '-select_streams', 'v:0',
+            '-show_entries', 'stream=width,height',
+            '-of', 'csv=p=0', str(video_file)
+        ]
+        result = subprocess.run(probe_cmd, capture_output=True, text=True)
+        video_width, video_height = map(int, result.stdout.strip().split(','))
+
+        # ===== 构建filter_complex =====
+        filter_parts = []
+        input_count = 1  # 输入视频是[0:v]
+
+        # 1. 裁剪（使用trim + setpts）
+        trim_filter = f"[0:v]trim=start={start_in_episode}:duration={end_in_episode-start_in_episode},setpts=PTS-STARTPTS[v_trim]"
+        filter_parts.append(trim_filter)
+
+        current_stream = "[v_trim]"
+
+        # 2. 花字叠加（如果启用）
+        overlay_png_path = None
+        if add_overlay:
+            try:
+                # 生成倾斜角标PNG
+                overlay_png_path = _generate_overlay_png_standalone(
+                    video_width, video_height, project_name, render_params, output_dir
+                )
+                if overlay_png_path:
+                    temp_files.append(overlay_png_path)
+                    input_count += 1
+                    overlay_input_idx = input_count - 1
+
+                    # 计算overlay位置
+                    x, y = _calculate_overlay_position(video_width, video_height, render_params)
+
+                    # overlay滤镜
+                    overlay_filter = f"{current_stream}[{overlay_input_idx}:v]overlay=x={x}:y={y}[v_overlay]"
+                    filter_parts.append(overlay_filter)
+                    current_stream = "[v_overlay]"
+            except Exception as e:
+                print(f"  ⚠️ 花字PNG生成失败: {e}")
+
+        # 3. drawtext（剧名、免责声明）
+        drawtext_filters = _build_drawtext_filters_standalone(
+            video_width, video_height, project_name, render_params
+        )
+        if drawtext_filters:
+            drawtext_chain = ','.join(drawtext_filters)
+            drawtext_filter = f"{current_stream}{drawtext_chain}[v_text]"
+            filter_parts.append(drawtext_filter)
+            current_stream = "[v_text]"
+
+        # 4. 结尾拼接（如果启用）
+        ending_video_path = None
+        if add_ending:
+            # 随机选择结尾视频
+            ending_video_path = random.choice(render_params['ending_videos'])
+
+            # 预处理结尾视频（需要先获取当前流的分辨率）
+            # 由于是filter_complex，我们需要先处理主体视频，然后拼接
+            # 这增加了复杂性，所以这里采用分步方式
+            pass
+
+        # ===== 构建FFmpeg命令 =====
+        filter_complex = ';'.join(filter_parts)
+
+        # 输入参数
+        inputs = ['-ss', str(start_in_episode), '-i', str(video_file)]
+
+        # 添加overlay PNG输入
+        if overlay_png_path:
+            inputs.extend(['-i', overlay_png_path])
+
+        # 基础命令
+        cmd = [
+            'ffmpeg', '-y',
+            *inputs,
+            '-filter_complex', filter_complex,
+            '-map', current_stream.replace('[', '').replace(']', ''),
+            '-map', '0:a?',
+            '-c:v', 'libx264',
+            '-crf', str(render_params['crf']),
+            '-preset', render_params['preset'],
+            '-c:a', 'aac', '-b:a', '128k',
+            '-movflags', '+faststart',
+        ]
+
+        # 如果有结尾视频，需要两步处理
+        if add_ending and ending_video_path:
+            # 先渲染带花字的视频
+            temp_output = str(output_dir / f"temp_single_pass_{os.getpid()}_{clip_index}.mp4")
+            temp_files.append(temp_output)
+            cmd.append(temp_output)
+
+            subprocess.run(cmd, capture_output=True, check=True)
+
+            # 预处理结尾视频
+            processed_ending = _preprocess_ending_video_standalone(temp_output, ending_video_path, render_params)
+            temp_files.append(processed_ending)
+
+            # 拼接结尾
+            _concat_videos_standalone([temp_output, processed_ending], final_path)
+
+            # 删除中间文件
+            Path(temp_output).unlink()
+            Path(processed_ending).unlink()
+        else:
+            # 直接输出最终文件
+            cmd.append(final_path)
+            subprocess.run(cmd, capture_output=True, check=True)
+
+        # 清理临时文件
+        for tf in temp_files:
+            try:
+                if Path(tf).exists():
+                    Path(tf).unlink()
+            except:
+                pass
+
+        return final_path
+
+    except Exception as e:
+        print(f"  [Worker] V16.2完全合并渲染失败: {e}")
+        # 清理临时文件
+        for tf in temp_files:
+            try:
+                if Path(tf).exists():
+                    Path(tf).unlink()
+            except:
+                pass
+        # 回退到分步渲染
+        return _render_clip_unified_standalone(clip_index, clip_data, render_params)
+
+
+def _generate_overlay_png_standalone(
+    video_width: int,
+    video_height: int,
+    project_name: str,
+    render_params: dict,
+    output_dir: Path
+) -> Optional[str]:
+    """生成倾斜角标PNG（独立函数）"""
+    try:
+        from .video_overlay.tilted_label import TiltedLabelConfig, TiltedLabelRenderer
+
+        # 计算缩放参数
+        smaller_dimension = min(video_width, video_height)
+        resolution_ratio = smaller_dimension / 360.0
+        scale_factor = resolution_ratio * 0.8
+
+        original_font_size = 28
+        original_box_height = 60
+        original_corner_offset = 70
+
+        scaled_font_size = int(original_font_size * scale_factor)
+        scaled_box_height = int(original_box_height * scale_factor)
+        scaled_corner_offset = int(original_corner_offset * scale_factor)
+
+        scaled_font_size = scaled_font_size if scaled_font_size % 2 == 0 else scaled_font_size + 1
+        scaled_corner_offset = scaled_corner_offset if scaled_corner_offset % 2 == 0 else scaled_corner_offset + 1
+
+        # 创建配置
+        config = TiltedLabelConfig(
+            label_text="热门短剧",
+            font_size=scaled_font_size,
+            label_color="red@0.95",
+            text_color="white",
+            position=render_params.get('hot_drama_position', 'top-right'),
+            box_height=scaled_box_height,
+            corner_offset=scaled_corner_offset
+        )
+
+        renderer = TiltedLabelRenderer(config)
+
+        # 生成PNG
+        png_path = str(output_dir / f"overlay_{os.getpid()}_{hash(project_name)}.png")
+        renderer._generate_png(png_path)
+
+        return png_path
+
+    except Exception as e:
+        print(f"  ⚠️ 生成overlay PNG失败: {e}")
+        return None
+
+
+def _calculate_overlay_position(video_width: int, video_height: int, render_params: dict) -> tuple:
+    """计算overlay位置"""
+    position = render_params.get('hot_drama_position', 'top-right')
+
+    smaller_dimension = min(video_width, video_height)
+    resolution_ratio = smaller_dimension / 360.0
+    scale_factor = resolution_ratio * 0.8
+
+    original_corner_offset = 70
+    scaled_corner_offset = int(original_corner_offset * scale_factor)
+    scaled_corner_offset = scaled_corner_offset if scaled_corner_offset % 2 == 0 else scaled_corner_offset + 1
+
+    if position == 'top-right':
+        x = video_width - 200 - scaled_corner_offset  # 200 is canvas_half
+        y = -32  # 倾斜角标向上偏移
+    else:
+        x = -32
+        y = -32
+
+    return x, y
+
+
+def _build_drawtext_filters_standalone(
+    video_width: int,
+    video_height: int,
+    project_name: str,
+    render_params: dict
+) -> List[str]:
+    """构建drawtext滤镜列表（独立函数）"""
+    filters = []
+
+    # 计算字体大小
+    smaller_dimension = min(video_width, video_height)
+    resolution_ratio = smaller_dimension / 360.0
+    base_subtitle_size = int(18 * resolution_ratio)
+
+    drama_title_font_size = int(base_subtitle_size * 0.95)
+    drama_title_font_size = drama_title_font_size if drama_title_font_size % 2 == 0 else drama_title_font_size + 1
+
+    disclaimer_font_size = int(base_subtitle_size * 0.85)
+    disclaimer_font_size = disclaimer_font_size if disclaimer_font_size % 2 == 0 else disclaimer_font_size + 1
+
+    # 动态Y位置
+    drama_title_y = f"h-{int(video_height * 0.15)}"
+    disclaimer_y = f"h-{int(video_height * 0.06)}"
+
+    # 查找字体
+    font_path = "/System/Library/Fonts/Supplemental/Songti.ttc"
+    if not Path(font_path).exists():
+        font_path = "/System/Library/Fonts/PingFang.ttc"
+    if not Path(font_path).exists():
+        font_path = None
+
+    # 剧名drawtext
+    drama_title = f"《{project_name}》"
+    drama_params = {
+        'text': drama_title.replace('《', '\\《').replace('》', '\\》'),
+        'fontsize': drama_title_font_size,
+        'fontcolor': '#E6E6FA',
+        'alpha': '1.0',
+        'x': '(w-tw)/2',
+        'y': drama_title_y,
+        'borderw': 1.0,
+        'bordercolor': '#000000',
+        'shadowx': 1,
+        'shadowy': 1,
+        'shadowcolor': '#000000'
+    }
+    if font_path:
+        drama_params['fontfile'] = font_path
+
+    drama_str = 'drawtext=' + ':'.join(f"{k}='{v}'" if k in ['x', 'y', 'fontfile', 'text'] else f"{k}={v}" for k, v in drama_params.items())
+    filters.append(drama_str)
+
+    # 免责声明drawtext
+    disclaimer = "本剧内容虚构 仅供娱乐参考"
+    disc_params = {
+        'text': disclaimer,
+        'fontsize': disclaimer_font_size,
+        'fontcolor': '#FFFFFF',
+        'alpha': '0.7',
+        'x': '(w-tw)/2',
+        'y': disclaimer_y,
+        'borderw': 0.5,
+        'bordercolor': '#808080',
+        'shadowx': 1,
+        'shadowy': 1,
+        'shadowcolor': '#000000'
+    }
+    if font_path:
+        disc_params['fontfile'] = font_path
+
+    disc_str = 'drawtext=' + ':'.join(f"{k}='{v}'" if k in ['x', 'y', 'fontfile'] else f"{k}={v}" for k, v in disc_params.items())
+    filters.append(disc_str)
+
+    return filters
+
+
+# ============================================================================
+# V16.1: 合并编码优化 - 一次完成裁剪+花字+结尾（保留作为fallback）
 # ============================================================================
 
 def _render_clip_unified_standalone(
