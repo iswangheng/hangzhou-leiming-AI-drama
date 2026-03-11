@@ -388,9 +388,16 @@ def detect_project_endings_in_understand_phase(
     if output_file.exists():
         with open(output_file, 'r', encoding='utf-8') as f:
             cached = json.load(f)
+            # 兼容新旧两种格式
+            if 'episodes' in cached:
+                # 新格式: {"project": "...", "episodes": [...]}
+                results = {ep['episode']: ep for ep in cached['episodes']}
+            else:
+                # 旧格式: {episode: {...}}
+                results = cached
             if verbose:
-                print(f"  📦 使用已缓存的片尾检测结果: {len(cached)}集")
-            return cached
+                print(f"  📦 使用已缓存的片尾检测结果: {len(results)}集")
+            return results
 
     # 获取所有视频文件
     video_files = sorted(video_dir_path.glob("*.mp4"))
@@ -435,9 +442,19 @@ def detect_project_endings_in_understand_phase(
             'method': result.ending_info.method
         }
 
-    # 保存到缓存
+    # 保存到缓存（使用与 render_clips.py 一致的格式）
+    cache_data = {
+        'project': project_name,
+        'episodes': [
+            {
+                'episode': ep,
+                **ep_info
+            }
+            for ep, ep_info in results.items()
+        ]
+    }
     with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
+        json.dump(cache_data, f, ensure_ascii=False, indent=2)
 
     if verbose:
         print(f"  💾 片尾检测结果已保存到: {output_file}")

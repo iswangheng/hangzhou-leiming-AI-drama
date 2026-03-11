@@ -1514,10 +1514,17 @@ class ClipRenderer:
             # 拼接片段
             self._concat_segments(temp_files, output_path, on_progress)
 
-            # 删除临时文件
+            # 删除临时文件和目录（使用shutil.rmtree处理非空目录）
+            import shutil
             for temp_file in temp_files:
-                Path(temp_file).unlink()
-            temp_dir.rmdir()
+                try:
+                    Path(temp_file).unlink()
+                except:
+                    pass
+            try:
+                shutil.rmtree(temp_dir)
+            except:
+                pass
 
         # V15.6: 添加花字叠加（如果配置了）- 先叠加花字
         if self.add_overlay and hasattr(self, '_overlay_renderer_class'):
@@ -1783,10 +1790,17 @@ def render_single_clip_standalone(
             # 拼接片段
             _concat_segments_standalone(temp_files, output_path, output_dir)
 
-            # 删除临时文件
+            # 删除临时文件和目录（使用shutil.rmtree处理非空目录）
+            import shutil
             for temp_file in temp_files:
-                Path(temp_file).unlink()
-            temp_dir.rmdir()
+                try:
+                    Path(temp_file).unlink()
+                except:
+                    pass
+            try:
+                shutil.rmtree(temp_dir)
+            except:
+                pass
 
         # V15: 添加花字叠加（如果配置了）
         if render_params['add_overlay']:
@@ -2944,10 +2958,17 @@ def _render_clip_unified_standalone(
             temp_files.append(temp_concat)
             _concat_segments_standalone(segment_files, str(temp_concat), output_dir)
 
-            # 清理segment文件
+            # 清理segment文件和目录（使用shutil.rmtree处理非空目录）
+            import shutil
             for sf in segment_files:
-                Path(sf).unlink()
-            temp_dir.rmdir()
+                try:
+                    Path(sf).unlink()
+                except:
+                    pass
+            try:
+                shutil.rmtree(temp_dir)
+            except:
+                pass
 
             clip_input = str(temp_concat)
 
