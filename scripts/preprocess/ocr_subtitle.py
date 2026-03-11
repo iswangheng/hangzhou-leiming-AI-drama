@@ -101,9 +101,6 @@ def init_ocr_engine():
         from paddleocr import PaddleOCR
         # 简化参数，避免版本兼容问题
         ocr = PaddleOCR(lang='ch')
-        # 测试初始化是否成功
-        test_img = np.zeros((100, 100, 3), dtype=np.uint8)
-        _ = ocr.ocr(test_img)
         print("✅ 使用 PaddleOCR (识别准确度更高)")
         return ocr
     except ImportError:
@@ -151,44 +148,22 @@ def ocr_subtitle_region(
         engine_type = detect_ocr_engine_type(ocr_engine)
         
         if engine_type == 'paddleocr':
-            # PaddleOCR (新版API)
+            # PaddleOCR - 新版API (3.x)
             result = ocr_engine.ocr(subtitle_img)
-            if result and len(result) > 0:
-                # 新版PaddleOCR返回格式: [{'rec_texts': [...], 'rec_scores': [...], 'rec_polys': [...]}]
-                if isinstance(result[0], dict) and 'rec_texts' in result[0]:
-                    texts = result[0].get('rec_texts', [])
-                    # 新版PaddleOCR已经按从左到右顺序排列
-                    if texts:
-                        # 直接拼接所有文本（已按正确顺序）
-                        combined = ''
-                        for text in texts:
-                            # 清理文本，去除特殊字符
-                            text = text.strip()
-                            if text:
-                                combined += text
-                        return combined if combined else None
-                # 旧版PaddleOCR返回格式: [[(box, (text, confidence)), ...]]
-                elif result[0]:
-                    # 收集所有文本框及其位置
-                    text_boxes = []
-                    for line in result[0]:
-                        if isinstance(line, list) and len(line) >= 2:
-                            if isinstance(line[1], tuple) and len(line[1]) >= 1:
-                                text = line[1][0].strip()
-                                # 获取文本框位置（用于排序）
-                                box = line[0] if len(line) > 0 else None
-                                if box is not None and len(box) >= 4:
-                                    # 取左上角X坐标作为排序依据
-                                    x_min = min([p[0] for p in box])
-                                    text_boxes.append((x_min, text))
-                    
-                    if text_boxes:
-                        # 按X坐标从左到右排序
-                        text_boxes.sort(key=lambda x: x[0])
-                        combined = ''.join([text for _, text in text_boxes])
-                        return combined
-            return None
             
+            if result and len(result) > 0:
+                r = result[0]
+                # 新版PaddleOCR返回OCRResult对象，支持dict接口
+                texts = r.get('rec_texts', []) if hasattr(r, 'get') else []
+                if texts:
+                    combined = ''
+                    for text in texts:
+                        text = text.strip()
+                        if text:
+                            combined += text
+                    return combined if combined else None
+            return None
+        
         elif engine_type == 'easyocr':
             # EasyOCR
             result = ocr_engine.readtext(subtitle_img)
@@ -311,25 +286,23 @@ def detect_sensitive_words_from_ocr(
     frame_duration = 1.0 / sample_fps
 
     # 对每帧进行OCR识别
-    all_subtitle_segments = []
+    ocr_results = []  # 保存OCR结果用于后续ASR结合
 
     for frame_idx, frame, timestamp in frames:
         # 对字幕区域进行OCR识别
         subtitle_text = ocr_subtitle_region(frame, subtitle_region, ocr_engine)
 
         if subtitle_text:
-            # 检查是否包含敏感词
+            # 检查是否包含敏感词（词组匹配，不拆分）
             for word in sensitive_words:
-                if word in subtitle_text:
-                    # 记录敏感词片段（使用采样率对应的精度）
-                    segment = SubtitleSegment(
-                        start_time=timestamp,
-                        end_time=timestamp + frame_duration,
-                        subtitle_text=subtitle_text,
-                        sensitive_word=word,
-                        frame_idx=frame_idx
-                    )
-                    all_subtitle_segments.append(segment)
+                if word in subtitle_text:  # 词组完整匹配
+                    # 记录OCR结果
+                    ocr_results.append({
+                        'timestamp': timestamp,
+                        'text': subtitle_text,
+                        'sensitive_word': word,
+                        'frame_idx': frame_idx
+                    })
 
                     if verbose:
                         print(f"  帧 {frame_idx} ({timestamp:.3f}s): 发现敏感词 '{word}'")
@@ -342,10 +315,66 @@ def detect_sensitive_words_from_ocr(
                             output_dir
                         )
 
-    # 合并连续的敏感词片段
-    if not all_subtitle_segments:
+    # 如果没有OCR结果，直接返回
+    if not ocr_results:
         return []
 
+    # 尝试加载ASR数据进行OCR+ASR结合
+    try:
+        # 尝试加载ASR
+        from scripts.extract_asr import load_asr_from_file
+        from scripts.config import TrainingConfig
+        import os
+        
+        # 查找ASR缓存文件
+        project_name = Path(video_path).parent.name
+        asr_cache_dir = TrainingConfig.CACHE_DIR / "asr" / project_name
+        
+        if asr_cache_dir.exists():
+            # 找到对应的ASR文件
+            episode = int(Path(video_path).stem.split('-')[-1]) if '-' in Path(video_path).stem else 1
+            asr_file = asr_cache_dir / f"{episode}.json"
+            
+            if asr_file.exists():
+                asr_segments = load_asr_from_file(str(asr_file), episode)
+                
+                if asr_segments:
+                    if verbose:
+                        print(f"\n找到ASR数据，共 {len(asr_segments)} 个片段")
+                        print("使用OCR+ASR结合模式...")
+                    
+                    # 使用OCR+ASR结合模式
+                    from scripts.preprocess.sensitive_detector import detect_sensitive_segments_with_ocr_asr
+                    
+                    sensitive_segments = detect_sensitive_segments_with_ocr_asr(
+                        ocr_results=ocr_results,
+                        asr_segments=asr_segments,
+                        sensitive_words=sensitive_words,
+                        verbose=verbose
+                    )
+                    
+                    return sensitive_segments
+    except Exception as e:
+        if verbose:
+            print(f"⚠️ 加载ASR失败，使用纯OCR模式: {e}")
+
+    # 如果没有ASR数据，使用纯OCR模式
+    if verbose:
+        print("\n使用纯OCR模式...")
+    
+    # 转换为SubtitleSegment格式
+    all_subtitle_segments = []
+    for ocr in ocr_results:
+        segment = SubtitleSegment(
+            start_time=ocr['timestamp'],
+            end_time=ocr['timestamp'] + frame_duration,
+            subtitle_text=ocr['text'],
+            sensitive_word=ocr['sensitive_word'],
+            frame_idx=ocr['frame_idx']
+        )
+        all_subtitle_segments.append(segment)
+
+    # 合并连续的敏感词片段
     merged_segments = _merge_continuous_segments(all_subtitle_segments, gap_threshold=1.0)
 
     if verbose:

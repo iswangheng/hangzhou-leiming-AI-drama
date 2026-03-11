@@ -303,6 +303,55 @@ hot_drama_font_size = hot_drama_font_size if hot_drama_font_size % 2 == 0 else h
 - `test/test_overlay_on_video.py` - 实际视频效果测试脚本
 - `test/test_complete_packaging.py` - 完整包装测试脚本
 
+#### OCR敏感词检测 (V16)
+
+**功能**：通过OCR识别视频字幕，检测敏感词并自动应用马赛克遮盖
+
+**技术方案**：
+1. **OCR识别**：使用PaddleOCR 3.x识别视频帧中的字幕文字
+2. **字幕区域检测**：使用像素变化法自动检测字幕位置
+3. **OCR+ASR结合**：
+   - OCR识别到敏感词句子
+   - 用OCR时间点在ASR中找对应片段
+   - 模糊匹配（相似度>60%）处理OCR/ASR识别误差
+   - 词组匹配（如"热死"），不拆分单个字符
+4. **马赛克遮盖**：根据检测到的时间段应用马赛克
+
+**核心文件**：
+- `scripts/preprocess/ocr_subtitle.py` - OCR字幕识别模块
+- `scripts/preprocess/sensitive_detector.py` - 敏感词检测模块
+- `scripts/preprocess/subtitle_detector.py` - 字幕区域检测
+- `scripts/preprocess/video_cleaner.py` - 视频马赛克处理
+- `config/sensitive_words.txt` - 敏感词列表
+
+**关键实现**：
+```python
+# OCR+ASR结合检测流程
+1. OCR扫描视频帧，识别字幕文字
+2. 检测到敏感词时记录该帧时间点
+3. 用OCR时间点在ASR中查找对应片段
+4. 模糊匹配：相似度>60% + 包含敏感词
+5. 返回ASR片段的精确时间范围
+```
+
+**使用示例**：
+```python
+from scripts.preprocess.ocr_subtitle import detect_sensitive_words_from_ocr
+from scripts.preprocess.subtitle_detector import detect_subtitle_region_pixel_variance
+from scripts.preprocess.video_cleaner import clean_video
+
+# 检测敏感词
+subtitle_region = detect_subtitle_region_pixel_variance(video_path)
+segments = detect_sensitive_words_from_ocr(
+    video_path=video_path,
+    subtitle_region=subtitle_region,
+    sensitive_words=sensitive_words
+)
+
+# 生成马赛克视频
+clean_video(video_path, segments, subtitle_region, output_path)
+```
+
 #### Quality Filter Pipeline
 
 **Multi-stage filtering** (V8+):
@@ -360,6 +409,12 @@ data/hangzhou-leiming/
 
 ### Version History Context
 
+- **V16** (2026-03-11): OCR+ASR敏感词检测模块
+  - OCR识别字幕句子，PaddleOCR 3.x新版API
+  - 模糊匹配（相似度>60%）在ASR中找对应片段
+  - 词组匹配（如"热死"），不拆分单个字符
+  - 自动检测字幕区域（像素变化法）
+  - 马赛克遮盖敏感内容
 - **V15** (2026-03-05): Video overlay text effects (热门短剧, 剧名, 免责声明)
 - **V14.10** (2026-03-09): **Critical fix** - Fixed frame rate mismatch (24fps vs 30fps) causing "video frozen, audio continues" issue when appending ending videos
 - **V14.9** (2026-03-08): Ending video concatenation fixes - optimized preprocessing to fix audio/video sync

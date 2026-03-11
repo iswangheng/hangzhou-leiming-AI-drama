@@ -88,15 +88,15 @@ def detect_sensitive_segments(
 
     Args:
         asr_segments: ASR片段列表（来自 extract_asr.py）
-        sensitive_words: 敏感词集合
+        sensitive_words: 敏感词集合（词组，如"热死"）
         verbose: 是否打印详细信息
 
     Returns:
         敏感词片段列表
 
     匹配规则：
-        - 包含即匹配：只要ASR文本包含敏感词就返回
-        - 大小写不敏感：统一转小写后匹配
+        - 词组匹配：只有敏感词作为一个整体出现才算（如"热死"）
+        - 不拆分匹配：单独"热"或"死"不算敏感词
     """
     if not sensitive_words:
         if verbose:
@@ -119,9 +119,10 @@ def detect_sensitive_segments(
         text = segment.text.lower()
         original_text = segment.text
 
-        # 检查是否包含敏感词
+        # 检查是否包含敏感词（词组匹配，不拆分）
         for word in sensitive_words:
-            if word in text:
+            word_lower = word.lower()
+            if word_lower in text:  # 词组完整匹配
                 sensitive_seg = SensitiveSegment(
                     episode=episode,
                     sensitive_word=word,
@@ -188,6 +189,154 @@ class SensitiveDetector:
     def get_words(self) -> Set[str]:
         """获取当前敏感词列表"""
         return self.sensitive_words.copy()
+
+
+def detect_sensitive_segments_with_ocr_asr(
+    ocr_results: List[dict],
+    asr_segments: List,
+    sensitive_words: Set[str],
+    verbose: bool = True
+) -> List[SensitiveSegment]:
+    """
+    OCR + ASR结合的敏感词检测
+
+    流程：
+    1. OCR扫描检测到敏感词的时间点和完整句子
+    2. 用OCR时间点找到ASR中能拼成相似句子的片段
+    3. 合并ASR片段，要求：包含敏感词 + 相似度>60%
+    """
+    if not ocr_results:
+        return []
+
+    if not asr_segments:
+        return []
+
+    if verbose:
+        print("=" * 60)
+        print("OCR + ASR 敏感词检测")
+        print("=" * 60)
+
+    def calculate_similarity(text1: str, text2: str) -> float:
+        """计算两个句子的相似度（简单字符匹配）"""
+        text1 = text1.replace(' ', '').replace('\n', '')
+        text2 = text2.replace(' ', '').replace('\n', '')
+        
+        if not text1 or not text2:
+            return 0.0
+        
+        # 找出相同的字符数
+        set1 = set(text1)
+        set2 = set(text2)
+        common = len(set1 & set2)
+        total = len(set1 | set2)
+        
+        return common / total if total > 0 else 0.0
+
+    sensitive_segments = []
+    current_episode = 1
+    processed_ranges = []
+
+    for ocr_result in ocr_results:
+        ocr_time = ocr_result.get('timestamp', 0)
+        ocr_text = ocr_result.get('text', '').strip()
+        sensitive_word = ocr_result.get('sensitive_word', '')
+
+        if not ocr_text:
+            continue
+
+        # 找到OCR时间点在ASR中的位置
+        target_idx = 0
+        for i, seg in enumerate(asr_segments):
+            start = seg.start if hasattr(seg, 'start') else seg.get('start', 0)
+            if start >= ocr_time:
+                target_idx = i
+                break
+
+        # 尝试合并相邻ASR片段，看能否匹配OCR句子
+        found_start_idx = None
+        found_end_idx = None
+        found_similarity = 0.0
+        best_merged_text = ''
+
+        # 尝试不同的合并范围：只合并1个、2个、3个相邻片段
+        for merge_count in range(1, 4):
+            for start_offset in range(merge_count):
+                start_idx = target_idx - start_offset
+                end_idx = start_idx + merge_count - 1
+
+                if start_idx < 0 or end_idx >= len(asr_segments):
+                    continue
+
+                # 合并片段文本
+                merged_text = ''
+                for i in range(start_idx, end_idx + 1):
+                    seg_text = asr_segments[i].text if hasattr(asr_segments[i], 'text') else asr_segments[i].get('text', '')
+                    merged_text += seg_text
+
+                # 模糊匹配条件：
+                # 1. 包含敏感词
+                # 2. 相似度>60%
+                sensitive_word_lower = sensitive_word.lower()
+                merged_clean = merged_text.replace(' ', '').replace('\n', '')
+                ocr_clean = ocr_text.replace(' ', '').replace('\n', '')
+                
+                has_sensitive = sensitive_word_lower in merged_clean.lower()
+                similarity = calculate_similarity(merged_clean, ocr_clean)
+
+                if has_sensitive and similarity > 0.6:
+                    found_start_idx = start_idx
+                    found_end_idx = end_idx
+                    found_similarity = similarity
+                    best_merged_text = merged_text
+                    break
+
+            if found_start_idx is not None:
+                break
+
+        if found_start_idx is None or found_end_idx is None:
+            if verbose:
+                print(f"  ⚠️ OCR时间={ocr_time:.2f}s: 未找到匹配的ASR片段")
+                print(f"     OCR句子: {ocr_text}")
+            continue
+
+        # 获取该片段的精确时间范围
+        start_seg = asr_segments[found_start_idx]
+        end_seg = asr_segments[found_end_idx]
+        seg_start = start_seg.start if hasattr(start_seg, 'start') else start_seg.get('start', 0)
+        seg_end = end_seg.end if hasattr(end_seg, 'end') else end_seg.get('end', 0)
+
+        # 去重
+        is_duplicate = False
+        for p_start, p_end in processed_ranges:
+            if abs(p_start - seg_start) < 0.5 and abs(p_end - seg_end) < 0.5:
+                is_duplicate = True
+                break
+
+        if is_duplicate:
+            continue
+
+        processed_ranges.append((seg_start, seg_end))
+
+        sensitive_seg = SensitiveSegment(
+            episode=current_episode,
+            sensitive_word=sensitive_word,
+            asr_text=ocr_text,
+            start_time=seg_start,
+            end_time=seg_end
+        )
+        sensitive_segments.append(sensitive_seg)
+
+        if verbose:
+            print(f"  ✅ OCR时间={ocr_time:.2f}s -> ASR片段{found_start_idx}-{found_end_idx}")
+            print(f"     OCR句子: {ocr_text}")
+            print(f"     ASR合并: {best_merged_text}")
+            print(f"     相似度: {found_similarity*100:.1f}%")
+            print(f"     时间: {seg_start:.2f}s - {seg_end:.2f}s")
+
+    if verbose:
+        print(f"\n📊 检测完成: {len(sensitive_segments)} 个敏感片段")
+
+    return sensitive_segments
 
 
 # 测试代码
