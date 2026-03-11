@@ -1449,6 +1449,8 @@ class ClipRenderer:
     ) -> str:
         """渲染单个剪辑
 
+        V17.1优化: 尝试使用单次编码，失败时回退到分步处理
+
         Args:
             clip: 剪辑对象
             output_path: 输出文件路径（可选，默认自动生成）
@@ -1457,6 +1459,47 @@ class ClipRenderer:
         Returns:
             输出文件路径
         """
+        # V17.1: 尝试使用单次编码
+        if (self.add_overlay or self.add_ending_clip) and len(self.video_files) > 0:
+            # 构建clip_data
+            clip_data = {
+                'start': clip.start,
+                'end': clip.end,
+                'duration': clip.duration,
+                'highlight': clip.highlight,
+                'highlightDesc': clip.highlightDesc,
+                'hook': clip.hook,
+                'hookDesc': clip.hookDesc,
+                'type': clip.type,
+                'episode': clip.episode,
+                'hookEpisode': clip.hookEpisode,
+            }
+
+            # 构建render_params
+            render_params = {
+                'video_dir': str(self.video_dir),
+                'output_dir': str(self.output_dir),
+                'episode_durations': self.episode_durations,
+                'width': self.width,
+                'height': self.height,
+                'fps': self.fps,
+                'crf': self.crf,
+                'preset': self.preset,
+                'project_name': self.project_name,
+                'add_ending_clip': self.add_ending_clip,
+                'ending_videos': self.ending_videos,
+                'add_overlay': self.add_overlay,
+                'overlay_style_id': self.overlay_style_id,
+                'hot_drama_position': 'top-right',
+                'hwaccel': self.hwaccel,
+            }
+
+            # 尝试单次编码（传入-1表示串行模式）
+            result = _render_clip_single_pass(-1, clip_data, render_params)
+            if result:
+                print(f"  [单次编码] 串行模式单次编码成功: {result}")
+                return result
+
         # 生成输出文件名（中文格式）
         if output_path is None:
             # 计算起始和结束时间（在该集内的秒数）
@@ -2400,6 +2443,9 @@ def _render_clip_single_pass(
             current_v_stream = "[v_trim]"
             current_a_stream = "[a_trim]"
 
+            # V17.1: 单集场景计算main_duration
+            main_duration = duration
+
         else:
             # ===== 场景C: 跨集剪辑 =====
             # 需要裁剪多个片段然后拼接
@@ -2429,6 +2475,9 @@ def _render_clip_single_pass(
 
             if not segments:
                 raise ValueError("跨集剪辑没有有效的片段")
+
+            # V17.1: 计算main_duration（在segments定义之后）
+            main_duration = sum(seg['duration'] for seg in segments)
 
             # 为每个片段添加裁剪滤镜
             trim_outputs_v = []
@@ -2480,27 +2529,13 @@ def _render_clip_single_pass(
                 filter_parts.append(drawtext_filter)
                 current_v_stream = "[v_text]"
 
-        # 5. 添加倾斜角标（overlay PNG）- 使用输出分辨率计算
+        # 5. 添加倾斜角标（overlay PNG）- V17.1暂时跳过单次编码
+        # PNG loop filter太慢，倾斜角标暂不放入单次编码
+        # 保持fallback到分步处理
         overlay_png_path = None
         if add_overlay:
-            try:
-                overlay_png_path = _generate_overlay_png_standalone(
-                    output_width, output_height, project_name, render_params, output_dir
-                )
-                if overlay_png_path:
-                    temp_files.append(overlay_png_path)
-                    input_files.append(overlay_png_path)
-
-                    # 计算overlay位置（使用输出分辨率）
-                    x, y = _calculate_overlay_position(output_width, output_height, render_params)
-
-                    # overlay滤镜
-                    overlay_filter = f"{current_v_stream}[{input_idx}:v]overlay=x={x}:y={y}[v_overlay]"
-                    filter_parts.append(overlay_filter)
-                    current_v_stream = "[v_overlay]"
-                    input_idx += 1
-            except Exception as e:
-                print(f"  ⚠️ 花字PNG生成失败: {e}")
+            # 只保留drawtext花字，跳过PNG overlay
+            pass  # 静默跳过
 
         # 6. 结尾拼接（如果启用）- 真正的单次编码
         ending_video_path = None
@@ -2508,11 +2543,7 @@ def _render_clip_single_pass(
             ending_video_path = random.choice(render_params['ending_videos'])
             input_files.append(ending_video_path)
 
-            # 获取主体视频时长（用于音频延迟）
-            if not is_cross_episode:
-                main_duration = end_in_episode - start_in_episode
-            else:
-                main_duration = sum(seg['duration'] for seg in segments)
+            # V17.1: main_duration已经在前面计算过了，这里直接使用
 
             # 预处理结尾视频：缩放到相同分辨率 + 帧率转换
             # scale滤镜确保分辨率一致，fps滤镜确保帧率一致
@@ -2549,19 +2580,20 @@ def _render_clip_single_pass(
         for f in input_files:
             inputs.extend(['-i', f])
 
-        # 构建输出映射
-        map_outputs = []
-        if add_ending:
-            map_outputs.extend(['-map', final_v_stream.replace('[', '').replace(']', '')])
-            map_outputs.extend(['-map', final_a_stream.replace('[', '').replace(']', '')])
-        else:
-            # 无结尾时，映射视频和原始音频
-            map_outputs.extend(['-map', final_v_stream.replace('[', '').replace(']', '')])
-            if not is_cross_episode:
-                map_outputs.extend(['-map', '0:a?'])
+        # V17.1修复: 当使用-filter_complex时，需要用'-map'指定输出流
+        # 正确语法: '-map' '[v_scale]' (带引号和方括号)
+        map_outputs = ['-map', final_v_stream]  # 保持方括号，如 '[v_scale]'
+        # 音频处理
+        if final_a_stream:
+            # 检查是否是跨集（使用concat处理过的音频）
+            if is_cross_episode:
+                map_outputs.extend(['-map', final_a_stream])
             else:
-                # 跨集时，音频已经通过concat处理
-                map_outputs.extend(['-map', final_a_stream.replace('[', '').replace(']', '')])
+                # 单集：直接使用原始音频，不经过filter
+                map_outputs.extend(['-map', '0:a'])
+
+        # V17.1: 单次编码日志
+        print(f"  [单次编码] 成功（裁剪+花字+结尾，1次FFmpeg调用）")
 
         # 完整FFmpeg命令
         cmd = [
@@ -2582,7 +2614,13 @@ def _render_clip_single_pass(
         result = subprocess.run(cmd, capture_output=True, text=True)
 
         if result.returncode != 0:
-            print(f"  ⚠️ FFmpeg单次编码失败，回退到分步处理: {result.stderr[:500]}")
+            # 打印完整的stderr来排查问题
+            stderr_full = result.stderr
+            print(f"  ⚠️ FFmpeg单次编码失败(returncode={result.returncode})，回退到分步处理")
+            # 查找真正的错误信息（跳过版本信息）
+            error_lines = [line for line in stderr_full.split('\n') if 'error' in line.lower() or 'invalid' in line.lower() or 'failed' in line.lower()]
+            if error_lines:
+                print(f"  错误详情: {error_lines[:3]}")
             # 清理临时文件
             for tf in temp_files:
                 try:
