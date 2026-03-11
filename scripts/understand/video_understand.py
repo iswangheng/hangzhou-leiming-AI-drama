@@ -355,6 +355,96 @@ def load_episode_data(project_path: str, auto_extract: bool = True,
     return episode_keyframes, episode_asr, episode_durations
 
 
+def detect_project_endings_in_understand_phase(
+    video_dir: str,
+    episode_asr: dict,
+    verbose: bool = True
+) -> dict:
+    """在video_understand阶段检测项目中所有视频的片尾
+
+    使用复杂算法，检测结果保存到缓存供render阶段使用
+
+    Args:
+        video_dir: 视频目录路径
+        episode_asr: 按集数分组的ASR数据 {集数: [ASR片段列表]}
+        verbose: 是否打印详细信息
+
+    Returns:
+        片尾检测结果字典 {集数: {has_ending, duration, effective_duration}}
+    """
+    from pathlib import Path
+    import json
+    from scripts.detect_ending_credits import EndingCreditsDetector
+
+    video_dir_path = Path(video_dir)
+    project_name = video_dir_path.name
+
+    # 输出目录
+    output_dir = TrainingConfig.CACHE_DIR / "ending_credits"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_file = output_dir / f"{project_name}_ending_credits.json"
+
+    # 检查缓存是否存在
+    if output_file.exists():
+        with open(output_file, 'r', encoding='utf-8') as f:
+            cached = json.load(f)
+            if verbose:
+                print(f"  📦 使用已缓存的片尾检测结果: {len(cached)}集")
+            return cached
+
+    # 获取所有视频文件
+    video_files = sorted(video_dir_path.glob("*.mp4"))
+    if not video_files:
+        return {}
+
+    # 创建检测器
+    detector = EndingCreditsDetector()
+
+    # 检测每集片尾
+    results = {}
+    for video_path in video_files:
+        # 提取集数
+        filename = video_path.stem
+        episode = None
+        for part in filename.split('-'):
+            if part.isdigit():
+                episode = int(part)
+                break
+        if episode is None:
+            continue
+
+        if verbose:
+            print(f"  检测第{episode}集片尾...")
+
+        # 获取该集的ASR数据
+        asr_segments = episode_asr.get(episode, [])
+
+        # 调用复杂算法检测
+        result = detector.detect_video_ending(
+            video_path=str(video_path),
+            episode=episode,
+            asr_segments=asr_segments,
+            use_complex_method=True
+        )
+
+        results[episode] = {
+            'has_ending': result.ending_info.has_ending,
+            'duration': result.ending_info.duration,
+            'effective_duration': result.effective_duration,
+            'confidence': result.ending_info.confidence,
+            'method': result.ending_info.method
+        }
+
+    # 保存到缓存
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
+
+    if verbose:
+        print(f"  💾 片尾检测结果已保存到: {output_file}")
+
+    return results
+
+
 def cleanup_project_cache(project_name: str, min_age_hours: float = 3.0) -> dict:
     """清理项目的中间缓存文件（仅清理超过指定小时数的缓存）
 
@@ -500,6 +590,15 @@ def video_understand(
     total_keyframes = sum(len(v) for v in episode_keyframes.values())
     total_asr = sum(len(v) for v in episode_asr.values())
     print(f"\n数据加载完成: {len(episode_keyframes)}集, {total_keyframes}关键帧, {total_asr}ASR片段\n")
+
+    # 2.5 片尾检测（使用复杂算法）
+    print("[2.5/6] 片尾检测（复杂算法）...")
+    ending_results = detect_project_endings_in_understand_phase(
+        video_dir=project_path,
+        episode_asr=episode_asr,
+        verbose=True
+    )
+    print(f"片尾检测完成: {len(ending_results)}集\n")
     
     # 3. 提取分析片段
     print("[3/5] 提取分析片段...")

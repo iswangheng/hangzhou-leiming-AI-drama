@@ -139,6 +139,106 @@ def get_keyframe_output_path(project_name: str, episode_number: int) -> str:
     return str(episode_dir)
 
 
+def extract_ending_keyframes(
+    video_path: str,
+    output_dir: str,
+    last_seconds: float = 3.5,
+    quality: int = TrainingConfig.KEYFRAME_QUALITY,
+    force_reextract: bool = False
+) -> List[KeyFrame]:
+    """提取视频最后N秒的高密度关键帧（用于片尾检测）
+
+    与普通关键帧提取不同，这里每帧都采样（而不是按固定fps）
+    用于画面相似度检测
+
+    Args:
+        video_path: 视频文件路径
+        output_dir: 输出目录
+        last_seconds: 提取最后多少秒（默认3.5秒）
+        quality: JPEG质量
+        force_reextract: 是否强制重新提取
+
+    Returns:
+        关键帧列表
+
+    Raises:
+        FileNotFoundError: 视频文件不存在
+        subprocess.CalledProcessError: FFmpeg执行失败
+    """
+    import cv2
+
+    if not os.path.exists(video_path):
+        raise FileNotFoundError(f"视频文件不存在: {video_path}")
+
+    # 创建输出目录
+    os.makedirs(output_dir, exist_ok=True)
+
+    # 获取视频信息
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise FileNotFoundError(f"无法打开视频: {video_path}")
+
+    video_fps = cap.get(cv2.CAP_PROP_FPS)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    total_duration = total_frames / video_fps
+    cap.release()
+
+    # 计算起始帧位置
+    start_time = max(0, total_duration - last_seconds)
+    start_frame = int(start_time * video_fps)
+
+    print(f"提取最后{last_seconds}秒高密度关键帧: {video_path}")
+    print(f"视频: {total_duration:.1f}秒, {video_fps}fps")
+    print(f"提取范围: {start_time:.2f}秒 ~ {total_duration:.2f}秒")
+
+    # 使用FFmpeg提取最后N秒，使用FPS滤镜实现每帧采样
+    # fps=video_fps 表示每秒采样video_fps帧（即每帧都采样）
+    cmd = [
+        'ffmpeg',
+        '-ss', str(start_time),
+        '-i', video_path,
+        '-vf', f'fps={video_fps}',
+        '-q:v', str(quality),
+        '-loglevel', 'error',
+        os.path.join(output_dir, 'ending_%04d.jpg'),
+        '-y'
+    ]
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        print(f"高密度关键帧提取完成")
+    except subprocess.CalledProcessError as e:
+        print(f"FFmpeg错误: {e.stderr}")
+        raise
+
+    # 收集帧文件
+    keyframes = []
+    frame_files = sorted(Path(output_dir).glob('ending_*.jpg'))
+
+    for idx, frame_file in enumerate(frame_files):
+        # 时间戳 = 起始时间 + (帧索引 / 视频帧率)
+        timestamp_ms = int((start_time + (idx / video_fps)) * 1000)
+        
+        # 确保不超过视频总时长
+        if timestamp_ms <= total_duration * 1000:
+            keyframes.append(KeyFrame(
+                frame_path=str(frame_file),
+                timestamp_ms=timestamp_ms
+            ))
+
+    print(f"提取了 {len(keyframes)} 帧高密度关键帧")
+    return keyframes
+
+
+def get_ending_keyframe_output_path(project_name: str, episode_number: int) -> str:
+    """获取片尾检测用的高密度关键帧输出路径"""
+    from scripts.config import get_cache_project_name
+    cache_name = get_cache_project_name(project_name)
+    cache_dir = TrainingConfig.CACHE_DIR / "keyframes" / cache_name / "ending"
+    episode_dir = cache_dir / str(episode_number)
+    return str(episode_dir)
+
+
 def clear_keyframe_cache(project_name: Optional[str] = None, episode_number: Optional[int] = None):
     """清除关键帧缓存
 
