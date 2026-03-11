@@ -1,0 +1,206 @@
+{
+  "project": "烈日重生_test",
+  "episodes": [
+    {
+      "video_path": "260306-待剪辑-漫剧网盘素材1/烈日重生/烈日重生-1.mp4",
+      "episode": 1,
+      "total_duration": 68.9,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.6649999999999999,
+        "method": "asr_timing_mixed_conservative",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              10.200000000000003
+            ]
+          ],
+          "asr_timing_pattern": "{'asr_duration': np.float64(6.980000000000004), 'asr_coverage': np.float64(0.6980000000000004), 'silence_after_asr': np.float64(3.019999999999996), 'has_long_asr': np.True_, 'has_long_silence': np.True_, 'pattern': 'mixed', 'reason': '长ASR(6.98秒) + 长静音(3.02秒) → 混合特征', 'first_asr_start': np.float64(58.900000000000006), 'last_asr_end': np.float64(65.88000000000001), 'consistency_ratio': 1.0, 'transcription_count': 3, 'pattern_distribution': {'mixed': 3}}"
+        }
+      },
+      "effective_duration": 65.9
+    },
+    {
+      "video_path": "260306-待剪辑-漫剧网盘素材1/烈日重生/烈日重生-2.mp4",
+      "episode": 2,
+      "total_duration": 126.942993,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.799999999999997,
+        "confidence": 0.76,
+        "method": "asr_timing_mixed",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              2.799999999999997
+            ]
+          ],
+          "asr_timing_pattern": "{'asr_duration': np.float64(6.760000000000005), 'asr_coverage': np.float64(0.6760000000000005), 'silence_after_asr': np.float64(3.239999999999995), 'has_long_asr': np.True_, 'has_long_silence': np.True_, 'pattern': 'mixed', 'reason': '长ASR(6.76秒) + 长静音(3.24秒) → 混合特征', 'first_asr_start': np.float64(116.942993), 'last_asr_end': np.float64(123.702993), 'consistency_ratio': 1.0, 'transcription_count': 3, 'pattern_distribution': {'mixed': 3}}"
+        }
+      },
+      "effective_duration": 124.142993
+    },
+    {
+      "video_path": "260306-待剪辑-漫剧网盘素材1/烈日重生/烈日重生-3.mp4",
+      "episode": 3,
+      "total_duration": 113.312993,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.6666666666666714,
+        "confidence": 0.76,
+        "method": "asr_timing_mixed",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              2.6666666666666714
+            ]
+          ],
+          "asr_timing_pattern": "{'asr_duration': np.float64(7.019999999999996), 'asr_coverage': np.float64(0.7019999999999996), 'silence_after_asr': np.float64(2.980000000000004), 'has_long_asr': np.True_, 'has_long_silence': np.True_, 'pattern': 'mixed', 'reason': '长ASR(7.02秒) + 长静音(2.98秒) → 混合特征', 'first_asr_start': np.float64(103.312993), 'last_asr_end': np.float64(110.332993), 'consistency_ratio': 1.0, 'transcription_count': 3, 'pattern_distribution': {'mixed': 3}}"
+        }
+      },
+      "effective_duration": 110.64632633333333
+    },
+    {
+      "video_path": "260306-待剪辑-漫剧网盘素材1/烈日重生/烈日重生-4.mp4",
+      "episode": 4,
+      "total_duration": 67.175011,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.6649999999999999,
+        "method": "asr_timing_mixed_conservative",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              10.166666666666671
+            ],
+            [
+              "brightness",
+              7.0333333333333385
+            ]
+          ],
+          "asr_timing_pattern": "{'asr_duration': np.float64(6.8799999999999955), 'asr_coverage': np.float64(0.6879999999999995), 'silence_after_asr': np.float64(3.1200000000000045), 'has_long_asr': np.True_, 'has_long_silence': np.True_, 'pattern': 'mixed', 'reason': '长ASR(6.88秒) + 长静音(3.12秒) → 混合特征', 'first_asr_start': np.float64(57.175011), 'last_asr_end': np.float64(64.055011), 'consistency_ratio': 1.0, 'transcription_count': 3, 'pattern_distribution': {'mixed': 3}}"
+        }
+      },
+      "effective_duration": 64.175011
+    },
+    {
+      "video_path": "260306-待剪辑-漫剧网盘素材1/烈日重生/烈日重生-5.mp4",
+      "episode": 5,
+      "total_duration": 81.038005,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.2333333333333343,
+        "confidence": 0.76,
+        "method": "asr_timing_mixed",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ],
+          "all_durations": [
+            [
+              "similarity",
+              3.2333333333333343
+            ]
+          ],
+          "asr_timing_pattern": "{'asr_duration': np.float64(6.920000000000002), 'asr_coverage': np.float64(0.6920000000000002), 'silence_after_asr': np.float64(3.0799999999999983), 'has_long_asr': np.True_, 'has_long_silence': np.True_, 'pattern': 'mixed', 'reason': '长ASR(6.92秒) + 长静音(3.08秒) → 混合特征', 'first_asr_start': np.float64(71.038005), 'last_asr_end': np.float64(77.958005), 'consistency_ratio': 1.0, 'transcription_count': 3, 'pattern_distribution': {'mixed': 3}}"
+        }
+      },
+      "effective_duration": 77.80467166666666
+    },
+    {
+      "video_path": "260306-待剪辑-漫剧网盘素材1/烈日重生/烈日重生-6.mp4",
+      "episode": 6,
+      "total_duration": 62.949002,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_timing_normal_drama",
+        "features": {
+          "reason": "ASR时序模式修正误判",
+          "asr_timing_pattern": "{'asr_duration': np.float64(9.660000000000004), 'asr_coverage': np.float64(0.9660000000000004), 'silence_after_asr': np.float64(0.3399999999999963), 'has_long_asr': np.True_, 'has_long_silence': np.False_, 'pattern': 'long_asr_no_silence', 'reason': '长ASR(9.66秒) + 持续到结尾 → 正常剧情特征', 'first_asr_start': np.float64(52.949002), 'last_asr_end': np.float64(62.609002000000004), 'consistency_ratio': 1.0, 'transcription_count': 3, 'pattern_distribution': {'long_asr_no_silence': 3}}",
+          "original_similarity_detection": {
+            "duration": 6.866666666666667,
+            "confidence": 0.95
+          }
+        }
+      },
+      "effective_duration": 62.949002
+    },
+    {
+      "video_path": "260306-待剪辑-漫剧网盘素材1/烈日重生/烈日重生-7.mp4",
+      "episode": 7,
+      "total_duration": 63.948005,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_timing_normal_drama",
+        "features": {
+          "reason": "ASR时序模式修正误判",
+          "asr_timing_pattern": "{'asr_duration': np.float64(9.619999999999997), 'asr_coverage': np.float64(0.9619999999999997), 'silence_after_asr': np.float64(0.38000000000000256), 'has_long_asr': np.True_, 'has_long_silence': np.False_, 'pattern': 'long_asr_no_silence', 'reason': '长ASR(9.62秒) + 持续到结尾 → 正常剧情特征', 'first_asr_start': np.float64(53.948005), 'last_asr_end': np.float64(63.568005), 'consistency_ratio': 1.0, 'transcription_count': 3, 'pattern_distribution': {'long_asr_no_silence': 3}}",
+          "original_similarity_detection": {
+            "duration": 5.0333333333333385,
+            "confidence": 0.95
+          }
+        }
+      },
+      "effective_duration": 63.948005
+    },
+    {
+      "video_path": "260306-待剪辑-漫剧网盘素材1/烈日重生/烈日重生-8.mp4",
+      "episode": 8,
+      "total_duration": 60.673991,
+      "ending_info": {
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_timing_normal_drama",
+        "features": {
+          "reason": "ASR时序模式修正误判",
+          "asr_timing_pattern": "{'asr_duration': np.float64(9.280000000000001), 'asr_coverage': np.float64(0.9280000000000002), 'silence_after_asr': np.float64(0.35999999999999943), 'has_long_asr': np.True_, 'has_long_silence': np.False_, 'pattern': 'long_asr_no_silence', 'reason': '长ASR(9.28秒) + 持续到结尾 → 正常剧情特征', 'first_asr_start': np.float64(51.033991), 'last_asr_end': np.float64(60.313991), 'consistency_ratio': 1.0, 'transcription_count': 3, 'pattern_distribution': {'long_asr_no_silence': 3}}",
+          "original_similarity_detection": {
+            "duration": 3.933333333333337,
+            "confidence": 0.95
+          }
+        }
+      },
+      "effective_duration": 60.673991
+    }
+  ]
+}

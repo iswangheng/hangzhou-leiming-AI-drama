@@ -495,19 +495,40 @@ ASR segments:
 
 ---
 
-### 3. 渲染多线程并行
+### 3. 渲染多线程并行 **✅ 已完成 (V16)**
+
+**状态**: ✅ 已完成 (2026-03-11)
 
 **问题描述**：
 - 当前渲染是串行的，每个剪辑逐一处理
-- 多个剪辑渲染耗时过长
+- 多个剪辑渲染耗时过长（10个剪辑约5分钟）
 
-**优化方案**：
-- 支持多进程并行渲染多个剪辑
-- 支持项目内剪辑并行、项目间也并行
+**实现方案** (V16):
+- 使用 `concurrent.futures.ProcessPoolExecutor` 实现多进程并行
+- 默认4个worker，可通过 `--parallel` 参数调整
+- 设为1禁用并行（调试用）
 
-**实现建议**：
-- 修改 `render_clips.py`，支持 `--parallel` 参数
-- 使用 `concurrent.futures.ProcessPoolExecutor` 实现多进程
+**修改文件**：
+- `scripts/understand/render_clips.py`
+  - 添加 `render_all_clips_parallel()` 方法
+  - 添加独立渲染函数 `render_single_clip_standalone()` 及辅助函数
+  - 添加 `--parallel` 命令行参数
+
+**使用方法**：
+```bash
+# 默认4个并行worker
+python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/项目名 漫剧素材/项目名
+
+# 指定8个并行worker
+python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/项目名 漫剧素材/项目名 --parallel 8
+
+# 串行模式（调试用）
+python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/项目名 漫剧素材/项目名 --parallel 1
+```
+
+**预期效果**：
+- 渲染时间：5分钟 → 1.5分钟（4个worker）
+- 节省：约3.5分钟/项目
 
 ---
 
@@ -578,6 +599,60 @@ ASR segments:
 
 ---
 
+### 8. ASR 并行提取和缓存复用 **✅ 已完成 (V15.9)**
+
+**状态**: ✅ 已完成 (2026-03-11)
+
+**问题描述**：
+- 当前 `load_episode_data()` 中的 ASR 提取是串行的，每集 30-60秒
+- 片尾检测阶段 `_auto_detect_ending_credits()` 又重新做 ASR - 重复工作！
+- 10集项目 ASR 耗时 ~8分钟
+
+**解决方案 (V15.9)**：
+1. **ASR 并行提取**：
+   - 使用 `ThreadPoolExecutor` 并行提取多集 ASR
+   - `max_workers=4`（建议不超过4，避免内存不足）
+   - 自动检测缓存，跳过已存在的 ASR
+
+2. **片尾检测缓存复用**：
+   - 修改 `_auto_detect_ending_credits()` 方法
+   - 先检查 ASR 缓存是否存在
+   - 如果存在，直接使用缓存，不做重复转录
+
+3. **命令行支持**：
+   - `detect_ending_credits.py` 添加 `--use-cached-asr` 参数
+
+**预期效果**：
+- ASR 提取时间：8分钟 → 2分钟（4个worker，75% 提升）
+- 片尾检测时间：3分钟 → 瞬间（使用缓存，97% 提升）
+- 总节省：约 9 分钟/项目
+
+**修改文件**：
+- `scripts/understand/video_understand.py`
+  - 新增 `extract_asr_parallel()` 函数
+  - 新增 `_extract_single_episode_asr()` 辅助函数
+  - 修改 `load_episode_data()` 支持并行 ASR 提取
+- `scripts/understand/render_clips.py`
+  - 修改 `_auto_detect_ending_credits()` 复用 ASR 缓存
+- `scripts/detect_ending_credits.py`
+  - 添加 `--use-cached-asr` 参数
+- `test/test_asr_parallel_and_cache.py` - 测试脚本
+
+**使用方法**：
+```bash
+# 1. ASR 并行提取（默认启用，4个worker）
+python -m scripts.understand.video_understand "漫剧素材/项目名"
+
+# 2. 片尾检测缓存复用（自动启用）
+python -m scripts.understand.render_clips data/.../项目名 漫剧素材/项目名
+
+# 3. 独立片尾检测（使用缓存）
+python -m scripts.detect_ending_credits 漫剧素材/项目名 --use-cached-asr
+```
+
+---
+
 ## 📝 更新日志
 
+- **2026-03-11**: ✅ V15.9 - ASR 并行提取和缓存复用优化完成
 - **2026-03-10**: 📋 记录V16待优化功能 - 剪辑筛选、片尾检测优化、渲染并行、空间管理、视频压缩等

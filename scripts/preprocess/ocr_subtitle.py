@@ -91,24 +91,35 @@ def extract_frames_for_ocr(
 
 
 def init_ocr_engine():
-    """初始化OCR引擎"""
+    """
+    初始化OCR引擎
+    
+    优先使用PaddleOCR（识别准确度更高），失败则回退到EasyOCR
+    """
+    # 优先尝试PaddleOCR
     try:
-        # 尝试导入EasyOCR（更轻量级）
-        from easyocr import Reader
-        ocr = Reader(['ch_sim', 'en'], gpu=False)
+        from paddleocr import PaddleOCR
+        # 简化参数，避免版本兼容问题
+        ocr = PaddleOCR(lang='ch')
+        # 测试初始化是否成功
+        test_img = np.zeros((100, 100, 3), dtype=np.uint8)
+        _ = ocr.ocr(test_img)
+        print("✅ 使用 PaddleOCR (识别准确度更高)")
         return ocr
     except ImportError:
-        print("⚠️ EasyOCR未安装，尝试使用PaddleOCR...")
-        try:
-            from paddleocr import PaddleOCR
-            ocr = PaddleOCR(use_angle_cls=True, lang='ch', use_gpu=False, show_log=False)
-            return ocr
-        except ImportError:
-            print("⚠️ PaddleOCR未安装")
-            return None
-        except Exception as e:
-            print(f"⚠️ OCR初始化失败: {e}")
-            return None
+        print("⚠️ PaddleOCR未安装，尝试使用EasyOCR...")
+    except Exception as e:
+        print(f"⚠️ PaddleOCR初始化失败: {e}，尝试使用EasyOCR...")
+    
+    # 回退到EasyOCR
+    try:
+        from easyocr import Reader
+        ocr = Reader(['ch_sim', 'en'], gpu=False)
+        print("✅ 使用 EasyOCR")
+        return ocr
+    except ImportError:
+        print("⚠️ EasyOCR也未安装")
+        return None
 
 
 def ocr_subtitle_region(
@@ -136,34 +147,101 @@ def ocr_subtitle_region(
 
     # OCR识别
     try:
-        if hasattr(ocr_engine, 'readtext'):  # EasyOCR
+        # 检测OCR引擎类型
+        engine_type = detect_ocr_engine_type(ocr_engine)
+        
+        if engine_type == 'paddleocr':
+            # PaddleOCR (新版API)
+            result = ocr_engine.ocr(subtitle_img)
+            if result and len(result) > 0:
+                # 新版PaddleOCR返回格式: [{'rec_texts': [...], 'rec_scores': [...], 'rec_polys': [...]}]
+                if isinstance(result[0], dict) and 'rec_texts' in result[0]:
+                    texts = result[0].get('rec_texts', [])
+                    # 新版PaddleOCR已经按从左到右顺序排列
+                    if texts:
+                        # 直接拼接所有文本（已按正确顺序）
+                        combined = ''
+                        for text in texts:
+                            # 清理文本，去除特殊字符
+                            text = text.strip()
+                            if text:
+                                combined += text
+                        return combined if combined else None
+                # 旧版PaddleOCR返回格式: [[(box, (text, confidence)), ...]]
+                elif result[0]:
+                    # 收集所有文本框及其位置
+                    text_boxes = []
+                    for line in result[0]:
+                        if isinstance(line, list) and len(line) >= 2:
+                            if isinstance(line[1], tuple) and len(line[1]) >= 1:
+                                text = line[1][0].strip()
+                                # 获取文本框位置（用于排序）
+                                box = line[0] if len(line) > 0 else None
+                                if box is not None and len(box) >= 4:
+                                    # 取左上角X坐标作为排序依据
+                                    x_min = min([p[0] for p in box])
+                                    text_boxes.append((x_min, text))
+                    
+                    if text_boxes:
+                        # 按X坐标从左到右排序
+                        text_boxes.sort(key=lambda x: x[0])
+                        combined = ''.join([text for _, text in text_boxes])
+                        return combined
+            return None
+            
+        elif engine_type == 'easyocr':
+            # EasyOCR
             result = ocr_engine.readtext(subtitle_img)
             if result:
-                texts = [line[1] for line in result]
-                return ' '.join(texts) if texts else None
-        else:  # PaddleOCR
-            result = ocr_engine.ocr(subtitle_img)
-            if result and result[0]:
-                texts = []
-                for line in result[0]:
-                    if line[1][0]:  # line[1][0] 是文字识别结果
-                        texts.append(line[1][0])
-                if texts:
-                    return ' '.join(texts)
-                return None
+                # EasyOCR返回: [(box, text, confidence), ...]
+                # 需要按位置排序
+                text_boxes = []
+                for line in result:
+                    if len(line) >= 2:
+                        text = line[1].strip()
+                        box = line[0]
+                        if box is not None and len(box) >= 4:
+                            # 取左上角X坐标
+                            x_min = min([p[0] for p in box])
+                            text_boxes.append((x_min, text))
+                
+                if text_boxes:
+                    text_boxes.sort(key=lambda x: x[0])
+                    combined = ''.join([text for _, text in text_boxes])
+                    return combined
+        
+        return None
+        
     except Exception as e:
-        print(f"OCR识别失败: {e}")
+        # 静默处理OCR错误
         return None
 
 
-    return None
+def detect_ocr_engine_type(ocr_engine) -> str:
+    """检测OCR引擎类型"""
+    if ocr_engine is None:
+        return 'unknown'
+    
+    engine_name = type(ocr_engine).__name__
+    if 'PaddleOCR' in engine_name or engine_name == 'PaddleOCR':
+        return 'paddleocr'
+    elif 'Reader' in engine_name:
+        return 'easyocr'
+    
+    # 通过属性判断
+    if hasattr(ocr_engine, 'readtext'):
+        return 'easyocr'
+    elif hasattr(ocr_engine, 'ocr'):
+        return 'paddleocr'
+    
+    return 'unknown'
 
 
 def detect_sensitive_words_from_ocr(
     video_path: str,
     sensitive_words: Set[str],
     subtitle_region: SubtitleRegion,
-    sample_fps: float = 1.0,
+    sample_fps: float = 2.0,
     verbose: bool = True,
     output_dir: Optional[str] = None
 ) -> List[SubtitleSegment]:
@@ -174,20 +252,36 @@ def detect_sensitive_words_from_ocr(
         video_path: 视频文件路径
         sensitive_words: 敏感词集合
         subtitle_region: 字幕区域配置
-        sample_fps: 采样帧率（每秒采样多少帧）
+        sample_fps: 采样帧率（默认2fps，平衡精度和性能）
+                      - 1fps: 精度1秒，粗略
+                      - 2fps: 精度0.5秒，推荐
+                      - 视频fps: 精确到帧，但耗时长
         verbose: 是否打印详细信息
         output_dir: 输出目录（可选，用于保存标注图）
 
     Returns:
         敏感词片段列表
     """
+    # 获取视频实际帧率
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        print(f"❌ 无法打开视频: {video_path}")
+        return []
+    
+    video_fps = cap.get(cv2.CAP_PROP_FPS)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    video_duration = total_frames / video_fps
+    cap.release()
+    
     if verbose:
         print("=" * 60)
         print("OCR字幕识别 - 敏感词检测")
         print("=" * 60)
         print(f"视频: {video_path}")
+        print(f"视频帧率: {video_fps} fps")
+        print(f"视频时长: {video_duration:.2f}秒")
         print(f"敏感词: {sensitive_words}")
-        print(f"采样率: {sample_fps} fps (每秒{sample_fps}帧)")
+        print(f"采样率: {sample_fps} fps (每{1.0/sample_fps*1000:.0f}ms采样1次)")
 
     # 初始化OCR引擎
     ocr_engine = init_ocr_engine()
@@ -213,6 +307,9 @@ def detect_sensitive_words_from_ocr(
     fps = cap.get(cv2.CAP_PROP_FPS)
     cap.release()
 
+    # 计算帧间隔（用于时间范围计算）
+    frame_duration = 1.0 / sample_fps
+
     # 对每帧进行OCR识别
     all_subtitle_segments = []
 
@@ -224,10 +321,10 @@ def detect_sensitive_words_from_ocr(
             # 检查是否包含敏感词
             for word in sensitive_words:
                 if word in subtitle_text:
-                    # 记录敏感词片段
+                    # 记录敏感词片段（使用采样率对应的精度）
                     segment = SubtitleSegment(
                         start_time=timestamp,
-                        end_time=timestamp + 1.0 / sample_fps,
+                        end_time=timestamp + frame_duration,
                         subtitle_text=subtitle_text,
                         sensitive_word=word,
                         frame_idx=frame_idx
@@ -235,7 +332,7 @@ def detect_sensitive_words_from_ocr(
                     all_subtitle_segments.append(segment)
 
                     if verbose:
-                        print(f"  帧 {frame_idx} ({timestamp:.1f}s): 发现敏感词 '{word}'")
+                        print(f"  帧 {frame_idx} ({timestamp:.3f}s): 发现敏感词 '{word}'")
                         print(f"     字幕: {subtitle_text}")
 
                     # 生成标注图（如果指定了输出目录）

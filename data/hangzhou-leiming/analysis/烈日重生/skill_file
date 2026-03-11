@@ -1,0 +1,12 @@
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'scripts.understand.video_understand' found in sys.modules after import of package 'scripts.understand', but prior to execution of 'scripts.understand.video_understand'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'scripts.understand.video_understand' found in sys.modules after import of package 'scripts.understand', but prior to execution of 'scripts.understand.video_understand'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+usage: video_understand.py [-h] [--force-skill] [--output-dir OUTPUT_DIR]
+                           [--no-cleanup]
+                           project_path [skill_file]
+usage: video_understand.py [-h] [--force-skill] [--output-dir OUTPUT_DIR]
+                           [--no-cleanup]
+                           project_path [skill_file]
+video_understand.py: error: unrecognized arguments: --skill-file skills/ai-drama-clipping-thoughts-v0.4.md
+video_understand.py: error: unrecognized arguments: --skill-file skills/ai-drama-clipping-thoughts-v0.4.md

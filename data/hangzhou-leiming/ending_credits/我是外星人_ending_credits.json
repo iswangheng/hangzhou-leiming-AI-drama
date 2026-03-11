@@ -1,0 +1,170 @@
+{
+  "project": "我是外星人",
+  "episodes": [
+    {
+      "video_path": "260310-待剪辑-360 短剧素材/我是外星人/1.mp4",
+      "episode": 1,
+      "total_duration": 170.602653,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 167.602653
+    },
+    {
+      "video_path": "260310-待剪辑-360 短剧素材/我是外星人/10.mp4",
+      "episode": 10,
+      "total_duration": 136.405011,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 133.405011
+    },
+    {
+      "video_path": "260310-待剪辑-360 短剧素材/我是外星人/11.mp4",
+      "episode": 11,
+      "total_duration": 95.457007,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 92.457007
+    },
+    {
+      "video_path": "260310-待剪辑-360 短剧素材/我是外星人/2.mp4",
+      "episode": 2,
+      "total_duration": 143.722653,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 140.722653
+    },
+    {
+      "video_path": "260310-待剪辑-360 短剧素材/我是外星人/3.mp4",
+      "episode": 3,
+      "total_duration": 105.088005,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 102.088005
+    },
+    {
+      "video_path": "260310-待剪辑-360 短剧素材/我是外星人/4.mp4",
+      "episode": 4,
+      "total_duration": 151.935986,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 148.935986
+    },
+    {
+      "video_path": "260310-待剪辑-360 短剧素材/我是外星人/5.mp4",
+      "episode": 5,
+      "total_duration": 103.488005,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 100.488005
+    },
+    {
+      "video_path": "260310-待剪辑-360 短剧素材/我是外星人/6.mp4",
+      "episode": 6,
+      "total_duration": 137.461995,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 134.461995
+    },
+    {
+      "video_path": "260310-待剪辑-360 短剧素材/我是外星人/7.mp4",
+      "episode": 7,
+      "total_duration": 136.085011,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 133.085011
+    },
+    {
+      "video_path": "260310-待剪辑-360 短剧素材/我是外星人/8.mp4",
+      "episode": 8,
+      "total_duration": 152.362653,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 149.362653
+    },
+    {
+      "video_path": "260310-待剪辑-360 短剧素材/我是外星人/9.mp4",
+      "episode": 9,
+      "total_duration": 162.121995,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 159.121995
+    }
+  ]
+}

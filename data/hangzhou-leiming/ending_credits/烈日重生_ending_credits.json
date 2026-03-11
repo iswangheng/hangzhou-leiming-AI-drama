@@ -1,0 +1,125 @@
+{
+  "project": "烈日重生",
+  "episodes": [
+    {
+      "video_path": "260306-待剪辑-漫剧网盘素材1/烈日重生/烈日重生-1.mp4",
+      "episode": 1,
+      "total_duration": 68.9,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 65.9
+    },
+    {
+      "video_path": "260306-待剪辑-漫剧网盘素材1/烈日重生/烈日重生-2.mp4",
+      "episode": 2,
+      "total_duration": 126.942993,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 123.942993
+    },
+    {
+      "video_path": "260306-待剪辑-漫剧网盘素材1/烈日重生/烈日重生-3.mp4",
+      "episode": 3,
+      "total_duration": 113.312993,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 110.312993
+    },
+    {
+      "video_path": "260306-待剪辑-漫剧网盘素材1/烈日重生/烈日重生-4.mp4",
+      "episode": 4,
+      "total_duration": 67.175011,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 64.175011
+    },
+    {
+      "video_path": "260306-待剪辑-漫剧网盘素材1/烈日重生/烈日重生-5.mp4",
+      "episode": 5,
+      "total_duration": 81.038005,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 78.038005
+    },
+    {
+      "video_path": "260306-待剪辑-漫剧网盘素材1/烈日重生/烈日重生-6.mp4",
+      "episode": 6,
+      "total_duration": 62.949002,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 59.949002
+    },
+    {
+      "video_path": "260306-待剪辑-漫剧网盘素材1/烈日重生/烈日重生-7.mp4",
+      "episode": 7,
+      "total_duration": 63.948005,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 60.948005
+    },
+    {
+      "video_path": "260306-待剪辑-漫剧网盘素材1/烈日重生/烈日重生-8.mp4",
+      "episode": 8,
+      "total_duration": 60.673991,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0,
+        "confidence": 0.8,
+        "method": "simplified_detection",
+        "features": {
+          "duration": 3.0
+        }
+      },
+      "effective_duration": 57.673991
+    }
+  ]
+}

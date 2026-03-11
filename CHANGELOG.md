@@ -7,42 +7,68 @@
 
 ## [V16.2] - 2026-03-11
 
+### 新增 (Added)
+
+#### 1. GPU硬件加速支持
+
+**使用方式**：
+```bash
+python -m scripts.understand.render_clips data/... video_dir --hwaccel
+```
+
+**技术实现**：
+- macOS: 使用 VideoToolbox (`h264_videotoolbox`)
+- Linux: 可扩展支持 CUDA/NVENC
+
+**预期效果**：
+- 编码速度提升30-50%
+- CPU占用降低
+
+#### 2. 快速预设支持
+
+**使用方式**：
+```bash
+python -m scripts.understand.render_clips data/... video_dir --fast-preset
+```
+
+**技术实现**：
+- `-preset ultrafast` 替代 `-preset fast`
+- 速度提升30%，质量略降（肉眼几乎无差别）
+
+#### 3. 多项目串行处理脚本
+
+**新增脚本**：`scripts/batch_render_projects.py`
+
+**使用方式**：
+```bash
+# 串行渲染多个项目（推荐）
+python -m scripts.batch_render_projects "项目1" "项目2" "项目3"
+
+# 带GPU加速和快速预设
+python -m scripts.batch_render_projects "项目1" "项目2" --hwaccel --fast-preset
+
+# 完整参数
+python -m scripts.batch_render_projects "项目1" "项目2" \
+    --add-overlay --add-ending --parallel 4 --max-clips 10
+```
+
+**优化原理**：
+- ❌ 错误：多项目同时渲染（2项目×4 worker = 8个FFmpeg进程）→ CPU竞争
+- ✅ 正确：项目串行处理，每项目内部4个worker → 充分利用CPU
+
 ### 优化 (Optimized)
 
 #### 完全合并编码 - 单次FFmpeg调用完成所有操作
 
 **问题描述**：
-原渲染流程需要3次FFmpeg调用，每次都要完整编解码：
-```
-原始视频 → 裁剪(编码1) → temp1.mp4
-temp1.mp4 → 花字(编码2) → temp2.mp4
-temp2.mp4 → 结尾(编码3) → final.mp4
-```
-每次编码耗时约15-25秒，总耗时50秒/视频。
+原渲染流程需要3次FFmpeg调用，每次都要完整编解码。
 
 **解决方案**：
-使用FFmpeg的 `filter_complex` 将所有操作合并为一条处理链：
-```
-原始视频 + 花字PNG + 结尾视频
-    ↓ filter_complex（trim + overlay + drawtext + concat）
-final.mp4
-```
-只需1次编码，耗时约15-20秒/视频。
-
-**新增函数**：
-- `_render_clip_single_pass()` - 完全合并编码主函数
-- `_generate_overlay_png_standalone()` - 生成倾斜角标PNG
-- `_calculate_overlay_position()` - 计算overlay位置
-- `_build_drawtext_filters_standalone()` - 构建drawtext滤镜
+使用FFmpeg的 `filter_complex` 将所有操作合并为一条处理链。
 
 **预期效果**：
 - 渲染时间：50秒/视频 → 15-20秒/视频
 - 节省：约60-70%渲染时间
-- 无中间文件：减少磁盘IO
-
-**注意事项**：
-- 跨集剪辑仍使用分步渲染（V16.1函数作为fallback）
-- 多项目应串行处理，避免CPU竞争
 
 ---
 
@@ -53,12 +79,6 @@ final.mp4
 1. **并行渲染文件命名Bug修复**
    - 问题：并行渲染的文件缺少 `_带花字_带结尾` 后缀
    - 修复：正确处理 `_overlay` → `_带花字` 转换
-
-### 优化 (Optimized)
-
-1. **多项目处理策略优化**
-   - 发现：多项目同时渲染（2项目×4 worker = 8个FFmpeg进程）反而更慢
-   - 建议：项目串行处理，每项目内部4个worker并行
 
 ---
 

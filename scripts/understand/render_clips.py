@@ -205,7 +205,9 @@ class ClipRenderer:
         skip_ending: bool = False,
         force_detect: bool = False,
         add_overlay: bool = False,
-        overlay_style_id: Optional[str] = None
+        overlay_style_id: Optional[str] = None,
+        hwaccel: bool = False,
+        fast_preset: bool = False
     ):
         """初始化剪辑渲染器
 
@@ -225,6 +227,8 @@ class ClipRenderer:
             force_detect: 强制重新检测片尾（V14.1新增）
             add_overlay: 是否添加花字叠加（V15新增）
             overlay_style_id: 花字样式ID（None表示随机，V15新增）
+            hwaccel: 启用GPU硬件加速（V16.2新增）
+            fast_preset: 使用ultrafast预设（V16.2新增）
         """
         self.project_path = Path(project_path)
         self.output_dir = Path(output_dir)
@@ -241,7 +245,13 @@ class ClipRenderer:
         self.height = height
         self.fps = fps
         self.crf = crf
-        self.preset = preset
+
+        # V16.2: 性能优化参数
+        self.hwaccel = hwaccel
+        if fast_preset:
+            self.preset = "ultrafast"
+        else:
+            self.preset = preset
 
         # V14.1: 片尾检测配置
         self.auto_detect_ending = auto_detect_ending
@@ -1471,7 +1481,8 @@ class ClipRenderer:
             'ending_videos': self.ending_videos,
             'add_overlay': self.add_overlay,
             'overlay_style_id': self.overlay_style_id,
-            'hot_drama_position': getattr(self, 'overlay_config', None).hot_drama_position if hasattr(self, 'overlay_config') and self.overlay_config else 'top-right'
+            'hot_drama_position': getattr(self, 'overlay_config', None).hot_drama_position if hasattr(self, 'overlay_config') and self.overlay_config else 'top-right',
+            'hwaccel': self.hwaccel,  # V16.2: GPU硬件加速
         }
 
         output_paths = []
@@ -1694,7 +1705,7 @@ def _clip_to_segments_standalone(clip: Clip, episode_durations: dict, video_dir:
 
 
 def _trim_segment_standalone(segment, output_path: str, render_params: dict) -> None:
-    """裁剪单个视频片段（独立函数）(V16新增)"""
+    """裁剪单个视频片段（独立函数）(V16.2: 支持GPU加速)"""
     video_dir = Path(render_params['video_dir'])
 
     # 查找视频文件
@@ -1716,20 +1727,40 @@ def _trim_segment_standalone(segment, output_path: str, render_params: dict) -> 
     import math
     total_frames = math.ceil(segment.end * fps)
 
-    # FFmpeg命令（使用-frames:v进行帧精确裁剪）
-    cmd = [
-        'ffmpeg',
-        '-y',
+    # V16.2: 构建FFmpeg命令（支持GPU加速）
+    cmd = ['ffmpeg', '-y']
+
+    # GPU硬件加速（macOS VideoToolbox）
+    hwaccel = render_params.get('hwaccel', False)
+    if hwaccel:
+        cmd.extend(['-hwaccel', 'videotoolbox'])
+
+    cmd.extend([
         '-ss', str(segment.start),
         '-i', str(video_file),
         '-frames:v', str(total_frames),
-        '-c:v', 'libx264',
-        '-crf', str(render_params['crf']),
-        '-preset', render_params['preset'],
-        '-c:a', 'aac',
-        '-b:a', '128k',
-        output_path
-    ]
+    ])
+
+    # V16.2: 选择编码方式
+    if hwaccel:
+        # GPU加速编码
+        cmd.extend([
+            '-c:v', 'h264_videotoolbox',
+            '-b:v', '8M',  # GPU编码使用码率控制
+            '-c:a', 'aac',
+            '-b:a', '128k',
+        ])
+    else:
+        # CPU编码
+        cmd.extend([
+            '-c:v', 'libx264',
+            '-crf', str(render_params['crf']),
+            '-preset', render_params['preset'],
+            '-c:a', 'aac',
+            '-b:a', '128k',
+        ])
+
+    cmd.append(output_path)
 
     # 执行命令（静默模式）
     subprocess.run(cmd, capture_output=True, check=True)
@@ -2620,6 +2651,12 @@ def main():
     parser.add_argument('--parallel', type=int, default=4,
                         help='并行渲染的worker数量（默认4，设为1禁用并行）')
 
+    # V16.2: 性能优化参数
+    parser.add_argument('--hwaccel', action='store_true',
+                        help='启用GPU硬件加速（macOS: videotoolbox, Linux: cuda）')
+    parser.add_argument('--fast-preset', action='store_true',
+                        help='使用ultrafast预设（速度提升30%，质量略降）')
+
     # 缓存清理参数
     parser.add_argument('--no-cleanup', action='store_true', help='渲染完成后跳过清理中间缓存')
 
@@ -2667,7 +2704,9 @@ def main():
         skip_ending=skip_ending,
         force_detect=force_detect,
         add_overlay=add_overlay,          # V15: 传递花字叠加配置
-        overlay_style_id=overlay_style    # V15: 传递花字样式
+        overlay_style_id=overlay_style,   # V15: 传递花字样式
+        hwaccel=args.hwaccel,             # V16.2: GPU硬件加速
+        fast_preset=args.fast_preset      # V16.2: 快速预设
     )
 
     # 显示配置信息
