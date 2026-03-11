@@ -22,7 +22,12 @@ python -m scripts.understand.render_clips data/... video_dir --hwaccel
 - **Linux**: NVIDIA NVENC / Intel QuickSync / VAAPI
 
 **自动检测**：
-新增 `_detect_gpu_encoder()` 函数，自动检测最佳可用编码器
+```bash
+# 检测系统GPU加速支持
+python -m scripts.setup_gpu_accel
+```
+
+**详细文档**: `docs/GPU_ACCELERATION_GUIDE.md`
 
 **预期效果**：
 - 编码速度提升30-50%
