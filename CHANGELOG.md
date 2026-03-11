@@ -5,6 +5,153 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V16.4] - 2026-03-11
+
+### 重构 (Refactored)
+
+#### 1. 数据目录结构优化
+
+**变更描述**：移除不必要的 "hangzhou-leiming" 中间层，简化目录结构。
+
+**变更前**：
+```
+data/hangzhou-leiming/
+├── analysis/
+├── cache/
+├── ending_credits/
+└── skills/
+```
+
+**变更后**：
+```
+data/
+├── analysis/
+├── cache/
+├── ending_credits/
+└── skills/
+```
+
+**影响范围**：
+- 更新了所有核心脚本的路径配置
+- 迁移了现有数据到新目录
+
+**清理**：删除了约20个一次性测试/比较脚本，保留核心功能脚本
+
+## [V16.3] - 2026-03-11
+
+### 新增 (Added)
+
+#### 1. 智能Worker数调节
+
+**功能描述**：根据硬件配置自动计算最优并行worker数。
+
+**使用方式**：
+```bash
+# 自动计算（默认行为）
+python -m scripts.understand.render_clips ... --parallel 0
+
+# 手动指定
+python -m scripts.understand.render_clips ... --parallel 4
+```
+
+**调节策略**：
+- **GPU加速模式**：2个worker（GPU是瓶颈，过多worker导致竞争）
+- **CPU模式**：`max(2, CPU核心数÷2)`（留一半核心给系统）
+
+#### 2. 结尾视频预缓存
+
+**功能描述**：项目渲染开始时预先处理所有结尾视频，避免每个剪辑重复预处理。
+
+**使用方式**：
+```bash
+# 使用缓存（默认行为）
+python -m scripts.understand.render_clips ...
+
+# 强制重新缓存
+python -m scripts.understand.render_clips ... --force-recache
+```
+
+**缓存位置**：`cache/endings/{project_name}/`
+
+**预期效果**：每个剪辑节省2-5秒预处理时间
+
+### 优化 (Optimized)
+
+#### 1. 完全单次编码 - 真正的一条FFmpeg命令完成所有操作
+
+**问题描述**：
+V16.2版本在有结尾视频时仍需要2次FFmpeg调用：
+1. 裁剪+花字 → 临时文件
+2. 预处理结尾视频 → 临时文件
+3. 拼接 → 最终文件
+
+**解决方案**：
+使用FFmpeg的 `filter_complex` 将所有操作（裁剪、缩放、花字、结尾拼接）合并为一条处理链。
+
+**支持的完整场景**：
+- **场景A: 单集 + 无结尾**
+  ```
+  [0:v]trim → setpts → scale → drawtext(剧名+免责) → overlay(角标PNG) → out
+  ```
+- **场景B: 单集 + 有结尾**
+  ```
+  [0:v]trim → setpts → scale → drawtext → overlay → concat → out
+  [0:a]atrim → asetpts → [a_ending]adelay → concat → out
+  ```
+- **场景C: 跨集 + 有结尾**
+  ```
+  [0:v]trim → [1:v]trim → concat → scale → drawtext → overlay → concat → out
+  [0:a]atrim → [1:a]atrim → concat → [a_ending]adelay → concat → out
+  ```
+
+**核心技术实现**：
+1. **视频处理链**：
+   - `trim` + `setpts`：帧级精确裁剪
+   - `scale`：分辨率自适应（360p→720p, 1080p保持）
+   - `drawtext`：剧名+免责声明叠加
+   - `overlay`：倾斜角标PNG叠加
+   - `concat`：多段/结尾视频拼接
+
+2. **音频处理链**：
+   - `atrim` + `asetpts`：音频裁剪
+   - `adelay`：结尾音频延迟同步
+   - `concat`：多段音频拼接
+
+3. **结尾视频预处理（内联）**：
+   - `scale` + `pad`：分辨率匹配
+   - `fps`：帧率匹配
+   - `setsar=1`：宽高比标准化
+
+**预期效果**：
+- 渲染时间：50秒/视频 → 10-15秒/视频（相比V16.2再提升30-50%）
+- 总优化效果：从原来3次编码到现在1次编码，节省约70-80%时间
+
+#### 2. 分辨率自适应输出（V16.3新增）
+
+**功能描述**：
+自动将低分辨率素材提升到标准输出分辨率。
+
+**策略**：
+- 360p/480p素材 → 输出720p
+- 720p素材 → 输出720p
+- 1080p素材 → 输出1080p
+
+**使用Lanczos缩放算法**：
+```python
+scale_filter = f"scale={output_width}:{output_height}:flags=lanczos"
+```
+
+#### 3. 智能Worker数调节（V16.3新增）
+
+**功能描述**：
+根据硬件配置自动计算最优worker数量。
+
+**策略**：
+- **GPU加速模式**：2个worker（GPU是瓶颈）
+- **CPU模式**：CPU核心数÷2（留一半给系统）
+
+---
+
 ## [V16.2] - 2026-03-11
 
 ### 新增 (Added)

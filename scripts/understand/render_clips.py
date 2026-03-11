@@ -8,6 +8,7 @@ V14.8: 修复片尾剪切精度和音视频同步问题
 V15: 新增视频包装花字叠加功能
 V15.6: 修复处理顺序 + 热门短剧位置随机化（左上/右上各50%概率）
 V16: 新增并行渲染功能（多进程加速）
+V16.3: 智能Worker数调节 + 分辨率自适应输出 + 结尾视频预缓存
 """
 import os
 import json
@@ -39,6 +40,50 @@ def format_time(seconds: int) -> str:
         minutes = seconds // 60
         secs = seconds % 60
         return f"{minutes}分{secs}秒"
+
+
+def _get_optimal_workers(hwaccel: bool = False) -> int:
+    """V16.3: 根据硬件配置自动计算最优worker数
+
+    Args:
+        hwaccel: 是否启用GPU加速
+
+    Returns:
+        最优的worker数量
+    """
+    cpu_count = multiprocessing.cpu_count()
+
+    if hwaccel:
+        # GPU加速模式：GPU是瓶颈，2个worker足够
+        # 过多worker会导致GPU竞争
+        return 2
+    else:
+        # CPU模式：根据CPU核心数动态调整
+        # 留一半核心给系统，避免卡顿
+        return max(2, cpu_count // 2)
+
+
+def _get_output_resolution(input_width: int, input_height: int) -> tuple:
+    """V16.3: 智能选择输出分辨率
+
+    Args:
+        input_width: 输入视频宽度
+        input_height: 输入视频高度
+
+    Returns:
+        (output_width, output_height) 输出分辨率
+    """
+    smaller = min(input_width, input_height)
+
+    if smaller <= 480:
+        # 360p/480p素材 → 输出720p
+        return (720, 1280) if input_height > input_width else (1280, 720)
+    elif smaller <= 720:
+        # 720p素材 → 输出720p
+        return (720, 1280) if input_height > input_width else (1280, 720)
+    else:
+        # 1080p素材 → 输出1080p
+        return (1080, 1920) if input_height > input_width else (1920, 1080)
 
 
 @dataclass
@@ -207,7 +252,8 @@ class ClipRenderer:
         add_overlay: bool = False,
         overlay_style_id: Optional[str] = None,
         hwaccel: bool = False,
-        fast_preset: bool = False
+        fast_preset: bool = False,
+        force_recache: bool = False
     ):
         """初始化剪辑渲染器
 
@@ -229,6 +275,7 @@ class ClipRenderer:
             overlay_style_id: 花字样式ID（None表示随机，V15新增）
             hwaccel: 启用GPU硬件加速（V16.2新增）
             fast_preset: 使用ultrafast预设（V16.2新增）
+            force_recache: 强制重新缓存结尾视频（V16.3新增）
         """
         self.project_path = Path(project_path)
         self.output_dir = Path(output_dir)
@@ -262,6 +309,10 @@ class ClipRenderer:
         # V14: 结尾视频配置
         self.add_ending_clip = add_ending_clip
         self.ending_videos = self._load_ending_videos() if add_ending_clip else []
+
+        # V16.3: 结尾视频预缓存配置
+        self.force_recache = force_recache
+        self.cached_endings = {}  # {原始路径: 缓存路径} 映射
 
         # V15: 花字叠加配置
         self.add_overlay = add_overlay
@@ -417,7 +468,7 @@ class ClipRenderer:
 
     def _get_ending_cache_file(self) -> Path:
         """获取片尾缓存文件路径"""
-        # 缓存文件保存在 data/hangzhou-leiming/ending_credits/ 目录下
+        # 缓存文件保存在 data/ending_credits/ 目录下
         cache_dir = self.project_path.parent.parent / "ending_credits"
         return cache_dir / f"{self.project_name}_ending_credits.json"
 
@@ -677,6 +728,131 @@ class ClipRenderer:
             return None
 
         return random.choice(self.ending_videos)
+
+    def _get_target_fps(self) -> float:
+        """V16.3: 获取项目视频的目标帧率
+
+        使用第一个可用视频的帧率作为目标帧率
+
+        Returns:
+            目标帧率（FPS）
+        """
+        if self.video_files:
+            # 使用第一个视频的帧率
+            first_ep = min(self.video_files.keys())
+            return self.video_files[first_ep].fps
+        return float(self.fps)  # 回退到默认值
+
+    def _get_target_resolution(self) -> tuple:
+        """V16.3: 获取项目视频的目标分辨率
+
+        使用第一个可用视频的分辨率，并根据V16.3智能分辨率策略调整
+
+        Returns:
+            (width, height) 目标分辨率
+        """
+        if not self.video_files:
+            return (self.width, self.height)
+
+        # 获取第一个视频的分辨率
+        first_ep = min(self.video_files.keys())
+        video_path = self.video_files[first_ep].path
+
+        cmd = [
+            'ffprobe', '-v', 'error',
+            '-select_streams', 'v:0',
+            '-show_entries', 'stream=width,height',
+            '-of', 'csv=p=0',
+            video_path
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            return (self.width, self.height)
+
+        parts = result.stdout.strip().split(',')
+        input_width = int(parts[0])
+        input_height = int(parts[1])
+
+        # 使用V16.3的智能分辨率选择
+        return _get_output_resolution(input_width, input_height)
+
+    def _precache_ending_videos(self) -> dict:
+        """V16.3: 预缓存结尾视频
+
+        在项目渲染开始时，预先处理所有结尾视频，
+        转换为与项目视频相同的参数（帧率、分辨率）。
+        这样在后续每个剪辑渲染时可以直接使用缓存的结尾视频，
+        避免重复预处理。
+
+        Returns:
+            {原始路径: 缓存路径} 映射字典
+        """
+        if not self.ending_videos:
+            return {}
+
+        # 创建缓存目录
+        cache_dir = Path(f"cache/endings/{self.project_name}")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
+        # 获取项目视频的统一参数
+        target_fps = self._get_target_fps()
+        target_width, target_height = self._get_target_resolution()
+
+        print(f"  目标参数: {target_width}x{target_height}, {target_fps:.2f}fps")
+
+        cached_endings = {}
+
+        for ending_path in self.ending_videos:
+            ending_path_obj = Path(ending_path)
+            cache_filename = f"{ending_path_obj.stem}_{target_width}x{target_height}_{int(target_fps)}fps.mp4"
+            cache_path = cache_dir / cache_filename
+
+            # 检查缓存是否已存在且不需要强制更新
+            if cache_path.exists() and not self.force_recache:
+                cached_endings[ending_path] = str(cache_path)
+                print(f"  ✅ 使用缓存: {ending_path_obj.name}")
+                continue
+
+            # 预处理结尾视频
+            print(f"  🔄 预处理: {ending_path_obj.name}")
+
+            # 获取结尾视频时长
+            cmd = [
+                'ffprobe', '-v', 'error',
+                '-select_streams', 'v:0',
+                '-show_entries', 'stream=duration',
+                '-of', 'default=noprint_wrappers=1:nokey=1',
+                str(ending_path)
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            video_duration = float(result.stdout.strip()) if result.returncode == 0 else 5.0
+
+            # 转换结尾视频（匹配分辨率和帧率）
+            cmd = [
+                'ffmpeg', '-y',
+                '-i', str(ending_path),
+                '-vf', f'scale={target_width}:{target_height}:force_original_aspect_ratio=decrease,pad={target_width}:{target_height}:(ow-iw)/2:(oh-ih)/2,fps={target_fps}',
+                '-r', str(target_fps),
+                '-c:v', 'libx264',
+                '-preset', self.preset,
+                '-crf', str(self.crf),
+                '-c:a', 'aac',
+                '-b:a', '128k',
+                '-vsync', 'cfr',  # 确保帧率一致
+                '-movflags', '+faststart',
+                str(cache_path)
+            ]
+
+            try:
+                subprocess.run(cmd, capture_output=True, check=True)
+                cached_endings[ending_path] = str(cache_path)
+                print(f"     ✅ 缓存完成: {cache_filename}")
+            except subprocess.CalledProcessError as e:
+                print(f"     ❌ 预处理失败: {e}")
+                # 预处理失败时，使用原始路径
+                cached_endings[ending_path] = ending_path
+
+        return cached_endings
 
     def _find_video_file(self, episode: int) -> Optional[Path]:
         """查找指定集数的视频文件
@@ -1370,6 +1546,12 @@ class ClipRenderer:
         Returns:
             输出文件路径列表
         """
+        # V16.3: 预缓存结尾视频
+        if self.add_ending_clip and self.ending_videos:
+            print("\n📁 预缓存结尾视频...")
+            self.cached_endings = self._precache_ending_videos()
+            print(f"   已缓存 {len(self.cached_endings)} 个结尾视频")
+
         clips_data = self.result.get('clips', [])
 
         # V15.7: 支持限制剪辑数量
@@ -1440,6 +1622,12 @@ class ClipRenderer:
         Returns:
             输出文件路径列表
         """
+        # V16.3: 预缓存结尾视频
+        if self.add_ending_clip and self.ending_videos:
+            print("\n📁 预缓存结尾视频（并行模式）...")
+            self.cached_endings = self._precache_ending_videos()
+            print(f"   已缓存 {len(self.cached_endings)} 个结尾视频")
+
         clips_data = self.result.get('clips', [])
 
         # 如果max_workers<=1，回退到串行模式
@@ -2025,7 +2213,7 @@ def _extract_episode_number_standalone(filename: str) -> Optional[int]:
 
 
 # ============================================================================
-# V16.2: 完全合并编码优化 - 单次FFmpeg命令完成所有操作
+# V16.3: 完全单次编码优化 - 一条FFmpeg命令完成所有操作（真正的单次编码）
 # ============================================================================
 
 def _render_clip_single_pass(
@@ -2033,12 +2221,17 @@ def _render_clip_single_pass(
     clip_data: dict,
     render_params: dict
 ) -> Optional[str]:
-    """V16.2 完全合并编码：单次FFmpeg命令完成裁剪+花字+结尾
+    """V16.3 完全单次编码：一条FFmpeg命令完成裁剪+花字+结尾
 
     核心优化：
     - 原来：3次FFmpeg调用（裁剪→花字→结尾），每次都要完整编解码
-    - 现在：1次FFmpeg调用，使用filter_complex链式处理
-    - 速度提升：预计50-70%
+    - 现在：1次FFmpeg调用，使用filter_complex链式处理所有场景
+    - 速度提升：预计60-80%
+
+    支持场景：
+    - 场景A: 单集 + 无结尾（裁剪 → 分辨率缩放 → 花字）
+    - 场景B: 单集 + 有结尾（裁剪 → 分辨率缩放 → 花字 → 结尾拼接）
+    - 场景C: 跨集 + 有结尾（多段裁剪 → 拼接 → 分辨率缩放 → 花字 → 结尾拼接）
 
     Args:
         clip_index: 剪辑索引
@@ -2110,134 +2303,256 @@ def _render_clip_single_pass(
         # 判断是否跨集
         is_cross_episode = clip.episode != clip.hookEpisode
 
-        # ===== 核心优化：单次FFmpeg调用 =====
+        # ===== 核心优化：完全单次FFmpeg调用 =====
 
-        if is_cross_episode:
-            # 跨集情况：仍需分步处理（拼接需要中间文件）
-            # 但可以优化为：裁剪+拼接 → 花字+结尾（2次编码）
-            return _render_clip_unified_standalone(clip_index, clip_data, render_params)
-
-        # ===== 不跨集：完全合并编码 =====
-
-        video_file = find_video_file(clip.episode)
-        if not video_file:
+        # 获取第一集视频的分辨率和帧率（用于统一处理）
+        first_video_file = find_video_file(clip.episode)
+        if not first_video_file:
             raise FileNotFoundError(f"找不到第{clip.episode}集视频")
 
-        # 获取视频信息
-        fps = _get_video_fps_standalone(str(video_file))
-        total_frames = math.ceil(end_in_episode * fps)
-
-        # 获取视频分辨率
         probe_cmd = [
             'ffprobe', '-v', 'error',
             '-select_streams', 'v:0',
-            '-show_entries', 'stream=width,height',
-            '-of', 'csv=p=0', str(video_file)
+            '-show_entries', 'stream=width,height,r_frame_rate',
+            '-of', 'csv=p=0', str(first_video_file)
         ]
         result = subprocess.run(probe_cmd, capture_output=True, text=True)
-        video_width, video_height = map(int, result.stdout.strip().split(','))
+        parts = result.stdout.strip().split(',')
+        input_width = int(parts[0])
+        input_height = int(parts[1])
+
+        # 解析帧率
+        fps_str = parts[2] if len(parts) > 2 else '30/1'
+        if '/' in fps_str:
+            num, den = fps_str.split('/')
+            video_fps = float(num) / float(den)
+        else:
+            video_fps = float(fps_str)
+
+        # V16.3: 智能选择输出分辨率
+        output_width, output_height = _get_output_resolution(input_width, input_height)
+        need_scale = (output_width != input_width or output_height != input_height)
+        if need_scale:
+            print(f"  📐 分辨率自适应: {input_width}x{input_height} → {output_width}x{output_height}")
 
         # ===== 构建filter_complex =====
         filter_parts = []
-        input_count = 1  # 输入视频是[0:v]
+        audio_filter_parts = []
 
-        # 1. 裁剪（使用trim + setpts）
-        trim_filter = f"[0:v]trim=start={start_in_episode}:duration={end_in_episode-start_in_episode},setpts=PTS-STARTPTS[v_trim]"
-        filter_parts.append(trim_filter)
+        # 收集所有输入文件
+        input_files = []
+        input_idx = 0
 
-        current_stream = "[v_trim]"
+        # 场景判断和处理
+        if not is_cross_episode:
+            # ===== 场景A/B: 单集剪辑 =====
+            video_file = find_video_file(clip.episode)
+            input_files.append(str(video_file))
 
-        # 2. 花字叠加（如果启用）
+            # 1. 视频裁剪
+            duration = end_in_episode - start_in_episode
+            trim_filter = f"[{input_idx}:v]trim=start={start_in_episode}:duration={duration},setpts=PTS-STARTPTS[v_trim]"
+            filter_parts.append(trim_filter)
+
+            # 2. 音频裁剪
+            atrim_filter = f"[{input_idx}:a]atrim=start={start_in_episode}:duration={duration},asetpts=PTS-STARTPTS[a_trim]"
+            audio_filter_parts.append(atrim_filter)
+
+            current_v_stream = "[v_trim]"
+            current_a_stream = "[a_trim]"
+
+        else:
+            # ===== 场景C: 跨集剪辑 =====
+            # 需要裁剪多个片段然后拼接
+
+            # 计算需要裁剪的片段
+            segments = []
+            for ep in range(clip.episode, clip.hookEpisode + 1):
+                video_file = find_video_file(ep)
+                if not video_file:
+                    raise FileNotFoundError(f"找不到第{ep}集视频")
+
+                # 计算该集内的裁剪时间
+                ep_cumulative_before = sum(
+                    episode_durations[e] for e in sorted(episode_durations.keys()) if e < ep
+                )
+                ep_start = max(0, clip.start - ep_cumulative_before)
+                ep_end = min(episode_durations[ep], clip.end - ep_cumulative_before)
+
+                if ep_start < ep_end:
+                    segments.append({
+                        'episode': ep,
+                        'video_file': str(video_file),
+                        'start': ep_start,
+                        'end': ep_end,
+                        'duration': ep_end - ep_start
+                    })
+
+            if not segments:
+                raise ValueError("跨集剪辑没有有效的片段")
+
+            # 为每个片段添加裁剪滤镜
+            trim_outputs_v = []
+            trim_outputs_a = []
+
+            for seg in segments:
+                input_files.append(seg['video_file'])
+
+                # 视频裁剪
+                trim_filter = f"[{input_idx}:v]trim=start={seg['start']}:duration={seg['duration']},setpts=PTS-STARTPTS[v_trim_{input_idx}]"
+                filter_parts.append(trim_filter)
+
+                # 音频裁剪
+                atrim_filter = f"[{input_idx}:a]atrim=start={seg['start']}:duration={seg['duration']},asetpts=PTS-STARTPTS[a_trim_{input_idx}]"
+                audio_filter_parts.append(atrim_filter)
+
+                trim_outputs_v.append(f"[v_trim_{input_idx}]")
+                trim_outputs_a.append(f"[a_trim_{input_idx}]")
+                input_idx += 1
+
+            # 拼接所有片段
+            if len(trim_outputs_v) > 1:
+                concat_v_inputs = ''.join(trim_outputs_v)
+                concat_a_inputs = ''.join(trim_outputs_a)
+                concat_v_filter = f"{concat_v_inputs}concat=n={len(trim_outputs_v)}:v=1:a=0[v_concat]"
+                concat_a_filter = f"{concat_a_inputs}concat=n={len(trim_outputs_a)}:v=0:a=1[a_concat]"
+                filter_parts.append(concat_v_filter)
+                audio_filter_parts.append(concat_a_filter)
+                current_v_stream = "[v_concat]"
+                current_a_stream = "[a_concat]"
+            else:
+                current_v_stream = trim_outputs_v[0]
+                current_a_stream = trim_outputs_a[0]
+
+        # 3. V16.3: 分辨率缩放（如果需要）
+        if need_scale:
+            scale_filter = f"{current_v_stream}scale={output_width}:{output_height}:flags=lanczos[v_scale]"
+            filter_parts.append(scale_filter)
+            current_v_stream = "[v_scale]"
+
+        # 4. 添加花字（drawtext）- 使用输出分辨率计算
+        if add_overlay:
+            drawtext_filters = _build_drawtext_filters_standalone(
+                output_width, output_height, project_name, render_params
+            )
+            if drawtext_filters:
+                drawtext_chain = ','.join(drawtext_filters)
+                drawtext_filter = f"{current_v_stream}{drawtext_chain}[v_text]"
+                filter_parts.append(drawtext_filter)
+                current_v_stream = "[v_text]"
+
+        # 5. 添加倾斜角标（overlay PNG）- 使用输出分辨率计算
         overlay_png_path = None
         if add_overlay:
             try:
-                # 生成倾斜角标PNG
                 overlay_png_path = _generate_overlay_png_standalone(
-                    video_width, video_height, project_name, render_params, output_dir
+                    output_width, output_height, project_name, render_params, output_dir
                 )
                 if overlay_png_path:
                     temp_files.append(overlay_png_path)
-                    input_count += 1
-                    overlay_input_idx = input_count - 1
+                    input_files.append(overlay_png_path)
 
-                    # 计算overlay位置
-                    x, y = _calculate_overlay_position(video_width, video_height, render_params)
+                    # 计算overlay位置（使用输出分辨率）
+                    x, y = _calculate_overlay_position(output_width, output_height, render_params)
 
                     # overlay滤镜
-                    overlay_filter = f"{current_stream}[{overlay_input_idx}:v]overlay=x={x}:y={y}[v_overlay]"
+                    overlay_filter = f"{current_v_stream}[{input_idx}:v]overlay=x={x}:y={y}[v_overlay]"
                     filter_parts.append(overlay_filter)
-                    current_stream = "[v_overlay]"
+                    current_v_stream = "[v_overlay]"
+                    input_idx += 1
             except Exception as e:
                 print(f"  ⚠️ 花字PNG生成失败: {e}")
 
-        # 3. drawtext（剧名、免责声明）
-        drawtext_filters = _build_drawtext_filters_standalone(
-            video_width, video_height, project_name, render_params
-        )
-        if drawtext_filters:
-            drawtext_chain = ','.join(drawtext_filters)
-            drawtext_filter = f"{current_stream}{drawtext_chain}[v_text]"
-            filter_parts.append(drawtext_filter)
-            current_stream = "[v_text]"
-
-        # 4. 结尾拼接（如果启用）
+        # 6. 结尾拼接（如果启用）- 真正的单次编码
         ending_video_path = None
         if add_ending:
-            # 随机选择结尾视频
             ending_video_path = random.choice(render_params['ending_videos'])
+            input_files.append(ending_video_path)
 
-            # 预处理结尾视频（需要先获取当前流的分辨率）
-            # 由于是filter_complex，我们需要先处理主体视频，然后拼接
-            # 这增加了复杂性，所以这里采用分步方式
-            pass
+            # 获取主体视频时长（用于音频延迟）
+            if not is_cross_episode:
+                main_duration = end_in_episode - start_in_episode
+            else:
+                main_duration = sum(seg['duration'] for seg in segments)
 
-        # ===== 构建FFmpeg命令 =====
-        filter_complex = ';'.join(filter_parts)
+            # 预处理结尾视频：缩放到相同分辨率 + 帧率转换
+            # scale滤镜确保分辨率一致，fps滤镜确保帧率一致
+            ending_v_filter = f"[{input_idx}:v]scale={output_width}:{output_height}:force_original_aspect_ratio=decrease,pad={output_width}:{output_height}:(ow-iw)/2:(oh-ih)/2,fps={video_fps},setsar=1[v_ending]"
+            filter_parts.append(ending_v_filter)
 
-        # 输入参数
-        inputs = ['-ss', str(start_in_episode), '-i', str(video_file)]
+            # 音频延迟（adelay单位是毫秒）
+            delay_ms = int(main_duration * 1000)
+            ending_a_filter = f"[{input_idx}:a]adelay={delay_ms}|{delay_ms}[a_ending_delay]"
+            audio_filter_parts.append(ending_a_filter)
 
-        # 添加overlay PNG输入
-        if overlay_png_path:
-            inputs.extend(['-i', overlay_png_path])
+            # 拼接主体视频和结尾视频
+            concat_final_v = f"{current_v_stream}[v_ending]concat=n=2:v=1:a=0[v_out]"
+            concat_final_a = f"{current_a_stream}[a_ending_delay]concat=n=2:v=0:a=1[a_out]"
+            filter_parts.append(concat_final_v)
+            audio_filter_parts.append(concat_final_a)
 
-        # 基础命令
+            final_v_stream = "[v_out]"
+            final_a_stream = "[a_out]"
+            input_idx += 1
+        else:
+            # 无结尾视频，直接使用当前流
+            final_v_stream = current_v_stream
+            final_a_stream = current_a_stream
+
+        # ===== 构建完整FFmpeg命令 =====
+
+        # 合并所有filter
+        all_filters = filter_parts + audio_filter_parts
+        filter_complex = ';'.join(all_filters)
+
+        # 构建输入参数
+        inputs = []
+        for f in input_files:
+            inputs.extend(['-i', f])
+
+        # 构建输出映射
+        map_outputs = []
+        if add_ending:
+            map_outputs.extend(['-map', final_v_stream.replace('[', '').replace(']', '')])
+            map_outputs.extend(['-map', final_a_stream.replace('[', '').replace(']', '')])
+        else:
+            # 无结尾时，映射视频和原始音频
+            map_outputs.extend(['-map', final_v_stream.replace('[', '').replace(']', '')])
+            if not is_cross_episode:
+                map_outputs.extend(['-map', '0:a?'])
+            else:
+                # 跨集时，音频已经通过concat处理
+                map_outputs.extend(['-map', final_a_stream.replace('[', '').replace(']', '')])
+
+        # 完整FFmpeg命令
         cmd = [
             'ffmpeg', '-y',
             *inputs,
             '-filter_complex', filter_complex,
-            '-map', current_stream.replace('[', '').replace(']', ''),
-            '-map', '0:a?',
+            *map_outputs,
             '-c:v', 'libx264',
             '-crf', str(render_params['crf']),
             '-preset', render_params['preset'],
-            '-c:a', 'aac', '-b:a', '128k',
+            '-c:a', 'aac',
+            '-b:a', '128k',
             '-movflags', '+faststart',
+            final_path
         ]
 
-        # 如果有结尾视频，需要两步处理
-        if add_ending and ending_video_path:
-            # 先渲染带花字的视频
-            temp_output = str(output_dir / f"temp_single_pass_{os.getpid()}_{clip_index}.mp4")
-            temp_files.append(temp_output)
-            cmd.append(temp_output)
+        # 执行命令
+        result = subprocess.run(cmd, capture_output=True, text=True)
 
-            subprocess.run(cmd, capture_output=True, check=True)
-
-            # 预处理结尾视频
-            processed_ending = _preprocess_ending_video_standalone(temp_output, ending_video_path, render_params)
-            temp_files.append(processed_ending)
-
-            # 拼接结尾
-            _concat_videos_standalone([temp_output, processed_ending], final_path)
-
-            # 删除中间文件
-            Path(temp_output).unlink()
-            Path(processed_ending).unlink()
-        else:
-            # 直接输出最终文件
-            cmd.append(final_path)
-            subprocess.run(cmd, capture_output=True, check=True)
+        if result.returncode != 0:
+            print(f"  ⚠️ FFmpeg单次编码失败，回退到分步处理: {result.stderr[:500]}")
+            # 清理临时文件
+            for tf in temp_files:
+                try:
+                    if Path(tf).exists():
+                        Path(tf).unlink()
+                except:
+                    pass
+            # 回退到分步渲染
+            return _render_clip_unified_standalone(clip_index, clip_data, render_params)
 
         # 清理临时文件
         for tf in temp_files:
@@ -2250,7 +2565,9 @@ def _render_clip_single_pass(
         return final_path
 
     except Exception as e:
-        print(f"  [Worker] V16.2完全合并渲染失败: {e}")
+        print(f"  [Worker] V16.3完全单次编码失败: {e}")
+        import traceback
+        traceback.print_exc()
         # 清理临时文件
         for tf in temp_files:
             try:
@@ -2506,22 +2823,51 @@ def _render_clip_unified_standalone(
             fps = _get_video_fps_standalone(str(video_file))
             total_frames = math.ceil(end_in_episode * fps)
 
+            # V16.3: 获取视频分辨率并计算输出分辨率
+            probe_cmd = [
+                'ffprobe', '-v', 'error',
+                '-select_streams', 'v:0',
+                '-show_entries', 'stream=width,height',
+                '-of', 'csv=p=0', str(video_file)
+            ]
+            probe_result = subprocess.run(probe_cmd, capture_output=True, text=True)
+            video_width, video_height = map(int, probe_result.stdout.strip().split(','))
+            output_width, output_height = _get_output_resolution(video_width, video_height)
+            need_scale = (output_width != video_width or output_height != video_height)
+            if need_scale:
+                print(f"  📐 分辨率自适应: {video_width}x{video_height} → {output_width}x{output_height}")
+
             # 裁剪后的临时文件
             temp_trim = output_dir / f"temp_trim_{os.getpid()}_{clip_index}.mp4"
             temp_files.append(temp_trim)
 
-            # 裁剪
-            trim_cmd = [
-                'ffmpeg', '-y',
-                '-ss', str(start_in_episode),
-                '-i', str(video_file),
-                '-frames:v', str(total_frames),
-                '-c:v', 'libx264',
-                '-crf', str(render_params['crf']),
-                '-preset', render_params['preset'],
-                '-c:a', 'aac', '-b:a', '128k',
-                str(temp_trim)
-            ]
+            # V16.3: 裁剪时同时进行分辨率缩放（如果需要）
+            if need_scale:
+                # 使用filter_complex同时进行裁剪和缩放
+                trim_cmd = [
+                    'ffmpeg', '-y',
+                    '-ss', str(start_in_episode),
+                    '-i', str(video_file),
+                    '-frames:v', str(total_frames),
+                    '-vf', f'scale={output_width}:{output_height}:flags=lanczos',
+                    '-c:v', 'libx264',
+                    '-crf', str(render_params['crf']),
+                    '-preset', render_params['preset'],
+                    '-c:a', 'aac', '-b:a', '128k',
+                    str(temp_trim)
+                ]
+            else:
+                trim_cmd = [
+                    'ffmpeg', '-y',
+                    '-ss', str(start_in_episode),
+                    '-i', str(video_file),
+                    '-frames:v', str(total_frames),
+                    '-c:v', 'libx264',
+                    '-crf', str(render_params['crf']),
+                    '-preset', render_params['preset'],
+                    '-c:a', 'aac', '-b:a', '128k',
+                    str(temp_trim)
+                ]
             subprocess.run(trim_cmd, capture_output=True, check=True)
 
             clip_input = str(temp_trim)
@@ -2535,6 +2881,24 @@ def _render_clip_unified_standalone(
             temp_dir = output_dir / f"temp_segments_{os.getpid()}_{clip_index}"
             temp_dir.mkdir(exist_ok=True)
 
+            # V16.3: 获取第一个视频的分辨率作为统一输出分辨率
+            first_video_file = find_video_file(segments[0].episode)
+            if first_video_file:
+                probe_cmd = [
+                    'ffprobe', '-v', 'error',
+                    '-select_streams', 'v:0',
+                    '-show_entries', 'stream=width,height',
+                    '-of', 'csv=p=0', str(first_video_file)
+                ]
+                probe_result = subprocess.run(probe_cmd, capture_output=True, text=True)
+                video_width, video_height = map(int, probe_result.stdout.strip().split(','))
+                output_width, output_height = _get_output_resolution(video_width, video_height)
+                need_scale = (output_width != video_width or output_height != video_height)
+                if need_scale:
+                    print(f"  📐 分辨率自适应: {video_width}x{video_height} → {output_width}x{output_height}")
+            else:
+                need_scale = False
+
             for i, segment in enumerate(segments):
                 video_file = find_video_file(segment.episode)
                 if not video_file:
@@ -2547,17 +2911,32 @@ def _render_clip_unified_standalone(
                 segment_files.append(str(seg_file))
                 temp_files.append(seg_file)
 
-                seg_cmd = [
-                    'ffmpeg', '-y',
-                    '-ss', str(segment.start),
-                    '-i', str(video_file),
-                    '-frames:v', str(total_frames),
-                    '-c:v', 'libx264',
-                    '-crf', str(render_params['crf']),
-                    '-preset', render_params['preset'],
-                    '-c:a', 'aac', '-b:a', '128k',
-                    str(seg_file)
-                ]
+                # V16.3: 裁剪时统一缩放到相同的输出分辨率
+                if need_scale:
+                    seg_cmd = [
+                        'ffmpeg', '-y',
+                        '-ss', str(segment.start),
+                        '-i', str(video_file),
+                        '-frames:v', str(total_frames),
+                        '-vf', f'scale={output_width}:{output_height}:flags=lanczos',
+                        '-c:v', 'libx264',
+                        '-crf', str(render_params['crf']),
+                        '-preset', render_params['preset'],
+                        '-c:a', 'aac', '-b:a', '128k',
+                        str(seg_file)
+                    ]
+                else:
+                    seg_cmd = [
+                        'ffmpeg', '-y',
+                        '-ss', str(segment.start),
+                        '-i', str(video_file),
+                        '-frames:v', str(total_frames),
+                        '-c:v', 'libx264',
+                        '-crf', str(render_params['crf']),
+                        '-preset', render_params['preset'],
+                        '-c:a', 'aac', '-b:a', '128k',
+                        str(seg_file)
+                    ]
                 subprocess.run(seg_cmd, capture_output=True, check=True)
 
             # 拼接片段
@@ -2665,31 +3044,31 @@ def main():
         epilog='''
 示例:
   # 基础渲染（自动检测片尾，默认4个并行worker）
-  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就
+  python -m scripts.understand.render_clips data/analysis/百里将就 漫剧素材/百里将就
 
   # 并行渲染（指定worker数）
-  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --parallel 8
+  python -m scripts.understand.render_clips data/analysis/百里将就 漫剧素材/百里将就 --parallel 8
 
   # 串行渲染（调试用）
-  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --parallel 1
+  python -m scripts.understand.render_clips data/analysis/百里将就 漫剧素材/百里将就 --parallel 1
 
   # 不添加结尾视频
-  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --no-ending
+  python -m scripts.understand.render_clips data/analysis/百里将就 漫剧素材/百里将就 --no-ending
 
   # 添加花字叠加
-  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --add-overlay
+  python -m scripts.understand.render_clips data/analysis/百里将就 漫剧素材/百里将就 --add-overlay
 
   # 指定花字样式
-  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --add-overlay --overlay-style gold_luxury
+  python -m scripts.understand.render_clips data/analysis/百里将就 漫剧素材/百里将就 --add-overlay --overlay-style gold_luxury
 
   # 强制重新检测片尾
-  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --force-detect
+  python -m scripts.understand.render_clips data/analysis/百里将就 漫剧素材/百里将就 --force-detect
 
   # 跳过片尾检测（使用完整时长）
-  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --skip-ending
+  python -m scripts.understand.render_clips data/analysis/百里将就 漫剧素材/百里将就 --skip-ending
 
   # 完整功能（片尾检测 + 结尾视频 + 花字叠加 + 并行渲染）
-  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --add-ending --add-overlay --parallel 4
+  python -m scripts.understand.render_clips data/analysis/百里将就 漫剧素材/百里将就 --add-ending --add-overlay --parallel 4
         '''
     )
 
@@ -2710,17 +3089,21 @@ def main():
     parser.add_argument('--overlay-style', type=str, help='花字样式ID（默认随机选择）')
 
     # V16: 并行渲染参数
-    parser.add_argument('--parallel', type=int, default=4,
-                        help='并行渲染的worker数量（默认4，设为1禁用并行）')
+    # V16.3: 默认值改为0，表示自动计算最优worker数
+    parser.add_argument('--parallel', type=int, default=0,
+                        help='并行渲染的worker数量（0=自动计算，1=禁用并行，默认0）')
 
     # V16.2: 性能优化参数
     parser.add_argument('--hwaccel', action='store_true',
                         help='启用GPU硬件加速（macOS: videotoolbox, Linux: cuda）')
     parser.add_argument('--fast-preset', action='store_true',
-                        help='使用ultrafast预设（速度提升30%，质量略降）')
+                        help='使用ultrafast预设（速度提升30%%，质量略降）')
 
     # 缓存清理参数
     parser.add_argument('--no-cleanup', action='store_true', help='渲染完成后跳过清理中间缓存')
+
+    # V16.3: 结尾视频缓存参数
+    parser.add_argument('--force-recache', action='store_true', help='强制重新缓存结尾视频（素材更新后使用）')
 
     # V15.7: 剪辑数量限制
     parser.add_argument('--max-clips', type=int, default=0, help='最多渲染的剪辑数量（0=全部渲染）')
@@ -2768,7 +3151,8 @@ def main():
         add_overlay=add_overlay,          # V15: 传递花字叠加配置
         overlay_style_id=overlay_style,   # V15: 传递花字样式
         hwaccel=args.hwaccel,             # V16.2: GPU硬件加速
-        fast_preset=args.fast_preset      # V16.2: 快速预设
+        fast_preset=args.fast_preset,     # V16.2: 快速预设
+        force_recache=args.force_recache  # V16.3: 强制重新缓存结尾视频
     )
 
     # 显示配置信息
@@ -2783,9 +3167,20 @@ def main():
         print(f"花字样式: {overlay_style}")
     if force_detect:
         print(f"片尾检测模式: 🔃 强制重新检测")
+    # V16.3: 智能Worker数计算
+    # 0表示自动计算，1表示禁用并行，>1表示使用指定值
+    parallel_workers = args.parallel
+    if parallel_workers == 0:
+        # 自动计算最优worker数
+        parallel_workers = _get_optimal_workers(args.hwaccel)
+        auto_calculated = True
+    else:
+        auto_calculated = False
+
     # V16: 显示并行配置
-    if args.parallel > 1:
-        print(f"渲染模式: ⚡ 并行（{args.parallel} 个worker）")
+    if parallel_workers > 1:
+        source = "（自动计算）" if auto_calculated else ""
+        print(f"渲染模式: ⚡ 并行（{parallel_workers} 个worker{source}）")
     else:
         print(f"渲染模式: 🐢 串行（调试模式）")
     print(f"{'='*60}\n")
@@ -2806,9 +3201,9 @@ def main():
             print(f"⚠️ 无效的剪辑索引格式: {args.clip_indices}")
 
     # V16: 根据parallel参数选择渲染模式
-    if args.parallel > 1:
+    if parallel_workers > 1:
         output_paths = renderer.render_all_clips_parallel(
-            max_workers=args.parallel,
+            max_workers=parallel_workers,
             on_clip_progress=on_progress,
             max_clips=args.max_clips,
             clip_indices=clip_indices

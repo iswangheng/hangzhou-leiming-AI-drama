@@ -379,8 +379,8 @@ def detect_project_endings_in_understand_phase(
     video_dir_path = Path(video_dir)
     project_name = video_dir_path.name
 
-    # 输出目录 (与render_clips保持一致: data/hangzhou-leiming/ending_credits/)
-    output_dir = Path("data/hangzhou-leiming/ending_credits")
+    # 输出目录 (与render_clips保持一致: data/ending_credits/)
+    output_dir = Path("data/ending_credits")
     output_dir.mkdir(parents=True, exist_ok=True)
     output_file = output_dir / f"{project_name}_ending_credits.json"
 
@@ -575,7 +575,7 @@ def video_understand(
     # 1. 理解技能文件
     print("[1/5] 理解技能文件...")
     if skill_file is None:
-        skill_file = "data/hangzhou-leiming/skills/ai-drama-clipping-thoughts-v0.1.md"
+        skill_file = "data/skills/ai-drama-clipping-thoughts-v0.1.md"
     skill_framework = understand_skill(skill_file, force=force_skill)
     print(f"技能框架加载完成\n")
 
@@ -730,7 +730,7 @@ def video_understand(
     # 7. 保存结果
     print("\n保存结果...")
     if output_dir is None:
-        output_dir = f"data/hangzhou-leiming/analysis/{project_name}"
+        output_dir = f"data/analysis/{project_name}"
 
     os.makedirs(output_dir, exist_ok=True)
     result_path = os.path.join(output_dir, "result.json")

@@ -163,16 +163,21 @@ scripts/
 ## 输出目录
 
 ```
-data/hangzhou-leiming/
+data/
 ├── skills/                  # 技能文件输出目录
 │   ├── ai-drama-clipping-thoughts-v1.0.md
 │   ├── ai-drama-clipping-thoughts-v1.1.md
 │   └── ai-drama-clipping-thoughts-latest.md -> ai-drama-clipping-thoughts-v1.1.md
-└── cache/                   # 缓存目录
-    ├── keyframes/          # 关键帧缓存
-    ├── audio/              # 音频缓存
-    ├── asr/                # ASR转录缓存
-    └── training_progress.json  # 训练进度文件
+├── cache/                   # 缓存目录
+│   ├── keyframes/          # 关键帧缓存
+│   ├── audio/              # 音频缓存
+│   ├── asr/                # ASR转录缓存
+│   └── training_progress.json  # 训练进度文件
+├── analysis/               # 视频理解结果
+│   └── 项目名/
+│       └── result.json
+└── ending_credits/         # 片尾检测缓存
+    └── 项目名_ending_credits.json
 ```
 
 ## 训练流程

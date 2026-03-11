@@ -199,6 +199,6 @@ def understand_skill(skill_file_path: str, force: bool = False) -> Dict[str, Any
 if __name__ == "__main__":
     # 测试
     import sys
-    skill_file = sys.argv[1] if len(sys.argv) > 1 else "data/hangzhou-leiming/skills/ai-drama-clipping-thoughts-v0.1.md"
+    skill_file = sys.argv[1] if len(sys.argv) > 1 else "data/skills/ai-drama-clipping-thoughts-v0.1.md"
     result = understand_skill(skill_file)
     print(json.dumps(result, ensure_ascii=False, indent=2))

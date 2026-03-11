@@ -19,13 +19,13 @@
 ```bash
 # 启用花字叠加（默认右上角）
 python -m scripts.understand.render_clips \
-    data/hangzhou-leiming/analysis/项目名 \
+    data/analysis/项目名 \
     漫剧素材/项目名 \
     --add-overlay
 
 # 指定左上角位置
 python -m scripts.understand.render_clips \
-    data/hangzhou-leiming/analysis/项目名 \
+    data/analysis/项目名 \
     漫剧素材/项目名 \
     --add-overlay \
     --overlay-style gold_luxury
@@ -100,18 +100,18 @@ python -m scripts.understand.render_clips \
 ```bash
 # 默认启用自动片尾检测
 python -m scripts.understand.render_clips \
-    data/hangzhou-leiming/analysis/项目名 \
+    data/analysis/项目名 \
     漫剧素材/项目名
 
 # 强制重新检测
 python -m scripts.understand.render_clips \
-    data/hangzhou-leiming/analysis/项目名 \
+    data/analysis/项目名 \
     漫剧素材/项目名 \
     --force-detect
 
 # 跳过片尾检测
 python -m scripts.understand.render_clips \
-    data/hangzhou-leiming/analysis/项目名 \
+    data/analysis/项目名 \
     漫剧素材/项目名 \
     --skip-ending
 ```
@@ -121,7 +121,7 @@ python -m scripts.understand.render_clips \
   - V14.0: 第1集 0-867秒，第2集 867-1141秒（包含片尾）
   - V14.1: 第1集 0-820秒，第2集 820-1094秒（去除47秒片尾）
 - **零配置运行**：默认启用，自动处理，无需额外参数
-- **缓存机制**：检测结果保存至 `data/hangzhou-leiming/ending_credits/`
+- **缓存机制**：检测结果保存至 `data/ending_credits/`
 
 **详细文档**：
 - [V14.1 实现报告](./V14.1_IMPLEMENTATION_REPORT.md) - 完整技术说明
@@ -138,13 +138,13 @@ python -m scripts.understand.render_clips \
 ```bash
 # 添加结尾视频
 python -m scripts.understand.render_clips \
-    data/hangzhou-leiming/analysis/项目名 \
+    data/analysis/项目名 \
     漫剧素材/项目名 \
     --add-ending
 
 # 不添加结尾视频
 python -m scripts.understand.render_clips \
-    data/hangzhou-leiming/analysis/项目名 \
+    data/analysis/项目名 \
     漫剧素材/项目名 \
     --no-ending
 ```
@@ -351,5 +351,10 @@ python -m scripts.understand.video_understand "漫剧素材/项目名" --skill-f
 
 ## 版本历史
 
+- **v16.3** (2026-03-11): 渲染性能优化 - 单次编码、智能Worker、结尾预缓存、分辨率自适应
+- **v16.2** (2026-03-11): GPU加速支持（跨平台）、快速预设
+- **v16** (2026-03-11): OCR+ASR敏感词检测
+- **v15** (2026-03-05): 花字叠加（热门短剧、剧名、免责声明）
+- **v14** (2026-03-05): 片尾检测 + 结尾拼接
 - **v2.0** (2026-03-03): 精确时间戳 + 质量筛选
 - **v0.1** (2026-03-02): 初始版本

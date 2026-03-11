@@ -17,7 +17,7 @@ def check_data_completeness():
     print("【步骤0】检查数据完整性")
     print("=" * 80)
 
-    cache_base = Path("data/hangzhou-leiming/cache")
+    cache_base = Path("data/cache")
     keyframe_cache = cache_base / "keyframes"
 
     if not keyframe_cache.exists():
@@ -76,7 +76,7 @@ def verify_skill_file():
     print("【步骤2】验证技能文件")
     print("=" * 80)
 
-    skills_dir = Path("data/hangzhou-leiming/skills")
+    skills_dir = Path("data/skills")
 
     # 查找最新的技能文件
     md_files = sorted(skills_dir.glob("ai-drama-clipping-thoughts-v*.md"))
@@ -126,7 +126,7 @@ def generate_summary_report():
     import json
     from datetime import datetime
 
-    skills_dir = Path("data/hangzhou-leiming/skills")
+    skills_dir = Path("data/skills")
     json_files = sorted(skills_dir.glob("ai-drama-clipping-thoughts-v*.json"))
 
     if not json_files:
@@ -175,7 +175,7 @@ def generate_summary_report():
     report_lines.append("\n下一步: 开始测试验证\n")
 
     # 保存报告
-    report_path = Path("data/hangzhou-leiming/skills") / f"V5_TRAINING_REPORT_{version}.md"
+    report_path = Path("data/skills") / f"V5_TRAINING_REPORT_{version}.md"
     report_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(report_path, 'w', encoding='utf-8') as f:
@@ -220,7 +220,7 @@ def main():
     print("=" * 80)
     print()
     print("下一步:")
-    print("  1. 查看训练报告: data/hangzhou-leiming/skills/V5_TRAINING_REPORT_*.md")
+    print("  1. 查看训练报告: data/skills/V5_TRAINING_REPORT_*.md")
     print("  2. 测试技能: python -m scripts.understand.video_understand <项目名>")
     print("  3. 查看优化报告: OPTIMIZATION_V5_REPORT.md")
 

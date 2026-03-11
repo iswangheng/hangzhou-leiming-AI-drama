@@ -13,7 +13,7 @@ def check_extraction_progress():
     print()
 
     # 检查所有项目的缓存目录
-    cache_base = Path("data/hangzhou-leiming/cache")
+    cache_base = Path("data/cache")
 
     if not cache_base.exists():
         print("缓存目录尚未创建")

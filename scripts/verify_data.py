@@ -276,7 +276,7 @@ if __name__ == "__main__":
     report = verify_project_data(project_path, project_name)
 
     # 生成报告
-    output_path = f"data/hangzhou-leiming/analysis/{project_name}/verification_report.md"
+    output_path = f"data/analysis/{project_name}/verification_report.md"
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     generate_verification_report_md(report, output_path)
 

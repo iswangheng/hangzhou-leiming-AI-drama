@@ -320,20 +320,20 @@ def find_optimal_cut_point(
 ```bash
 # 基础使用（启用花字叠加）
 python -m scripts.understand.render_clips \
-    data/hangzhou-leiming/analysis/项目名 \
+    data/analysis/项目名 \
     漫剧素材/项目名 \
     --add-overlay
 
 # 指定样式
 python -m scripts.understand.render_clips \
-    data/hangzhou-leiming/analysis/项目名 \
+    data/analysis/项目名 \
     漫剧素材/项目名 \
     --add-overlay \
     --overlay-style-id gold_luxury
 
 # 完整示例（结尾视频 + 花字叠加）
 python -m scripts.understand.render_clips \
-    data/hangzhou-leiming/analysis/项目名 \
+    data/analysis/项目名 \
     漫剧素材/项目名 \
     --add-ending \
     --add-overlay
@@ -370,7 +370,7 @@ python -m scripts.understand.render_clips \
 V14版本已实现此功能，使用 `--add-ending` 参数：
 ```bash
 python -m scripts.understand.render_clips \
-    data/hangzhou-leiming/analysis/项目名 \
+    data/analysis/项目名 \
     漫剧素材/项目名 \
     --add-ending
 ```
@@ -606,13 +606,13 @@ ASR segments:
 **使用方法**：
 ```bash
 # 默认4个并行worker
-python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/项目名 漫剧素材/项目名
+python -m scripts.understand.render_clips data/analysis/项目名 漫剧素材/项目名
 
 # 指定8个并行worker
-python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/项目名 漫剧素材/项目名 --parallel 8
+python -m scripts.understand.render_clips data/analysis/项目名 漫剧素材/项目名 --parallel 8
 
 # 串行模式（调试用）
-python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/项目名 漫剧素材/项目名 --parallel 1
+python -m scripts.understand.render_clips data/analysis/项目名 漫剧素材/项目名 --parallel 1
 ```
 
 **预期效果**：

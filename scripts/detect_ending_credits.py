@@ -600,7 +600,7 @@ def main():
     )
     parser.add_argument('project_path', help='项目路径（包含视频文件）')
     parser.add_argument('--asr-dir', help='ASR数据目录（可选）')
-    parser.add_argument('--output-dir', default='data/hangzhou-leiming/ending_credits',
+    parser.add_argument('--output-dir', default='data/ending_credits',
                         help='输出目录')
     parser.add_argument('--use-cached-asr', action='store_true',
                         help='V15.9: 优先从缓存读取 ASR')

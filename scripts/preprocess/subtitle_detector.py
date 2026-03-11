@@ -533,7 +533,7 @@ def save_subtitle_config(
     region: SubtitleRegion,
     project_name: str,
     video_resolution: Tuple[int, int],
-    output_dir: str = "data/hangzhou-leiming/analysis"
+    output_dir: str = "data/analysis"
 ) -> str:
     """
     保存字幕区域配置
@@ -566,7 +566,7 @@ def save_subtitle_config(
 
 def load_subtitle_config(
     project_name: str,
-    config_dir: str = "data/hangzhou-leiming/analysis"
+    config_dir: str = "data/analysis"
 ) -> Optional[SubtitleRegion]:
     """
     加载字幕区域配置

@@ -171,7 +171,7 @@ class TrainingConfig:
     MAX_RETRIES = 3  # 最大重试次数
 
     # 输出路径配置
-    DATA_DIR = PROJECT_ROOT / "data" / "hangzhou-leiming"
+    DATA_DIR = PROJECT_ROOT / "data"
     SKILLS_DIR = DATA_DIR / "skills"
     CACHE_DIR = DATA_DIR / "cache"
     PROGRESS_FILE = CACHE_DIR / "training_progress.json"

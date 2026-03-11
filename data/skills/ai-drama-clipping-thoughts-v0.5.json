@@ -1,0 +1,969 @@
+{
+  "version": "v0.5",
+  "metadata": {
+    "updated_at": "2026-03-03T18:49:18.150724",
+    "statistics": {
+      "project_count": 14,
+      "episode_count": 117,
+      "highlight_type_count": 12,
+      "hook_type_count": 15
+    }
+  },
+  "highlight_types": [
+    {
+      "id": "opening",
+      "name": "开篇高光",
+      "description": "每部剧第1集开头的默认高光点",
+      "sample_count": 1,
+      "confidence_avg": 8.0,
+      "confidence_min": 7.5,
+      "required_features": {
+        "emotion_keywords": [],
+        "emotion_intensity_min": 7.0,
+        "dialogue_patterns": [],
+        "dialogue_keywords": [],
+        "visual_cues": [
+          "开场画面",
+          "快速切入"
+        ],
+        "camera": [],
+        "typical_duration": [
+          10,
+          30
+        ]
+      },
+      "optional_features": {
+        "location": [],
+        "characters": [],
+        "action": []
+      },
+      "examples": []
+    },
+    {
+      "id": "plot_reversal",
+      "name": "剧情反转",
+      "description": "剧情出现意想不到的转折，或人物关系、处境发生变化，引发观众好奇心。包含真相揭露、关系反转、反转叙事等多种反转形式。",
+      "sample_count": 7,
+      "confidence_avg": 8.0,
+      "confidence_min": 7.5,
+      "required_features": {
+        "emotion_keywords": [
+          "严肃",
+          "愧疚",
+          "惊讶",
+          "微笑",
+          "冷漠",
+          "痛苦",
+          "绝望"
+        ],
+        "emotion_intensity_min": 7.0,
+        "dialogue_patterns": [
+          "解释",
+          "道歉",
+          "旁白",
+          "叙述"
+        ],
+        "dialogue_keywords": [
+          "真相",
+          "反转",
+          "转折",
+          "误会"
+        ],
+        "visual_cues": [
+          "特写",
+          "中景",
+          "近景"
+        ],
+        "camera": [],
+        "typical_duration": [
+          10,
+          30
+        ]
+      },
+      "optional_features": {
+        "location": [
+          "室内",
+          "谈判场所",
+          "婚礼现场",
+          "马路"
+        ],
+        "characters": [],
+        "action": [
+          "道歉",
+          "奔跑",
+          "倒地",
+          "发送短信"
+        ]
+      },
+      "examples": []
+    },
+    {
+      "id": "information_reveal",
+      "name": "信息揭示",
+      "description": "通过信息揭示、身世揭秘、情感关系揭露等方式，快速抛出关键信息或揭示重要秘密，引发观众好奇心。",
+      "sample_count": 3,
+      "confidence_avg": 8.0,
+      "confidence_min": 7.5,
+      "required_features": {
+        "emotion_keywords": [
+          "平静",
+          "惊讶",
+          "疑惑",
+          "心疼"
+        ],
+        "emotion_intensity_min": 7.0,
+        "dialogue_patterns": [
+          "旁白",
+          "叙述"
+        ],
+        "dialogue_keywords": [
+          "揭秘",
+          "揭露",
+          "揭示",
+          "身世",
+          "关系"
+        ],
+        "visual_cues": [
+          "特写",
+          "中景"
+        ],
+        "camera": [],
+        "typical_duration": [
+          10,
+          30
+        ]
+      },
+      "optional_features": {
+        "location": [
+          "车内",
+          "演播厅",
+          "家庭饭桌"
+        ],
+        "characters": [],
+        "action": [
+          "亲吻",
+          "红眼眶"
+        ]
+      },
+      "examples": []
+    },
+    {
+      "id": "conflict_eruption",
+      "name": "冲突爆发",
+      "description": "剧情冲突爆发，通常伴随激烈的言语或肢体冲突，以及人物情绪的强烈变化。包含矛盾冲突、冲突揭露等多种形式。",
+      "sample_count": 4,
+      "confidence_avg": 8.0,
+      "confidence_min": 7.5,
+      "required_features": {
+        "emotion_keywords": [
+          "愤怒",
+          "惊讶",
+          "指责",
+          "隐忍",
+          "克制"
+        ],
+        "emotion_intensity_min": 7.0,
+        "dialogue_patterns": [
+          "质问",
+          "指责",
+          "争吵"
+        ],
+        "dialogue_keywords": [
+          "冲突",
+          "矛盾",
+          "爆发",
+          "对峙"
+        ],
+        "visual_cues": [
+          "特写",
+          "中景",
+          "全景"
+        ],
+        "camera": [],
+        "typical_duration": [
+          10,
+          30
+        ]
+      },
+      "optional_features": {
+        "location": [
+          "宴会厅",
+          "会议现场",
+          "庭院",
+          "祠堂"
+        ],
+        "characters": [],
+        "action": [
+          "奔跑",
+          "指认",
+          "对峙"
+        ]
+      },
+      "examples": []
+    },
+    {
+      "id": "misunderstanding",
+      "name": "误会尴尬",
+      "description": "角色因为误解或不适应情况，做出不合时宜的举动，导致误会和尴尬局面。",
+      "sample_count": 1,
+      "confidence_avg": 7.5,
+      "confidence_min": 7.0,
+      "required_features": {
+        "emotion_keywords": [
+          "困惑",
+          "懊恼"
+        ],
+        "emotion_intensity_min": 6.0,
+        "dialogue_patterns": [
+          "内心独白",
+          "解释"
+        ],
+        "dialogue_keywords": [
+          "误会",
+          "尴尬",
+          "解释"
+        ],
+        "visual_cues": [
+          "近景"
+        ],
+        "camera": [],
+        "typical_duration": [
+          10,
+          20
+        ]
+      },
+      "optional_features": {
+        "location": [
+          "室内",
+          "卧室"
+        ],
+        "characters": [],
+        "action": []
+      },
+      "examples": []
+    },
+    {
+      "id": "emergency_rescue",
+      "name": "紧急救援",
+      "description": "描述了主角在紧急情况下进行救援的场景，体现了主角的专业能力和责任感。",
+      "sample_count": 1,
+      "confidence_avg": 8.0,
+      "confidence_min": 7.5,
+      "required_features": {
+        "emotion_keywords": [
+          "严肃",
+          "专注"
+        ],
+        "emotion_intensity_min": 7.0,
+        "dialogue_patterns": [
+          "叙述",
+          "独白"
+        ],
+        "dialogue_keywords": [
+          "紧急",
+          "救援",
+          "手术"
+        ],
+        "visual_cues": [
+          "近景",
+          "特写"
+        ],
+        "camera": [],
+        "typical_duration": [
+          15,
+          45
+        ]
+      },
+      "optional_features": {
+        "location": [
+          "医院走廊",
+          "手术室"
+        ],
+        "characters": [],
+        "action": [
+          "推进手术室",
+          "截肢"
+        ]
+      },
+      "examples": []
+    },
+    {
+      "id": "workplace_scheming",
+      "name": "职场心机",
+      "description": "展现职场中的心机和手段，通过精心策划、收集信息、投其所好等方式上位。",
+      "sample_count": 1,
+      "confidence_avg": 7.5,
+      "confidence_min": 7.0,
+      "required_features": {
+        "emotion_keywords": [
+          "微笑",
+          "得意",
+          "自信"
+        ],
+        "emotion_intensity_min": 6.0,
+        "dialogue_patterns": [
+          "内心独白",
+          "叙述"
+        ],
+        "dialogue_keywords": [
+          "心机",
+          "上位",
+          "职场"
+        ],
+        "visual_cues": [
+          "特写",
+          "中景"
+        ],
+        "camera": [],
+        "typical_duration": [
+          10,
+          30
+        ]
+      },
+      "optional_features": {
+        "location": [
+          "办公室",
+          "会议室"
+        ],
+        "characters": [],
+        "action": [
+          "整理资料",
+          "滑动手机"
+        ]
+      },
+      "examples": []
+    },
+    {
+      "id": "emotion_outburst",
+      "name": "情感爆发",
+      "description": "角色经历强烈的情感冲击，通过语言和行动表达出来，引发观众共鸣。",
+      "sample_count": 1,
+      "confidence_avg": 8.0,
+      "confidence_min": 7.5,
+      "required_features": {
+        "emotion_keywords": [
+          "痛苦",
+          "震惊",
+          "焦急"
+        ],
+        "emotion_intensity_min": 7.0,
+        "dialogue_patterns": [
+          "内心独白",
+          "对话"
+        ],
+        "dialogue_keywords": [
+          "情感",
+          "爆发",
+          "回忆"
+        ],
+        "visual_cues": [
+          "特写",
+          "近景"
+        ],
+        "camera": [],
+        "typical_duration": [
+          10,
+          30
+        ]
+      },
+      "optional_features": {
+        "location": [
+          "病房",
+          "酒店房间"
+        ],
+        "characters": [],
+        "action": [
+          "哭泣",
+          "抓住",
+          "拨打电话"
+        ]
+      },
+      "examples": []
+    },
+    {
+      "id": "information_delivery",
+      "name": "信息交代",
+      "description": "通过人物对话、旁白叙述等方式，快速交代背景信息、人物关系或节目形式。",
+      "sample_count": 2,
+      "confidence_avg": 7.0,
+      "confidence_min": 6.5,
+      "required_features": {
+        "emotion_keywords": [
+          "平静",
+          "悲伤",
+          "疲惫"
+        ],
+        "emotion_intensity_min": 5.0,
+        "dialogue_patterns": [
+          "旁白",
+          "叙述",
+          "解释"
+        ],
+        "dialogue_keywords": [
+          "交代",
+          "介绍",
+          "背景",
+          "说明"
+        ],
+        "visual_cues": [
+          "中景",
+          "近景"
+        ],
+        "camera": [],
+        "typical_duration": [
+          10,
+          30
+        ]
+      },
+      "optional_features": {
+        "location": [
+          "庭院",
+          "书房",
+          "访谈间"
+        ],
+        "characters": [],
+        "action": [
+          "坐着",
+          "交谈"
+        ]
+      },
+      "examples": []
+    },
+    {
+      "id": "rebirth_assertion",
+      "name": "重生立威",
+      "description": "角色重生后，通过特定事件展现地位、权力或能力的变化，为后续剧情发展做铺垫。",
+      "sample_count": 1,
+      "confidence_avg": 7.5,
+      "confidence_min": 7.0,
+      "required_features": {
+        "emotion_keywords": [
+          "惊讶",
+          "严肃",
+          "愤怒"
+        ],
+        "emotion_intensity_min": 6.5,
+        "dialogue_patterns": [
+          "内心独白",
+          "训斥"
+        ],
+        "dialogue_keywords": [
+          "重生",
+          "立威",
+          "地位"
+        ],
+        "visual_cues": [
+          "特写",
+          "中景"
+        ],
+        "camera": [],
+        "typical_duration": [
+          10,
+          30
+        ]
+      },
+      "optional_features": {
+        "location": [
+          "室内",
+          "庭院"
+        ],
+        "characters": [],
+        "action": [
+          "躺",
+          "醒",
+          "教训"
+        ]
+      },
+      "examples": []
+    },
+    {
+      "id": "tragic_experience",
+      "name": "悲惨遭遇",
+      "description": "通过讲述悲惨的死亡、埋葬、困境等经历，展现人物的不幸和坚韧，引发观众的同情和共鸣。",
+      "sample_count": 2,
+      "confidence_avg": 8.0,
+      "confidence_min": 7.5,
+      "required_features": {
+        "emotion_keywords": [
+          "悲伤",
+          "绝望",
+          "疲惫",
+          "担忧"
+        ],
+        "emotion_intensity_min": 7.0,
+        "dialogue_patterns": [
+          "旁白",
+          "自述",
+          "叙述"
+        ],
+        "dialogue_keywords": [
+          "悲惨",
+          "苦难",
+          "死亡",
+          "困境"
+        ],
+        "visual_cues": [
+          "远景",
+          "中景",
+          "近景",
+          "特写"
+        ],
+        "camera": [],
+        "typical_duration": [
+          15,
+          45
+        ]
+      },
+      "optional_features": {
+        "location": [
+          "坟地",
+          "荒地",
+          "战场",
+          "简陋的家"
+        ],
+        "characters": [],
+        "action": [
+          "埋葬",
+          "跪拜",
+          "哭泣"
+        ]
+      },
+      "examples": []
+    }
+  ],
+  "hook_types": [
+    {
+      "id": "emotional_conflict",
+      "name": "情感冲突",
+      "description": "男女主因为事业和家庭产生争执，情绪激烈，为后续剧情发展埋下伏笔。",
+      "sample_count": 1,
+      "confidence_avg": 8.0,
+      "confidence_min": 7.0,
+      "required_features": {
+        "has_twist": true,
+        "information_cut_off": true,
+        "emotion_keywords": [
+          "指责",
+          "辩护",
+          "争吵",
+          "质问",
+          "不满",
+          "委屈",
+          "愤怒"
+        ],
+        "dialogue_patterns": [],
+        "dialogue_keywords": [],
+        "visual_cues": []
+      },
+      "optional_features": {
+        "timing": [
+          "中间",
+          "结尾"
+        ],
+        "camera": []
+      },
+      "examples": []
+    },
+    {
+      "id": "family_ethical_conflict",
+      "name": "家庭伦理冲突",
+      "description": "揭示家庭内部矛盾，牺牲、偏袒等不公平对待引发的情感冲突。",
+      "sample_count": 1,
+      "confidence_avg": 8.0,
+      "confidence_min": 7.0,
+      "required_features": {
+        "has_twist": true,
+        "information_cut_off": true,
+        "emotion_keywords": [
+          "争吵",
+          "质问",
+          "解释",
+          "愤怒",
+          "委屈",
+          "无奈"
+        ],
+        "dialogue_patterns": [],
+        "dialogue_keywords": [],
+        "visual_cues": []
+      },
+      "optional_features": {
+        "timing": [
+          "中间",
+          "结尾"
+        ],
+        "camera": []
+      },
+      "examples": []
+    },
+    {
+      "id": "emotional_conflict_threat",
+      "name": "情感冲突与威胁",
+      "description": "通过人物对话和行为展现情感冲突，并暗示潜在的威胁或危机，引发观众对后续剧情的期待。",
+      "sample_count": 1,
+      "confidence_avg": 8.0,
+      "confidence_min": 7.0,
+      "required_features": {
+        "has_twist": true,
+        "information_cut_off": true,
+        "emotion_keywords": [
+          "争吵",
+          "威胁",
+          "命令",
+          "愤怒",
+          "无奈",
+          "担忧"
+        ],
+        "dialogue_patterns": [],
+        "dialogue_keywords": [],
+        "visual_cues": []
+      },
+      "optional_features": {
+        "timing": [
+          "中间",
+          "结尾"
+        ],
+        "camera": []
+      },
+      "examples": []
+    },
+    {
+      "id": "workplace_conflict_warning",
+      "name": "职场冲突预警",
+      "description": "经理催促女主签合同，暗示女主可能面临职场困境或冲突。",
+      "sample_count": 1,
+      "confidence_avg": 7.5,
+      "confidence_min": 7.0,
+      "required_features": {
+        "has_twist": true,
+        "information_cut_off": true,
+        "emotion_keywords": [
+          "催促",
+          "命令",
+          "不耐烦",
+          "施压"
+        ],
+        "dialogue_patterns": [],
+        "dialogue_keywords": [],
+        "visual_cues": []
+      },
+      "optional_features": {
+        "timing": [
+          "中间",
+          "结尾"
+        ],
+        "camera": []
+      },
+      "examples": []
+    },
+    {
+      "id": "emotional_restraint_conflict",
+      "name": "情感克制与冲突",
+      "description": "女主角在特定情境下，通过肢体语言和台词表现出内心的挣扎和情感的克制，同时暗示了角色之间的潜在冲突。",
+      "sample_count": 1,
+      "confidence_avg": 7.5,
+      "confidence_min": 7.0,
+      "required_features": {
+        "has_twist": true,
+        "information_cut_off": true,
+        "emotion_keywords": [],
+        "dialogue_patterns": [],
+        "dialogue_keywords": [],
+        "visual_cues": []
+      },
+      "optional_features": {
+        "timing": [
+          "中间",
+          "结尾"
+        ],
+        "camera": []
+      },
+      "examples": []
+    },
+    {
+      "id": "emotional_impact",
+      "name": "情感冲击",
+      "description": "男主精心隐藏的秘密被突然曝光，引发强烈的情感冲击和剧情悬念。",
+      "sample_count": 1,
+      "confidence_avg": 8.0,
+      "confidence_min": 7.5,
+      "required_features": {
+        "has_twist": true,
+        "information_cut_off": true,
+        "emotion_keywords": [
+          "疑问",
+          "震惊",
+          "惊讶",
+          "恐惧",
+          "愤怒"
+        ],
+        "dialogue_patterns": [],
+        "dialogue_keywords": [],
+        "visual_cues": []
+      },
+      "optional_features": {
+        "timing": [
+          "中间",
+          "结尾"
+        ],
+        "camera": []
+      },
+      "examples": []
+    },
+    {
+      "id": "emotion_outburst_truth",
+      "name": "情感爆发/真相揭露",
+      "description": "角色情感爆发，同时揭露重要信息，引发观众好奇。",
+      "sample_count": 1,
+      "confidence_avg": 8.0,
+      "confidence_min": 7.5,
+      "required_features": {
+        "has_twist": true,
+        "information_cut_off": true,
+        "emotion_keywords": [
+          "悲伤",
+          "震惊",
+          "痛苦"
+        ],
+        "dialogue_patterns": [],
+        "dialogue_keywords": [],
+        "visual_cues": []
+      },
+      "optional_features": {
+        "timing": [
+          "中间",
+          "结尾"
+        ],
+        "camera": []
+      },
+      "examples": []
+    },
+    {
+      "id": "counterattack",
+      "name": "反击打脸",
+      "description": "女主因为被陷害而愤怒，打了对方一巴掌，形成反击。",
+      "sample_count": 1,
+      "confidence_avg": 7.5,
+      "confidence_min": 7.0,
+      "required_features": {
+        "has_twist": true,
+        "information_cut_off": true,
+        "emotion_keywords": [
+          "争吵",
+          "指责",
+          "愤怒",
+          "委屈",
+          "不满"
+        ],
+        "dialogue_patterns": [],
+        "dialogue_keywords": [],
+        "visual_cues": []
+      },
+      "optional_features": {
+        "timing": [
+          "中间",
+          "结尾"
+        ],
+        "camera": []
+      },
+      "examples": []
+    },
+    {
+      "id": "emotional_memory",
+      "name": "情感回忆",
+      "description": "通过醉酒后的真心话，揭示人物之间的情感纠葛，并留下悬念。",
+      "sample_count": 1,
+      "confidence_avg": 7.5,
+      "confidence_min": 7.0,
+      "required_features": {
+        "has_twist": true,
+        "information_cut_off": true,
+        "emotion_keywords": [
+          "依赖",
+          "挽留",
+          "真心"
+        ],
+        "dialogue_patterns": [],
+        "dialogue_keywords": [],
+        "visual_cues": []
+      },
+      "optional_features": {
+        "timing": [
+          "中间",
+          "结尾"
+        ],
+        "camera": []
+      },
+      "examples": []
+    },
+    {
+      "id": "workplace_unspoken_rules",
+      "name": "职场潜规则暗示",
+      "description": "通过群聊信息暗示职场中存在的潜规则，引发观众好奇。",
+      "sample_count": 1,
+      "confidence_avg": 7.0,
+      "confidence_min": 6.5,
+      "required_features": {
+        "has_twist": true,
+        "information_cut_off": true,
+        "emotion_keywords": [
+          "羡慕",
+          "无奈",
+          "暗示"
+        ],
+        "dialogue_patterns": [],
+        "dialogue_keywords": [],
+        "visual_cues": []
+      },
+      "optional_features": {
+        "timing": [
+          "中间",
+          "结尾"
+        ],
+        "camera": []
+      },
+      "examples": []
+    },
+    {
+      "id": "conspiracy_plan",
+      "name": "阴谋计划",
+      "description": "反派角色透露其精心策划的阴谋，通常包含对主角不利的信息，引发观众的好奇心和期待。",
+      "sample_count": 1,
+      "confidence_avg": 7.5,
+      "confidence_min": 7.0,
+      "required_features": {
+        "has_twist": true,
+        "information_cut_off": true,
+        "emotion_keywords": [
+          "得意",
+          "恶毒",
+          "兴奋"
+        ],
+        "dialogue_patterns": [],
+        "dialogue_keywords": [],
+        "visual_cues": []
+      },
+      "optional_features": {
+        "timing": [
+          "中间",
+          "结尾"
+        ],
+        "camera": []
+      },
+      "examples": []
+    },
+    {
+      "id": "water_danger",
+      "name": "水中遇险",
+      "description": "女主在水中挣扎，遇到不明物体，产生疑问和恐惧，为后续剧情发展埋下伏笔。",
+      "sample_count": 1,
+      "confidence_avg": 7.5,
+      "confidence_min": 7.0,
+      "required_features": {
+        "has_twist": true,
+        "information_cut_off": true,
+        "emotion_keywords": [
+          "痛苦",
+          "希望",
+          "疑惑",
+          "惊喜"
+        ],
+        "dialogue_patterns": [],
+        "dialogue_keywords": [],
+        "visual_cues": []
+      },
+      "optional_features": {
+        "timing": [
+          "中间",
+          "结尾"
+        ],
+        "camera": []
+      },
+      "examples": []
+    },
+    {
+      "id": "heart_wrenching",
+      "name": "虐心剧情",
+      "description": "女主恳求男主休了自己，表达了二十年婚姻的付出，但男主似乎无动于衷，营造虐心氛围，引发观众对后续剧情的期待。",
+      "sample_count": 1,
+      "confidence_avg": 7.5,
+      "confidence_min": 7.0,
+      "required_features": {
+        "has_twist": true,
+        "information_cut_off": true,
+        "emotion_keywords": [
+          "恳求",
+          "诉说",
+          "悲伤",
+          "无奈",
+          "哀求"
+        ],
+        "dialogue_patterns": [],
+        "dialogue_keywords": [],
+        "visual_cues": []
+      },
+      "optional_features": {
+        "timing": [
+          "中间",
+          "结尾"
+        ],
+        "camera": []
+      },
+      "examples": []
+    },
+    {
+      "id": "reversal",
+      "name": "反转",
+      "description": "通过台词和人物关系的反转，制造悬念，吸引观众继续观看。",
+      "sample_count": 1,
+      "confidence_avg": 8.0,
+      "confidence_min": 7.5,
+      "required_features": {
+        "has_twist": true,
+        "information_cut_off": true,
+        "emotion_keywords": [],
+        "dialogue_patterns": [],
+        "dialogue_keywords": [],
+        "visual_cues": []
+      },
+      "optional_features": {
+        "timing": [
+          "中间",
+          "结尾"
+        ],
+        "camera": []
+      },
+      "examples": []
+    },
+    {
+      "id": "sudden_crisis",
+      "name": "突发危机",
+      "description": "角色突然遭遇危险情况，引发观众紧张感。",
+      "sample_count": 1,
+      "confidence_avg": 7.5,
+      "confidence_min": 7.0,
+      "required_features": {
+        "has_twist": true,
+        "information_cut_off": true,
+        "emotion_keywords": [],
+        "dialogue_patterns": [],
+        "dialogue_keywords": [],
+        "visual_cues": []
+      },
+      "optional_features": {
+        "timing": [
+          "中间",
+          "结尾"
+        ],
+        "camera": []
+      },
+      "examples": []
+    }
+  ],
+  "editing_rules": {
+    "min_clip_duration": 30,
+    "max_clip_duration": 300,
+    "confidence_threshold": 6.5,
+    "dedup_interval_seconds": 10,
+    "max_same_type_per_episode": 1
+  }
+}

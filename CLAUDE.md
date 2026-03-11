@@ -28,30 +28,30 @@ python -m scripts.understand.video_understand "漫剧素材/项目名"
 ```bash
 # Basic rendering (with auto ending detection enabled by default)
 python -m scripts.understand.render_clips \
-    data/hangzhou-leiming/analysis/项目名 \
+    data/analysis/项目名 \
     漫剧素材/项目名
 
 # Add ending video
 python -m scripts.understand.render_clips \
-    data/hangzhou-leiming/analysis/项目名 \
+    data/analysis/项目名 \
     漫剧素材/项目名 \
     --add-ending
 
 # Force re-detect ending credits
 python -m scripts.understand.render_clips \
-    data/hangzhou-leiming/analysis/项目名 \
+    data/analysis/项目名 \
     漫剧素材/项目名 \
     --force-detect
 
 # Skip ending detection
 python -m scripts.understand.render_clips \
-    data/hangzhou-leiming/analysis/项目名 \
+    data/analysis/项目名 \
     漫剧素材/项目名 \
     --skip-ending
 
 # Add overlay text (V15)
 python -m scripts.understand.render_clips \
-    data/hangzhou-leiming/analysis/项目名 \
+    data/analysis/项目名 \
     漫剧素材/项目名 \
     --add-overlay
 ```
@@ -81,7 +81,7 @@ python -m scripts.train [options]
 python -m scripts.understand.video_understand "漫剧素材/项目名" [技能文件]
 
 # 渲染剪辑视频
-python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/项目名 漫剧素材/项目名
+python -m scripts.understand.render_clips data/analysis/项目名 漫剧素材/项目名
 
 # 缓存清理说明:
 # - 默认情况下，分析/渲染完成后会自动清理中间缓存（关键帧、音频、ASR）
@@ -388,7 +388,7 @@ Clip               # Generated clip combination
 ## Output Structure
 
 ```
-data/hangzhou-leiming/
+data/
 ├── skills/                    # Generated skill files
 │   ├── ai-drama-clipping-thoughts-v1.0.md
 │   ├── ai-drama-clipping-thoughts-latest.md
@@ -409,6 +409,12 @@ data/hangzhou-leiming/
 
 ### Version History Context
 
+- **V16.3** (2026-03-11): 渲染性能优化
+  - 完全单次编码：filter_complex合并裁剪+花字+结尾
+  - 智能Worker调节：根据CPU/GPU自动计算最优并发数
+  - 结尾视频预缓存：项目开始时预处理结尾视频
+  - 分辨率自适应：360p素材输出720p，减少编码量
+  - 预计渲染速度提升：50-70%
 - **V16** (2026-03-11): OCR+ASR敏感词检测模块
   - OCR识别字幕句子，PaddleOCR 3.x新版API
   - 模糊匹配（相似度>60%）在ASR中找对应片段

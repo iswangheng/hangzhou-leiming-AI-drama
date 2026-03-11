@@ -35,7 +35,7 @@ from datetime import datetime
 
 def render_single_project(
     project_name: str,
-    analysis_dir: str = "data/hangzhou-leiming/analysis",
+    analysis_dir: str = "data/analysis",
     video_base_dir: str = "260310-待剪辑-360 短剧素材",
     add_overlay: bool = True,
     add_ending: bool = True,

@@ -81,18 +81,18 @@ python scripts/understand/video_overlay/test_overlay.py \
 ```bash
 # 基础使用（随机样式）
 python -m scripts.understand.render_clips \
-  data/hangzhou-leiming/analysis/项目名 \
+  data/analysis/项目名 \
   --add-overlay
 
 # 指定样式
 python -m scripts.understand.render_clips \
-  data/hangzhou-leiming/analysis/项目名 \
+  data/analysis/项目名 \
   --add-overlay \
   --overlay-style gold_luxury
 
 # 完整功能（片尾检测 + 结尾视频 + 花字叠加）
 python -m scripts.understand.render_clips \
-  data/hangzhou-leiming/analysis/项目名 \
+  data/analysis/项目名 \
   --add-ending \
   --add-overlay
 ```
@@ -103,7 +103,7 @@ python -m scripts.understand.render_clips \
 from scripts.understand.render_clips import ClipRenderer
 
 renderer = ClipRenderer(
-    project_path="data/hangzhou-leiming/analysis/项目名",
+    project_path="data/analysis/项目名",
     output_dir="clips/项目名",
     add_overlay=True,           # 启用花字叠加
     overlay_style_id="gold_luxury"  # 可选：指定样式
