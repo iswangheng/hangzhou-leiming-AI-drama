@@ -9,20 +9,24 @@
 
 ### 新增 (Added)
 
-#### 1. GPU硬件加速支持
+#### 1. GPU硬件加速支持（跨平台）
 
-**使用方式**：
+**使用方式**（所有平台通用）：
 ```bash
 python -m scripts.understand.render_clips data/... video_dir --hwaccel
 ```
 
 **技术实现**：
-- macOS: 使用 VideoToolbox (`h264_videotoolbox`)
-- Linux: 可扩展支持 CUDA/NVENC
+- **macOS**: VideoToolbox (`h264_videotoolbox`)
+- **Windows**: NVIDIA NVENC / Intel QuickSync / AMD AMF
+- **Linux**: NVIDIA NVENC / Intel QuickSync / VAAPI
+
+**自动检测**：
+新增 `_detect_gpu_encoder()` 函数，自动检测最佳可用编码器
 
 **预期效果**：
 - 编码速度提升30-50%
-- CPU占用降低
+- CPU占用大幅降低
 
 #### 2. 快速预设支持
 
