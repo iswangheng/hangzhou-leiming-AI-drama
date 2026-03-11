@@ -1724,9 +1724,34 @@ def render_single_clip_standalone(
     clip_data: dict,
     render_params: dict
 ) -> Optional[str]:
-    """独立的单剪辑渲染函数（用于多进程）(V16新增)
+    """独立的单剪辑渲染函数（用于多进程）(V17优化)
 
-    这个函数必须是模块级别的，以便在多进程中使用
+    V17优化：优先使用单次编码（filter_complex），失败时回退到分步处理
+    - 单集剪辑：1次FFmpeg调用
+    - 跨集剪辑：1次FFmpeg调用（原3次）
+    - 预期速度提升：跨集剪辑 ~66%
+
+    Args:
+        clip_index: 剪辑索引
+        clip_data: 剪辑数据字典
+        render_params: 渲染参数字典
+
+    Returns:
+        输出文件路径，失败返回None
+    """
+    # V17: 优先使用单次编码
+    return _render_clip_single_pass(clip_index, clip_data, render_params)
+
+
+def _render_clip_unified_standalone(
+    clip_index: int,
+    clip_data: dict,
+    render_params: dict
+) -> Optional[str]:
+    """分步渲染函数（V17回退方案）
+
+    当单次编码失败时，回退到此分步处理方法。
+    这是V16及之前的默认渲染方式。
 
     Args:
         clip_index: 剪辑索引
