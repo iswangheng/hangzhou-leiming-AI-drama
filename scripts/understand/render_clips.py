@@ -1705,7 +1705,7 @@ def _clip_to_segments_standalone(clip: Clip, episode_durations: dict, video_dir:
 
 
 def _trim_segment_standalone(segment, output_path: str, render_params: dict) -> None:
-    """裁剪单个视频片段（独立函数）(V16.2: 支持GPU加速)"""
+    """裁剪单个视频片段（独立函数）(V16.2: 支持跨平台GPU加速)"""
     video_dir = Path(render_params['video_dir'])
 
     # 查找视频文件
@@ -1727,13 +1727,18 @@ def _trim_segment_standalone(segment, output_path: str, render_params: dict) -> 
     import math
     total_frames = math.ceil(segment.end * fps)
 
-    # V16.2: 构建FFmpeg命令（支持GPU加速）
+    # V16.2: 检测最佳GPU编码器
+    hwaccel = render_params.get('hwaccel', False)
+    hwaccel_config = _detect_gpu_encoder() if hwaccel else None
+
+    # V16.2: 构建FFmpeg命令（支持跨平台GPU加速）
     cmd = ['ffmpeg', '-y']
 
-    # GPU硬件加速（macOS VideoToolbox）
-    hwaccel = render_params.get('hwaccel', False)
-    if hwaccel:
-        cmd.extend(['-hwaccel', 'videotoolbox'])
+    # GPU硬件解码加速
+    if hwaccel_config:
+        hwaccel_method = hwaccel_config.get('hwaccel')
+        if hwaccel_method:
+            cmd.extend(['-hwaccel', hwaccel_method])
 
     cmd.extend([
         '-ss', str(segment.start),
@@ -1742,10 +1747,10 @@ def _trim_segment_standalone(segment, output_path: str, render_params: dict) -> 
     ])
 
     # V16.2: 选择编码方式
-    if hwaccel:
+    if hwaccel_config:
         # GPU加速编码
         cmd.extend([
-            '-c:v', 'h264_videotoolbox',
+            '-c:v', hwaccel_config['encoder'],
             '-b:v', '8M',  # GPU编码使用码率控制
             '-c:a', 'aac',
             '-b:a', '128k',
@@ -1764,6 +1769,63 @@ def _trim_segment_standalone(segment, output_path: str, render_params: dict) -> 
 
     # 执行命令（静默模式）
     subprocess.run(cmd, capture_output=True, check=True)
+
+
+def _detect_gpu_encoder() -> Optional[dict]:
+    """检测可用的GPU编码器（跨平台支持）(V16.2新增)
+
+    Returns:
+        GPU编码器配置字典，如果不可用返回None
+
+    支持的编码器：
+    - macOS: h264_videotoolbox
+    - Windows/Linux + NVIDIA: h264_nvenc
+    - Windows/Linux + Intel: h264_qsv
+    - Windows/Linux + AMD: h264_amf
+    """
+    import platform
+    import subprocess
+
+    system = platform.system()
+
+    # 按优先级尝试不同的编码器
+    encoders_to_try = []
+
+    if system == 'Darwin':  # macOS
+        encoders_to_try = [
+            {'encoder': 'h264_videotoolbox', 'hwaccel': 'videotoolbox', 'name': 'VideoToolbox (macOS)'},
+        ]
+    elif system == 'Windows':
+        encoders_to_try = [
+            {'encoder': 'h264_nvenc', 'hwaccel': 'cuda', 'name': 'NVIDIA NVENC'},
+            {'encoder': 'h264_qsv', 'hwaccel': 'qsv', 'name': 'Intel QuickSync'},
+            {'encoder': 'h264_amf', 'hwaccel': None, 'name': 'AMD AMF'},
+        ]
+    else:  # Linux
+        encoders_to_try = [
+            {'encoder': 'h264_nvenc', 'hwaccel': 'cuda', 'name': 'NVIDIA NVENC'},
+            {'encoder': 'h264_qsv', 'hwaccel': 'qsv', 'name': 'Intel QuickSync'},
+            {'encoder': 'h264_vaapi', 'hwaccel': 'vaapi', 'name': 'VAAPI (Intel/AMD)'},
+        ]
+
+    # 检查FFmpeg是否支持这些编码器
+    try:
+        result = subprocess.run(
+            ['ffmpeg', '-encoders'],
+            capture_output=True, text=True, timeout=5
+        )
+        available_encoders = result.stdout
+
+        for config in encoders_to_try:
+            if config['encoder'] in available_encoders:
+                print(f"  🎮 GPU加速: {config['name']}")
+                return config
+
+    except Exception as e:
+        print(f"  ⚠️ 检测GPU编码器失败: {e}")
+
+    print(f"  ⚠️ 未检测到可用的GPU编码器，使用CPU编码")
+    return None
 
 
 def _concat_segments_standalone(segment_files: List[str], output_path: str, output_dir: Path) -> None:
