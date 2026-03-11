@@ -2870,7 +2870,10 @@ def _render_clip_unified_standalone(
                 '-of', 'csv=p=0', str(video_file)
             ]
             probe_result = subprocess.run(probe_cmd, capture_output=True, text=True)
-            video_width, video_height = map(int, probe_result.stdout.strip().split(','))
+            probe_output = probe_result.stdout.strip()
+            if not probe_output or ',' not in probe_output:
+                raise ValueError(f"无法获取视频分辨率: {video_file}")
+            video_width, video_height = map(int, probe_output.split(','))
             output_width, output_height = _get_output_resolution(video_width, video_height)
             need_scale = (output_width != video_width or output_height != video_height)
             if need_scale:
@@ -2930,11 +2933,15 @@ def _render_clip_unified_standalone(
                     '-of', 'csv=p=0', str(first_video_file)
                 ]
                 probe_result = subprocess.run(probe_cmd, capture_output=True, text=True)
-                video_width, video_height = map(int, probe_result.stdout.strip().split(','))
-                output_width, output_height = _get_output_resolution(video_width, video_height)
-                need_scale = (output_width != video_width or output_height != video_height)
-                if need_scale:
-                    print(f"  📐 分辨率自适应: {video_width}x{video_height} → {output_width}x{output_height}")
+                probe_output = probe_result.stdout.strip()
+                if probe_output and ',' in probe_output:
+                    video_width, video_height = map(int, probe_output.split(','))
+                    output_width, output_height = _get_output_resolution(video_width, video_height)
+                    need_scale = (output_width != video_width or output_height != video_height)
+                    if need_scale:
+                        print(f"  📐 分辨率自适应: {video_width}x{video_height} → {output_width}x{output_height}")
+                else:
+                    need_scale = False
             else:
                 need_scale = False
 
