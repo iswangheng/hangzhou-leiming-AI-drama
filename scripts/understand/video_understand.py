@@ -379,8 +379,8 @@ def detect_project_endings_in_understand_phase(
     video_dir_path = Path(video_dir)
     project_name = video_dir_path.name
 
-    # 输出目录
-    output_dir = TrainingConfig.CACHE_DIR / "ending_credits"
+    # 输出目录 (与render_clips保持一致: data/hangzhou-leiming/ending_credits/)
+    output_dir = Path("data/hangzhou-leiming/ending_credits")
     output_dir.mkdir(parents=True, exist_ok=True)
     output_file = output_dir / f"{project_name}_ending_credits.json"
 
