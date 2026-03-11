@@ -1,12 +1,19 @@
 """
 视频理解主入口
 整合所有模块，实现完整的视频理解流程
+
+V15.9 更新（2026-03-11）：
+- 【重要】ASR 并行提取优化：使用 ThreadPoolExecutor 并行提取多集 ASR
+- 【重要】缓存复用优化：片尾检测阶段复用已缓存的 ASR，避免重复转录
+- 预期效果：ASR 提取时间从 8分钟 → 2分钟（4个worker），片尾检测瞬间完成
 """
 import os
 import json
 import sys
 from pathlib import Path
 from typing import List, Dict, Any
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 # 导入子模块
 from scripts.understand.understand_skill import understand_skill
@@ -25,13 +32,155 @@ from scripts.config import TrainingConfig
 import shutil
 
 
-def load_episode_data(project_path: str, auto_extract: bool = True) -> tuple:
+def _extract_single_episode_asr(episode: int, mp4_file: Path, project_name: str) -> tuple:
+    """
+    提取单集的 ASR（用于并行处理）
+
+    V15.9: 内部函数，用于 ThreadPoolExecutor 并行调用
+
+    Args:
+        episode: 集数
+        mp4_file: 视频文件路径
+        project_name: 项目名称
+
+    Returns:
+        (episode, asr_segments, error_message)
+    """
+    try:
+        # 获取 ASR 缓存路径
+        asr_path = get_asr_output_path(project_name, episode)
+
+        # 检查缓存是否已存在
+        if os.path.exists(asr_path):
+            asr_segments = load_asr_from_file(asr_path, episode=episode)
+            if asr_segments:
+                return (episode, asr_segments, None)
+
+        # 缓存不存在，开始提取
+        # 步骤1: 提取音频
+        audio_path = get_audio_output_path(project_name, episode)
+        extract_audio(str(mp4_file), audio_path)
+
+        # 步骤2: 转录音频
+        asr_segments = transcribe_audio(
+            audio_path=audio_path,
+            output_path=asr_path,
+            model=TrainingConfig.ASR_MODEL,
+            language=TrainingConfig.ASR_LANGUAGE
+        )
+
+        return (episode, asr_segments, None)
+
+    except Exception as e:
+        return (episode, [], str(e))
+
+
+def extract_asr_parallel(episode_files: Dict[int, Path], project_name: str,
+                        max_workers: int = 4, progress_callback=None) -> Dict[int, list]:
+    """
+    并行提取多集的 ASR
+
+    V15.9: 新增并行 ASR 提取功能
+    - 使用 ThreadPoolExecutor 并行处理多集
+    - 自动检测缓存，跳过已存在的 ASR
+    - 提供进度回调支持
+
+    Args:
+        episode_files: {集数: mp4文件路径}
+        project_name: 项目名称
+        max_workers: 最大并行数（默认4，建议不超过4以避免内存不足）
+        progress_callback: 进度回调函数 (episode, status, message)
+
+    Returns:
+        {集数: ASR片段列表}
+    """
+    episode_asr = {}
+    total = len(episode_files)
+
+    # 检查哪些集需要提取 ASR
+    episodes_to_extract = []
+    episodes_cached = []
+
+    for episode, mp4_file in episode_files.items():
+        asr_path = get_asr_output_path(project_name, episode)
+        if os.path.exists(asr_path):
+            episodes_cached.append(episode)
+        else:
+            episodes_to_extract.append(episode)
+
+    if episodes_cached:
+        print(f"  📦 已缓存 ASR: {len(episodes_cached)} 集")
+        # 加载缓存的 ASR
+        for episode in episodes_cached:
+            asr_path = get_asr_output_path(project_name, episode)
+            asr_segments = load_asr_from_file(asr_path, episode=episode)
+            episode_asr[episode] = asr_segments
+
+    if not episodes_to_extract:
+        print(f"  ✅ 所有 ASR 均已缓存，无需提取")
+        return episode_asr
+
+    print(f"  🔄 需要提取 ASR: {len(episodes_to_extract)} 集")
+    print(f"  ⚡ 并行 worker 数: {max_workers}")
+
+    # 过滤出需要提取的文件
+    files_to_extract = {ep: episode_files[ep] for ep in episodes_to_extract}
+
+    start_time = time.time()
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(_extract_single_episode_asr, ep, mp4, project_name): ep
+            for ep, mp4 in files_to_extract.items()
+        }
+
+        completed = 0
+        for future in as_completed(futures):
+            ep = futures[future]
+            try:
+                episode, asr_segments, error = future.result()
+                completed += 1
+
+                if error:
+                    print(f"  ❌ [{completed}/{len(episodes_to_extract)}] 第{episode}集 ASR 提取失败: {error}")
+                    episode_asr[episode] = []
+                else:
+                    # V15.4修复: 确保每个 ASRSegment 都有正确的 episode 字段
+                    for seg in asr_segments:
+                        seg.episode = episode
+                    episode_asr[episode] = asr_segments
+                    print(f"  ✅ [{completed}/{len(episodes_to_extract)}] 第{episode}集 ASR 完成 ({len(asr_segments)}片段)")
+
+                if progress_callback:
+                    status = "error" if error else "success"
+                    msg = error if error else f"完成 ({len(asr_segments)}片段)"
+                    progress_callback(episode, status, msg)
+
+            except Exception as e:
+                completed += 1
+                print(f"  ❌ [{completed}/{len(episodes_to_extract)}] 第{ep}集 ASR 提取异常: {e}")
+                episode_asr[ep] = []
+
+    elapsed = time.time() - start_time
+    print(f"  ⏱️  ASR 并行提取完成，耗时: {elapsed:.1f}秒")
+
+    return episode_asr
+
+
+def load_episode_data(project_path: str, auto_extract: bool = True,
+                     parallel_asr: bool = True, max_asr_workers: int = 4) -> tuple:
     """
     加载项目数据（支持多种文件命名格式，支持自动提取）
+
+    V15.9 更新：
+    - 新增 parallel_asr 参数，支持 ASR 并行提取
+    - 新增 max_asr_workers 参数，控制并行度
 
     Args:
         project_path: 项目路径
         auto_extract: 是否自动提取缺失的关键帧和ASR（默认True）
+        parallel_asr: 是否并行提取 ASR（默认True）
+        max_asr_workers: ASR 并行提取的最大 worker 数（默认4）
 
     Returns:
         (episode_keyframes, episode_asr, episode_durations)
@@ -47,6 +196,9 @@ def load_episode_data(project_path: str, auto_extract: bool = True) -> tuple:
     # 查找所有mp4文件
     mp4_files = sorted(video_dir.glob("*.mp4"))
 
+    # V15.9: 收集所有需要处理的视频文件
+    episode_video_files = {}
+
     for mp4_file in mp4_files:
         # 使用增强的解析函数提取集数
         episode = parse_episode_number(mp4_file.name)
@@ -54,6 +206,8 @@ def load_episode_data(project_path: str, auto_extract: bool = True) -> tuple:
         if episode is None:
             print(f"⚠️  警告: 无法解析文件名 {mp4_file.name}，跳过")
             continue
+
+        episode_video_files[episode] = mp4_file
 
         # ===== 自动检查并提取关键帧 =====
         keyframe_path = get_keyframe_output_path(video_dir.name, episode)
@@ -123,48 +277,8 @@ def load_episode_data(project_path: str, auto_extract: bool = True) -> tuple:
 
         episode_keyframes[episode] = keyframes
 
-        # ===== 自动检查并提取ASR =====
-        asr_path = get_asr_output_path(video_dir.name, episode)
-
-        if os.path.exists(asr_path):
-            # ASR已存在，直接加载
-            # V13时间戳修复: 传入episode参数，确保ASR数据包含集数信息
-            asr_segments = load_asr_from_file(asr_path, episode=episode)
-            if asr_segments:
-                print(f"  第{episode}集: ASR已加载 ({len(asr_segments)}片段)")
-        else:
-            # ASR不存在，自动提取
-            if auto_extract:
-                print(f"  ⚠️  第{episode}集ASR不存在，开始自动转录...")
-
-                try:
-                    # 步骤1: 提取音频
-                    audio_path = get_audio_output_path(video_dir.name, episode)
-                    print(f"     步骤1/2: 提取音频...")
-                    extract_audio(str(mp4_file), audio_path)
-
-                    # 步骤2: 转录音频
-                    print(f"     步骤2/2: Whisper转录...")
-                    asr_segments = transcribe_audio(
-                        audio_path=audio_path,
-                        output_path=asr_path,
-                        model=TrainingConfig.ASR_MODEL,
-                        language=TrainingConfig.ASR_LANGUAGE
-                    )
-                    print(f"  ✅ 第{episode}集ASR转录完成 ({len(asr_segments)}片段)")
-                except Exception as e:
-                    print(f"  ❌ 第{episode}集ASR转录失败: {e}")
-                    asr_segments = []
-            else:
-                asr_segments = []
-
-        # V15.4修复: 确保每个ASRSegment都有正确的episode字段
-        for seg in asr_segments:
-            seg.episode = episode
-
-        episode_asr[episode] = asr_segments
-
-        # 获取视频时长（使用ffprobe获取准确时长）
+        # ===== 获取视频时长 =====
+        # V15.9: 将时长获取移到前面，因为 ASR 并行提取时也需要
         import subprocess
         try:
             cmd = [
@@ -179,12 +293,64 @@ def load_episode_data(project_path: str, auto_extract: bool = True) -> tuple:
             episode_durations[episode] = int(duration)  # 使用ffprobe获取的准确时长
         except (subprocess.CalledProcessError, ValueError) as e:
             # ffprobe失败时，回退到关键帧估算
-            if keyframes:
-                max_ms = max(kf.timestamp_ms for kf in keyframes)
+            if episode_keyframes.get(episode):
+                max_ms = max(kf.timestamp_ms for kf in episode_keyframes[episode])
                 episode_durations[episode] = (max_ms // 1000) + 10
             else:
                 episode_durations[episode] = 0
             print(f"  ⚠️  第{episode}集: ffprobe失败，使用关键帧估算")
+
+    # ===== V15.9: ASR 并行提取 =====
+    if auto_extract:
+        print(f"\n{'='*50}")
+        print(f"ASR 提取阶段 ({'并行' if parallel_asr else '串行'})")
+        print(f"{'='*50}")
+
+        if parallel_asr:
+            # 并行提取 ASR
+            episode_asr = extract_asr_parallel(
+                episode_video_files,
+                video_dir.name,
+                max_workers=max_asr_workers
+            )
+        else:
+            # 串行提取 ASR（保持向后兼容）
+            for episode, mp4_file in episode_video_files.items():
+                asr_path = get_asr_output_path(video_dir.name, episode)
+
+                if os.path.exists(asr_path):
+                    # ASR已存在，直接加载
+                    asr_segments = load_asr_from_file(asr_path, episode=episode)
+                    if asr_segments:
+                        print(f"  第{episode}集: ASR已加载 ({len(asr_segments)}片段)")
+                else:
+                    # ASR不存在，自动提取
+                    print(f"  ⚠️  第{episode}集ASR不存在，开始自动转录...")
+
+                    try:
+                        # 步骤1: 提取音频
+                        audio_path = get_audio_output_path(video_dir.name, episode)
+                        print(f"     步骤1/2: 提取音频...")
+                        extract_audio(str(mp4_file), audio_path)
+
+                        # 步骤2: 转录音频
+                        print(f"     步骤2/2: Whisper转录...")
+                        asr_segments = transcribe_audio(
+                            audio_path=audio_path,
+                            output_path=asr_path,
+                            model=TrainingConfig.ASR_MODEL,
+                            language=TrainingConfig.ASR_LANGUAGE
+                        )
+                        print(f"  ✅ 第{episode}集ASR转录完成 ({len(asr_segments)}片段)")
+                    except Exception as e:
+                        print(f"  ❌ 第{episode}集ASR转录失败: {e}")
+                        asr_segments = []
+
+                # V15.4修复: 确保每个ASRSegment都有正确的episode字段
+                for seg in asr_segments:
+                    seg.episode = episode
+
+                episode_asr[episode] = asr_segments
 
     return episode_keyframes, episode_asr, episode_durations
 

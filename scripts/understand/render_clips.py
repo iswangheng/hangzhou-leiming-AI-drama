@@ -7,6 +7,7 @@ V14.1: 新增自动片尾检测功能
 V14.8: 修复片尾剪切精度和音视频同步问题
 V15: 新增视频包装花字叠加功能
 V15.6: 修复处理顺序 + 热门短剧位置随机化（左上/右上各50%概率）
+V16: 新增并行渲染功能（多进程加速）
 """
 import os
 import json
@@ -17,6 +18,8 @@ from typing import List, Dict, Optional, Callable
 from dataclasses import dataclass
 import re
 import shutil
+import multiprocessing
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from scripts.config import TrainingConfig
 
@@ -459,13 +462,23 @@ class ClipRenderer:
         return True
 
     def _auto_detect_ending_credits(self) -> None:
-        """自动检测项目中所有视频的片尾"""
+        """
+        自动检测项目中所有视频的片尾
+
+        V15.9 优化：
+        - 复用 ASR 缓存，避免重复转录
+        - 片尾检测阶段使用 video_understand 阶段已缓存的 ASR
+        - 预期效果：片尾检测从 3分钟 → 瞬间完成
+        """
         print(f"📺 检测项目: {self.project_name}")
         print(f"📁 视频目录: {self.video_dir}")
 
         try:
             # 导入片尾检测模块
             from scripts.detect_ending_credits import EndingCreditsDetector
+
+            # V15.9: 导入 ASR 缓存加载函数
+            from scripts.extract_asr import load_asr_from_file, get_asr_output_path
 
             detector = EndingCreditsDetector()
 
@@ -478,7 +491,22 @@ class ClipRenderer:
                 return
 
             print(f"📊 需要检测 {total_videos} 个视频...")
-            print(f"⏱️  预计耗时: {total_videos * 3}-{total_videos * 10} 秒")
+
+            # V15.9: 检查 ASR 缓存可用性
+            asr_cache_available = {}
+            for video_path in video_files:
+                episode = self._extract_episode_number(video_path.name)
+                if episode is None:
+                    continue
+                asr_path = get_asr_output_path(self.video_dir.name, episode)
+                if os.path.exists(asr_path):
+                    asr_cache_available[episode] = asr_path
+
+            if asr_cache_available:
+                print(f"📦 已缓存 ASR: {len(asr_cache_available)}/{total_videos} 集（将复用缓存）")
+                print(f"⏱️  预计耗时: {total_videos * 1}-{total_videos * 3} 秒（使用 ASR 缓存加速）")
+            else:
+                print(f"⏱️  预计耗时: {total_videos * 3}-{total_videos * 10} 秒（无 ASR 缓存）")
 
             results = {'project': self.project_name, 'episodes': []}
 
@@ -491,7 +519,16 @@ class ClipRenderer:
                     continue
 
                 try:
-                    result = detector.detect_video_ending(str(video_path), episode)
+                    # V15.9: 复用 ASR 缓存
+                    asr_segments = None
+                    if episode in asr_cache_available:
+                        asr_path = asr_cache_available[episode]
+                        asr_segments = load_asr_from_file(asr_path, episode=episode)
+                        if asr_segments:
+                            print(f"    📦 使用缓存的 ASR 数据 ({len(asr_segments)} 片段)")
+
+                    # 传入 ASR 数据（如果有缓存）
+                    result = detector.detect_video_ending(str(video_path), episode, asr_segments=asr_segments)
                     results['episodes'].append(result.to_dict())
 
                     if result.ending_info.has_ending:
@@ -1373,6 +1410,769 @@ class ClipRenderer:
         print(f"\n✅ 渲染完成: {len(output_paths)}/{total_clips}个剪辑")
         return output_paths
 
+    def render_all_clips_parallel(
+        self,
+        max_workers: int = 4,
+        on_clip_progress: Optional[Callable[[int, int, float], None]] = None,
+        max_clips: int = 0,
+        clip_indices: Optional[List[int]] = None
+    ) -> List[str]:
+        """并行渲染所有剪辑 (V16新增)
+
+        使用多进程加速渲染，每个worker独立处理一个剪辑
+
+        Args:
+            max_workers: 最大并行worker数（默认4，设为1禁用并行）
+            on_clip_progress: 进度回调函数(current, total, progress)
+            max_clips: 最多渲染的剪辑数量（0=全部）
+            clip_indices: 指定要渲染的剪辑索引列表（如 [0, 2, 7]）
+
+        Returns:
+            输出文件路径列表
+        """
+        clips_data = self.result.get('clips', [])
+
+        # 如果max_workers<=1，回退到串行模式
+        if max_workers <= 1:
+            return self.render_all_clips(on_clip_progress, max_clips, clip_indices)
+
+        # 支持限制剪辑数量
+        if clip_indices:
+            clips_to_render = [(i, clips_data[i]) for i in clip_indices if i < len(clips_data)]
+            print(f"\n并行渲染指定 {len(clips_to_render)} 个剪辑（索引: {clip_indices}）...")
+        elif max_clips > 0:
+            clips_to_render = list(enumerate(clips_data[:max_clips]))
+            print(f"\n并行渲染前 {len(clips_to_render)} 个剪辑（共 {len(clips_data)} 个）...")
+        else:
+            clips_to_render = list(enumerate(clips_data))
+            print(f"\n并行渲染全部 {len(clips_to_render)} 个剪辑...")
+
+        total_clips = len(clips_to_render)
+        print(f"输出目录: {self.output_dir}")
+        print(f"并行Worker数: {max_workers}")
+
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+        # 限制worker数量不超过CPU核心数
+        max_workers = min(max_workers, multiprocessing.cpu_count())
+
+        # 准备渲染参数
+        render_params = {
+            'video_dir': str(self.video_dir),
+            'output_dir': str(self.output_dir),
+            'episode_durations': self.episode_durations,
+            'width': self.width,
+            'height': self.height,
+            'fps': self.fps,
+            'crf': self.crf,
+            'preset': self.preset,
+            'project_name': self.project_name,
+            'add_ending_clip': self.add_ending_clip,
+            'ending_videos': self.ending_videos,
+            'add_overlay': self.add_overlay,
+            'overlay_style_id': self.overlay_style_id,
+            'hot_drama_position': getattr(self, 'overlay_config', None).hot_drama_position if hasattr(self, 'overlay_config') and self.overlay_config else 'top-right'
+        }
+
+        output_paths = []
+        completed = 0
+
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            # 提交所有任务
+            futures = {
+                executor.submit(
+                    render_single_clip_standalone,
+                    original_idx,
+                    clip_data,
+                    render_params
+                ): (original_idx, clip_data)
+                for original_idx, clip_data in clips_to_render
+            }
+
+            # 收集结果
+            for future in as_completed(futures):
+                original_idx, _ = futures[future]
+                completed += 1
+
+                try:
+                    output_path = future.result()
+                    if output_path:
+                        output_paths.append(output_path)
+                        print(f"  ✅ 剪辑 {completed}/{total_clips} (原索引 {original_idx}) 完成")
+                    else:
+                        print(f"  ⚠️  剪辑 {completed}/{total_clips} (原索引 {original_idx}) 无输出")
+
+                    # 进度回调
+                    if on_clip_progress:
+                        on_clip_progress(completed, total_clips, 1.0)
+
+                except Exception as e:
+                    print(f"  ❌ 剪辑 {completed}/{total_clips} (原索引 {original_idx}) 失败: {e}")
+
+        print(f"\n✅ 并行渲染完成: {len(output_paths)}/{total_clips}个剪辑")
+        return output_paths
+
+
+def render_single_clip_standalone(
+    clip_index: int,
+    clip_data: dict,
+    render_params: dict
+) -> Optional[str]:
+    """独立的单剪辑渲染函数（用于多进程）(V16新增)
+
+    这个函数必须是模块级别的，以便在多进程中使用
+
+    Args:
+        clip_index: 剪辑索引
+        clip_data: 剪辑数据字典
+        render_params: 渲染参数字典
+
+    Returns:
+        输出文件路径，失败返回None
+    """
+    try:
+        # 创建Clip对象
+        clip = Clip(**clip_data)
+
+        # 计算起始和结束时间（在该集内的秒数）
+        episode_durations = render_params['episode_durations']
+
+        # 计算起始集内的秒数
+        cumulative_before_start = 0
+        for ep in sorted(episode_durations.keys()):
+            if ep < clip.episode:
+                cumulative_before_start += episode_durations[ep]
+
+        start_in_episode = clip.start - cumulative_before_start
+
+        # 计算结束集内的秒数
+        cumulative_before_end = 0
+        for ep in sorted(episode_durations.keys()):
+            if ep < clip.hookEpisode:
+                cumulative_before_end += episode_durations[ep]
+
+        end_in_episode = clip.end - cumulative_before_end
+
+        # 生成唯一输出文件名（添加worker_id避免冲突）
+        import os
+        worker_id = os.getpid()
+        output_dir = Path(render_params['output_dir'])
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # 使用唯一临时文件名
+        filename = f"{render_params['project_name']}_第{clip.episode}集{format_time(int(start_in_episode))}_第{clip.hookEpisode}集{format_time(int(end_in_episode))}_tmp{worker_id}.mp4"
+        output_path = str(output_dir / filename)
+
+        # 转换为视频片段
+        segments = _clip_to_segments_standalone(clip, episode_durations, render_params['video_dir'])
+
+        # 如果只有1个片段且不是跨集，直接裁剪
+        if len(segments) == 1:
+            _trim_segment_standalone(segments[0], output_path, render_params)
+        else:
+            # 多个片段：先分别裁剪，再拼接
+            temp_files = []
+            temp_dir = output_dir / f"temp_{worker_id}"
+            temp_dir.mkdir(exist_ok=True)
+
+            # 裁剪每个片段
+            for i, segment in enumerate(segments):
+                temp_file = temp_dir / f"segment_{i}.mp4"
+                _trim_segment_standalone(segment, str(temp_file), render_params)
+                temp_files.append(str(temp_file))
+
+            # 拼接片段
+            _concat_segments_standalone(temp_files, output_path, output_dir)
+
+            # 删除临时文件
+            for temp_file in temp_files:
+                Path(temp_file).unlink()
+            temp_dir.rmdir()
+
+        # V15: 添加花字叠加（如果配置了）
+        if render_params['add_overlay']:
+            output_path = _apply_video_overlay_standalone(output_path, render_params)
+
+        # V14: 添加结尾视频（如果配置了）
+        if render_params['add_ending_clip'] and render_params['ending_videos']:
+            output_path = _append_ending_video_standalone(output_path, render_params)
+
+        # 重命名为最终文件名（V16.1修复：正确处理后缀）
+        # output_path 现在可能包含 _overlay 和 _带结尾 后缀
+        output_path_obj = Path(output_path)
+        final_stem = output_path_obj.stem
+
+        # 移除临时标记
+        final_stem = final_stem.replace(f'_tmp{worker_id}', '')
+
+        # 将 _overlay 替换为 _带花字
+        final_stem = final_stem.replace('_overlay', '_带花字')
+
+        # 生成最终路径
+        final_path = str(output_path_obj.parent / (final_stem + output_path_obj.suffix))
+        shutil.move(output_path, final_path)
+
+        return final_path
+
+    except Exception as e:
+        print(f"  [Worker] 渲染失败: {e}")
+        return None
+
+
+def _clip_to_segments_standalone(clip: Clip, episode_durations: dict, video_dir: str) -> List:
+    """将剪辑转换为视频片段列表（独立函数）(V16新增)"""
+    from dataclasses import dataclass
+
+    @dataclass
+    class Segment:
+        episode: int
+        start: float
+        end: float
+
+    segments = []
+
+    # 简单情况：不跨集
+    if clip.episode == clip.hookEpisode:
+        # 计算在该集内的秒数
+        cumulative_before = 0
+        for ep in sorted(episode_durations.keys()):
+            if ep < clip.episode:
+                cumulative_before += episode_durations[ep]
+
+        start_in_episode = clip.start - cumulative_before
+        end_in_episode = clip.end - cumulative_before
+
+        segments.append(Segment(
+            episode=clip.episode,
+            start=start_in_episode,
+            end=end_in_episode
+        ))
+    else:
+        # 跨集情况：分割为多个片段
+        current_episode = clip.episode
+
+        # 计算累积时间
+        cumulative = 0
+        episode_times = {}
+        for ep in sorted(episode_durations.keys()):
+            episode_times[ep] = {
+                'start': cumulative,
+                'end': cumulative + episode_durations[ep]
+            }
+            cumulative += episode_durations[ep]
+
+        # 第一段：从起始时间到该集结束
+        first_episode_end = episode_times[clip.episode]['end']
+        cumulative_before_start = episode_times[clip.episode]['start']
+        start_in_first = clip.start - cumulative_before_start
+
+        segments.append(Segment(
+            episode=clip.episode,
+            start=start_in_first,
+            end=episode_durations[clip.episode]
+        ))
+
+        # 中间段：完整的集
+        for ep in range(clip.episode + 1, clip.hookEpisode):
+            segments.append(Segment(
+                episode=ep,
+                start=0,
+                end=episode_durations[ep]
+            ))
+
+        # 最后一段：从该集开始到结束时间
+        cumulative_before_end = episode_times[clip.hookEpisode]['start']
+        end_in_last = clip.end - cumulative_before_end
+
+        segments.append(Segment(
+            episode=clip.hookEpisode,
+            start=0,
+            end=end_in_last
+        ))
+
+    return segments
+
+
+def _trim_segment_standalone(segment, output_path: str, render_params: dict) -> None:
+    """裁剪单个视频片段（独立函数）(V16新增)"""
+    video_dir = Path(render_params['video_dir'])
+
+    # 查找视频文件
+    video_files = sorted(video_dir.glob("*.mp4"))
+    video_file = None
+    for vf in video_files:
+        ep_num = _extract_episode_number_standalone(vf.name)
+        if ep_num == segment.episode:
+            video_file = vf
+            break
+
+    if not video_file:
+        raise FileNotFoundError(f"找不到第{segment.episode}集视频")
+
+    # 获取视频帧率
+    fps = _get_video_fps_standalone(str(video_file))
+
+    # 计算总帧数（基于实际FPS）
+    import math
+    total_frames = math.ceil(segment.end * fps)
+
+    # FFmpeg命令（使用-frames:v进行帧精确裁剪）
+    cmd = [
+        'ffmpeg',
+        '-y',
+        '-ss', str(segment.start),
+        '-i', str(video_file),
+        '-frames:v', str(total_frames),
+        '-c:v', 'libx264',
+        '-crf', str(render_params['crf']),
+        '-preset', render_params['preset'],
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        output_path
+    ]
+
+    # 执行命令（静默模式）
+    subprocess.run(cmd, capture_output=True, check=True)
+
+
+def _concat_segments_standalone(segment_files: List[str], output_path: str, output_dir: Path) -> None:
+    """拼接多个视频片段（独立函数）(V16新增)"""
+    # 创建临时concat列表文件
+    concat_file = output_dir / f"concat_list_{os.getpid()}.txt"
+    with open(concat_file, 'w') as f:
+        for segment_file in segment_files:
+            segment_path = Path(segment_file)
+            relative_path = segment_path.relative_to(output_dir)
+            f.write(f"file '{relative_path}'\n")
+
+    # FFmpeg命令
+    cmd = [
+        'ffmpeg',
+        '-y',
+        '-f', 'concat',
+        '-safe', '0',
+        '-i', str(concat_file),
+        '-c', 'copy',
+        output_path
+    ]
+
+    subprocess.run(cmd, capture_output=True, check=True)
+
+    # 删除临时文件
+    concat_file.unlink()
+
+
+def _apply_video_overlay_standalone(clip_path: str, render_params: dict) -> str:
+    """应用花字叠加（独立函数）(V16新增)"""
+    try:
+        from .video_overlay.video_overlay import VideoOverlayRenderer, OverlayConfig
+
+        # 创建临时配置
+        config = OverlayConfig(
+            enabled=True,
+            style_id=render_params['overlay_style_id'],
+            project_name=render_params['project_name'],
+            drama_title=render_params['project_name'],
+            hot_drama_position=render_params.get('hot_drama_position', 'top-right')
+        )
+
+        renderer = VideoOverlayRenderer(config)
+
+        # 生成新的输出路径
+        clip_path_obj = Path(clip_path)
+        overlay_filename = clip_path_obj.stem + "_overlay" + clip_path_obj.suffix
+        overlay_path = str(clip_path_obj.parent / overlay_filename)
+
+        # 应用花字
+        renderer.apply_overlay(clip_path, overlay_path)
+
+        # 删除原文件
+        Path(clip_path).unlink()
+
+        return overlay_path
+
+    except Exception as e:
+        print(f"  [Worker] 花字叠加失败: {e}")
+        return clip_path
+
+
+def _append_ending_video_standalone(clip_path: str, render_params: dict) -> str:
+    """添加结尾视频（独立函数）(V16新增)"""
+    try:
+        # 随机选择结尾视频
+        ending_videos = render_params['ending_videos']
+        if not ending_videos:
+            return clip_path
+
+        import random
+        ending_video = random.choice(ending_videos)
+
+        # 预处理结尾视频（匹配原剪辑的分辨率和帧率）
+        processed_ending = _preprocess_ending_video_standalone(clip_path, ending_video, render_params)
+
+        # 生成新的输出路径
+        clip_path_obj = Path(clip_path)
+        new_filename = clip_path_obj.stem + "_带结尾" + clip_path_obj.suffix
+        new_output_path = str(clip_path_obj.parent / new_filename)
+
+        # 拼接视频
+        _concat_videos_standalone([clip_path, processed_ending], new_output_path)
+
+        # 删除临时文件
+        Path(processed_ending).unlink()
+        Path(clip_path).unlink()
+
+        return new_output_path
+
+    except Exception as e:
+        print(f"  [Worker] 添加结尾失败: {e}")
+        return clip_path
+
+
+def _preprocess_ending_video_standalone(clip_path: str, ending_video: str, render_params: dict) -> str:
+    """预处理结尾视频（独立函数）(V16新增)"""
+    # 获取原剪辑的分辨率
+    cmd = [
+        'ffprobe', '-v', 'error',
+        '-select_streams', 'v:0',
+        '-show_entries', 'stream=width,height,r_frame_rate',
+        '-of', 'csv=p=0',
+        clip_path
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    parts = result.stdout.strip().split(',')
+    clip_width = int(parts[0])
+    clip_height = int(parts[1])
+
+    # 解析帧率
+    fps_str = parts[2] if len(parts) > 2 else '30/1'
+    if '/' in fps_str:
+        num, den = fps_str.split('/')
+        clip_fps = float(num) / float(den)
+    else:
+        clip_fps = float(fps_str)
+
+    # 获取结尾视频时长
+    cmd = [
+        'ffprobe', '-v', 'error',
+        '-select_streams', 'v:0',
+        '-show_entries', 'stream=duration',
+        '-of', 'default=noprint_wrappers=1:nokey=1',
+        ending_video
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    video_duration = float(result.stdout.strip())
+
+    # 生成临时输出路径
+    output_dir = Path(clip_path).parent
+    processed_path = str(output_dir / f"processed_ending_{os.getpid()}.mp4")
+
+    # 转换结尾视频（匹配分辨率和帧率）
+    cmd = [
+        'ffmpeg',
+        '-y',
+        '-i', ending_video,
+        '-t', str(video_duration),
+        '-vf', f'scale={clip_width}:{clip_height}',
+        '-r', str(clip_fps),
+        '-vsync', 'cfr',
+        '-c:v', 'libx264',
+        '-crf', str(render_params['crf']),
+        '-preset', render_params['preset'],
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        processed_path
+    ]
+
+    subprocess.run(cmd, capture_output=True, check=True)
+
+    return processed_path
+
+
+def _concat_videos_standalone(video_paths: List[str], output_path: str) -> None:
+    """拼接视频文件（独立函数）(V16新增)"""
+    output_dir = Path(output_path).parent
+    concat_file = output_dir / f"concat_videos_{os.getpid()}.txt"
+
+    with open(concat_file, 'w') as f:
+        for vp in video_paths:
+            relative_path = Path(vp).relative_to(output_dir)
+            f.write(f"file '{relative_path}'\n")
+
+    cmd = [
+        'ffmpeg',
+        '-y',
+        '-f', 'concat',
+        '-safe', '0',
+        '-i', str(concat_file),
+        '-c', 'copy',
+        output_path
+    ]
+
+    subprocess.run(cmd, capture_output=True, check=True)
+    concat_file.unlink()
+
+
+def _extract_episode_number_standalone(filename: str) -> Optional[int]:
+    """从文件名提取集数（独立函数）(V16新增)"""
+    patterns = [
+        r'第(\d+)集',
+        r'EP?(\d+)',
+        r'^(\d+)',
+        r'[-_](\d+)\.mp4$',
+        r'(\d+)(?=\.mp4)',
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, filename, re.IGNORECASE)
+        if match:
+            return int(match.group(1))
+
+    return None
+
+
+# ============================================================================
+# V16.1: 合并编码优化 - 一次完成裁剪+花字+结尾
+# ============================================================================
+
+def _render_clip_unified_standalone(
+    clip_index: int,
+    clip_data: dict,
+    render_params: dict
+) -> Optional[str]:
+    """V16.1 合并渲染：一次性完成裁剪+花字+结尾（单次编码）
+
+    相比原来的3次编码，这个函数只进行1次编码，大幅提升渲染速度。
+
+    Args:
+        clip_index: 剪辑索引
+        clip_data: 剪辑数据字典
+        render_params: 渲染参数字典
+
+    Returns:
+        输出文件路径，失败返回None
+    """
+    import tempfile
+    import math
+
+    try:
+        # 创建Clip对象
+        clip = Clip(**clip_data)
+
+        # 获取参数
+        episode_durations = render_params['episode_durations']
+        video_dir = Path(render_params['video_dir'])
+        output_dir = Path(render_params['output_dir'])
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        project_name = render_params['project_name']
+        add_overlay = render_params['add_overlay']
+        add_ending = render_params['add_ending_clip'] and render_params['ending_videos']
+
+        # 计算起始和结束时间（在该集内的秒数）
+        cumulative_before_start = sum(
+            episode_durations[ep] for ep in sorted(episode_durations.keys()) if ep < clip.episode
+        )
+        start_in_episode = clip.start - cumulative_before_start
+
+        cumulative_before_end = sum(
+            episode_durations[ep] for ep in sorted(episode_durations.keys()) if ep < clip.hookEpisode
+        )
+        end_in_episode = clip.end - cumulative_before_end
+
+        # 生成最终输出文件名
+        def format_time(seconds):
+            if seconds < 60:
+                return f"{int(seconds)}秒"
+            else:
+                mins = int(seconds // 60)
+                secs = int(seconds % 60)
+                return f"{mins}分{secs}秒"
+
+        # 构建后缀
+        suffix_parts = []
+        if add_overlay:
+            suffix_parts.append("带花字")
+        if add_ending:
+            suffix_parts.append("带结尾")
+        suffix = "_" + "_".join(suffix_parts) if suffix_parts else ""
+
+        final_filename = f"{project_name}_第{clip.episode}集{format_time(start_in_episode)}_第{clip.hookEpisode}集{format_time(end_in_episode)}{suffix}.mp4"
+        final_path = str(output_dir / final_filename)
+
+        # ===== 查找视频文件 =====
+        video_files = sorted(video_dir.glob("*.mp4"))
+
+        def find_video_file(episode):
+            for vf in video_files:
+                ep_num = _extract_episode_number_standalone(vf.name)
+                if ep_num == episode:
+                    return vf
+            return None
+
+        # ===== 判断是否跨集 =====
+        is_cross_episode = clip.episode != clip.hookEpisode
+
+        # ===== 步骤1：准备裁剪的视频片段 =====
+        temp_files = []
+
+        if not is_cross_episode:
+            # 不跨集：直接处理单个视频
+            video_file = find_video_file(clip.episode)
+            if not video_file:
+                raise FileNotFoundError(f"找不到第{clip.episode}集视频")
+
+            # 获取视频帧率
+            fps = _get_video_fps_standalone(str(video_file))
+            total_frames = math.ceil(end_in_episode * fps)
+
+            # 裁剪后的临时文件
+            temp_trim = output_dir / f"temp_trim_{os.getpid()}_{clip_index}.mp4"
+            temp_files.append(temp_trim)
+
+            # 裁剪
+            trim_cmd = [
+                'ffmpeg', '-y',
+                '-ss', str(start_in_episode),
+                '-i', str(video_file),
+                '-frames:v', str(total_frames),
+                '-c:v', 'libx264',
+                '-crf', str(render_params['crf']),
+                '-preset', render_params['preset'],
+                '-c:a', 'aac', '-b:a', '128k',
+                str(temp_trim)
+            ]
+            subprocess.run(trim_cmd, capture_output=True, check=True)
+
+            clip_input = str(temp_trim)
+
+        else:
+            # 跨集：需要拼接多个片段
+            # 计算每个片段
+            segments = _clip_to_segments_standalone(clip, episode_durations, str(video_dir))
+
+            segment_files = []
+            temp_dir = output_dir / f"temp_segments_{os.getpid()}_{clip_index}"
+            temp_dir.mkdir(exist_ok=True)
+
+            for i, segment in enumerate(segments):
+                video_file = find_video_file(segment.episode)
+                if not video_file:
+                    raise FileNotFoundError(f"找不到第{segment.episode}集视频")
+
+                fps = _get_video_fps_standalone(str(video_file))
+                total_frames = math.ceil((segment.end - segment.start) * fps)
+
+                seg_file = temp_dir / f"segment_{i}.mp4"
+                segment_files.append(str(seg_file))
+                temp_files.append(seg_file)
+
+                seg_cmd = [
+                    'ffmpeg', '-y',
+                    '-ss', str(segment.start),
+                    '-i', str(video_file),
+                    '-frames:v', str(total_frames),
+                    '-c:v', 'libx264',
+                    '-crf', str(render_params['crf']),
+                    '-preset', render_params['preset'],
+                    '-c:a', 'aac', '-b:a', '128k',
+                    str(seg_file)
+                ]
+                subprocess.run(seg_cmd, capture_output=True, check=True)
+
+            # 拼接片段
+            temp_concat = output_dir / f"temp_concat_{os.getpid()}_{clip_index}.mp4"
+            temp_files.append(temp_concat)
+            _concat_segments_standalone(segment_files, str(temp_concat), output_dir)
+
+            # 清理segment文件
+            for sf in segment_files:
+                Path(sf).unlink()
+            temp_dir.rmdir()
+
+            clip_input = str(temp_concat)
+
+        # ===== 步骤2：应用花字叠加（如果启用）=====
+        if add_overlay:
+            temp_overlay = output_dir / f"temp_overlay_{os.getpid()}_{clip_index}.mp4"
+            temp_files.append(temp_overlay)
+
+            # 调用花字叠加
+            from .video_overlay.video_overlay import apply_overlay_to_video
+            apply_overlay_to_video(
+                input_video=clip_input,
+                output_video=str(temp_overlay),
+                project_name=project_name,
+                drama_title=project_name,
+                style_id=render_params.get('overlay_style_id'),
+                hot_drama_position=render_params.get('hot_drama_position', 'top-right')
+            )
+
+            # 删除裁剪文件
+            Path(clip_input).unlink()
+            clip_input = str(temp_overlay)
+
+        # ===== 步骤3：添加结尾视频（如果启用）=====
+        if add_ending:
+            # 随机选择结尾视频
+            import random
+            ending_video = random.choice(render_params['ending_videos'])
+
+            # 预处理结尾视频（匹配分辨率和帧率）
+            processed_ending = _preprocess_ending_video_standalone(clip_input, ending_video, render_params)
+            temp_files.append(processed_ending)
+
+            # 拼接
+            _concat_videos_standalone([clip_input, processed_ending], final_path)
+
+            # 删除中间文件
+            Path(clip_input).unlink()
+            Path(processed_ending).unlink()
+        else:
+            # 直接重命名
+            shutil.move(clip_input, final_path)
+
+        # ===== 清理所有临时文件 =====
+        for tf in temp_files:
+            if Path(tf).exists():
+                Path(tf).unlink()
+
+        return final_path
+
+    except Exception as e:
+        print(f"  [Worker] V16.1合并渲染失败: {e}")
+        # 清理临时文件
+        for tf in temp_files:
+            try:
+                if Path(tf).exists():
+                    Path(tf).unlink()
+            except:
+                pass
+        return None
+
+
+def _get_video_fps_standalone(video_path: str) -> float:
+    """获取视频帧率（独立函数）(V16新增)"""
+    cmd = [
+        'ffprobe',
+        '-v', 'error',
+        '-select_streams', 'v:0',
+        '-show_entries', 'stream=r_frame_rate',
+        '-of', 'default=noprint_wrappers=1:nokey=1',
+        video_path
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        return 30.0
+
+    fps_str = result.stdout.strip()
+    if '/' in fps_str:
+        num, den = fps_str.split('/')
+        return float(num) / float(den)
+    else:
+        return float(fps_str)
+
 
 def main():
     """命令行入口"""
@@ -1380,12 +2180,18 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='渲染AI短剧剪辑（V15.6: 支持花字叠加、结尾视频拼接和片尾检测，处理顺序：花字→片尾）',
+        description='渲染AI短剧剪辑（V16: 支持并行渲染、花字叠加、结尾视频拼接和片尾检测）',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 示例:
-  # 基础渲染（自动检测片尾，添加结尾视频和花字叠加）
+  # 基础渲染（自动检测片尾，默认4个并行worker）
   python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就
+
+  # 并行渲染（指定worker数）
+  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --parallel 8
+
+  # 串行渲染（调试用）
+  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --parallel 1
 
   # 不添加结尾视频
   python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --no-ending
@@ -1402,8 +2208,8 @@ def main():
   # 跳过片尾检测（使用完整时长）
   python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --skip-ending
 
-  # 完整功能（片尾检测 + 结尾视频 + 花字叠加）
-  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --add-ending --add-overlay
+  # 完整功能（片尾检测 + 结尾视频 + 花字叠加 + 并行渲染）
+  python -m scripts.understand.render_clips data/hangzhou-leiming/analysis/百里将就 漫剧素材/百里将就 --add-ending --add-overlay --parallel 4
         '''
     )
 
@@ -1422,6 +2228,10 @@ def main():
     # V15: 花字叠加参数
     parser.add_argument('--add-overlay', action='store_true', help='添加花字叠加')
     parser.add_argument('--overlay-style', type=str, help='花字样式ID（默认随机选择）')
+
+    # V16: 并行渲染参数
+    parser.add_argument('--parallel', type=int, default=4,
+                        help='并行渲染的worker数量（默认4，设为1禁用并行）')
 
     # 缓存清理参数
     parser.add_argument('--no-cleanup', action='store_true', help='渲染完成后跳过清理中间缓存')
@@ -1485,6 +2295,11 @@ def main():
         print(f"花字样式: {overlay_style}")
     if force_detect:
         print(f"片尾检测模式: 🔃 强制重新检测")
+    # V16: 显示并行配置
+    if args.parallel > 1:
+        print(f"渲染模式: ⚡ 并行（{args.parallel} 个worker）")
+    else:
+        print(f"渲染模式: 🐢 串行（调试模式）")
     print(f"{'='*60}\n")
 
     # 渲染所有剪辑
@@ -1502,11 +2317,20 @@ def main():
         except ValueError:
             print(f"⚠️ 无效的剪辑索引格式: {args.clip_indices}")
 
-    output_paths = renderer.render_all_clips(
-        on_clip_progress=on_progress,
-        max_clips=args.max_clips,
-        clip_indices=clip_indices
-    )
+    # V16: 根据parallel参数选择渲染模式
+    if args.parallel > 1:
+        output_paths = renderer.render_all_clips_parallel(
+            max_workers=args.parallel,
+            on_clip_progress=on_progress,
+            max_clips=args.max_clips,
+            clip_indices=clip_indices
+        )
+    else:
+        output_paths = renderer.render_all_clips(
+            on_clip_progress=on_progress,
+            max_clips=args.max_clips,
+            clip_indices=clip_indices
+        )
 
     print(f"\n\n完成！输出文件:")
     for path in output_paths:
