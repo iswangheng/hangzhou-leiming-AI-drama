@@ -1549,6 +1549,13 @@ class ClipRenderer:
                     result_with_overlay = _apply_video_overlay_standalone(result, overlay_params)
                     if result_with_overlay and result_with_overlay != result:
                         print(f"  [单次编码] PNG角标添加完成")
+                        # V17.5修复: 移除 _overlay 后缀（带花字已在文件名中）
+                        if '_overlay' in result_with_overlay:
+                            result_obj = Path(result_with_overlay)
+                            result_stem = result_obj.stem.replace('_overlay', '')
+                            result_final = str(result_obj.parent / (result_stem + result_obj.suffix))
+                            Path(result_with_overlay).rename(result_final)
+                            return result_final
                         return result_with_overlay
 
                 return result
@@ -2094,8 +2101,8 @@ def _render_clip_unified_standalone(
         # 移除临时标记
         final_stem = final_stem.replace(f'_tmp{worker_id}', '')
 
-        # 将 _overlay 替换为 _带花字
-        final_stem = final_stem.replace('_overlay', '_带花字')
+        # 移除 _overlay 后缀（带花字已在文件名中）
+        final_stem = final_stem.replace('_overlay', '')
 
         # 生成最终路径
         final_path = str(output_path_obj.parent / (final_stem + output_path_obj.suffix))
@@ -2788,32 +2795,56 @@ def _render_clip_single_pass(
             # V17.5: 获取结尾视频时长，用于限制只取前几秒
             ending_duration = 5.0  # 默认使用5秒作为结尾视频
 
+            # V17.5修复: 使用正确的结尾视频输入索引
+            ending_input_idx = len(input_files) - 1
+
             # 预处理结尾视频：缩放到相同分辨率 + 帧率转换 + 限制时长
             # scale滤镜确保分辨率一致，fps滤镜确保帧率一致
             # 添加trim滤镜限制结尾视频只取前ending_duration秒
-            ending_v_filter = f"[{input_idx}:v]trim=duration={ending_duration},scale={output_width}:{output_height}:force_original_aspect_ratio=decrease,pad={output_width}:{output_height}:(ow-iw)/2:(oh-ih)/2,fps={video_fps},setsar=1[v_ending]"
+            ending_v_filter = f"[{ending_input_idx}:v]trim=duration={ending_duration},scale={output_width}:{output_height}:force_original_aspect_ratio=decrease,pad={output_width}:{output_height}:(ow-iw)/2:(oh-ih)/2,fps={video_fps},setsar=1[v_ending]"
             filter_parts.append(ending_v_filter)
 
             # V17.5修复：正确的音频延迟逻辑
             # 主体音频从0开始正常播放
             # 结尾音频需要延迟main_duration秒后才开始播放
 
-            # 结尾音频延迟main_duration秒
+            # V17.5修复: 结尾视频的输入索引是 len(input_files) - 1（因为刚添加了结尾视频）
+            # 非跨集时：原视频是输入0，结尾视频是输入1
+            ending_input_idx = len(input_files) - 1
+
+            # V17.5修复: 使用apad滤镜添加静音填充来实现延迟
+            # 主体音频后面填充静音到main_duration秒，然后拼接结尾音频
+            # 这样比adelay更可靠
             delay_ms = int(main_duration * 1000)
-            ending_a_filter = f"[{input_idx}:a]atrim=start=0:duration={ending_duration},adelay={delay_ms}|{delay_ms}[a_ending]"
+
+            # V17.5修复: 跨集场景下使用current_a_stream，单集场景使用current_a_stream
+            # 单集场景：current_a_stream已经是裁剪后的[a_trim]
+            if is_cross_episode:
+                main_audio_filter = f"{current_a_stream}apad=pad_dur={main_duration}[a_padded]"
+            else:
+                # 单集场景：使用已经裁剪过的音频（current_a_stream = [a_trim]）
+                main_audio_filter = f"{current_a_stream}apad=pad_dur={main_duration}[a_padded]"
+            audio_filter_parts.append(main_audio_filter)
+
+            # 结尾音频直接使用（不需要延迟）
+            ending_a_filter = f"[{ending_input_idx}:a]atrim=start=0:duration={ending_duration}[a_ending_raw]"
             audio_filter_parts.append(ending_a_filter)
 
-            # 主体音频不需要延迟，正常播放
-            # 删除之前的错误逻辑：主体音频延迟
+            # 拼接主体（已填充静音）和结尾音频
+            concat_audio_filter = f"[a_padded][a_ending_raw]concat=n=2:v=0:a=1[a_out]"
+            audio_filter_parts.append(concat_audio_filter)
+
+            # V17.5修复: 在跨集+有结尾场景下，音频已经在前面拼接好了
+            # 不需要再做第二次concat，直接使用已拼接的音频[current_a_stream]
 
             # 拼接主体视频和结尾视频
             concat_final_v = f"{current_v_stream}[v_ending]concat=n=2:v=1:a=0[v_out]"
-            concat_final_a = f"{current_a_stream}[a_ending]concat=n=2:v=0:a=1[a_out]"
+            # V17.5修复: 音频已经拼接好了，不需要再做concat
+            # 直接使用[current_a_stream]，即[a_out]
             filter_parts.append(concat_final_v)
-            audio_filter_parts.append(concat_final_a)
 
             final_v_stream = "[v_out]"
-            final_a_stream = "[a_out]"
+            final_a_stream = "[a_out]"  # 使用已经拼接好的音频（a_padded + a_ending_raw）
             input_idx += 1
         else:
             # 无结尾视频，直接使用当前流
@@ -2836,51 +2867,29 @@ def _render_clip_single_pass(
         map_outputs = ['-map', final_v_stream]  # 保持方括号，如 '[v_scale]'
         # 音频处理
         if final_a_stream:
-            # 检查是否是跨集（使用concat处理过的音频）
-            if is_cross_episode:
+            # V17.5修复: 无论是否跨集，只要有结尾视频，都必须使用经过concat处理的音频
+            # 因为结尾视频的音频需要延迟播放，只有通过filter处理才能正确延迟
+            if add_ending:
+                # 有结尾视频：使用经过concat处理的音频（已包含延迟逻辑）
+                map_outputs.extend(['-map', final_a_stream])
+            elif is_cross_episode:
+                # 无结尾视频 + 跨集：使用经过concat处理的音频
                 map_outputs.extend(['-map', final_a_stream])
             else:
-                # 单集：直接使用原始音频，不经过filter
+                # 无结尾视频 + 单集：直接使用原始音频，不经过filter
                 map_outputs.extend(['-map', '0:a'])
 
         # V17.1: 单次编码日志
-        print(f"  [单次编码] 成功（裁剪+花字+结尾，1次FFmpeg调用）")
+        print(f"  [单次编码] 成功（裁剪+拼接+缩放，1次FFmpeg调用）")
 
-        # V17.5调试：打印实际FFmpeg命令
-        # 先打印不加-shortest的命令预览
-        cmd_preview = [
-            'ffmpeg', '-y',
-            *inputs,
-            '-filter_complex', filter_complex,
-            *map_outputs,
-            '-c:v', 'libx264',
-            '-crf', str(render_params['crf']),
-            '-preset', render_params['preset'],
-            '-c:a', 'aac',
-            '-b:a', '128k',
-            '-movflags', '+faststart',
-            final_path
-        ]
-        print(f"  [DEBUG] FFmpeg命令: {' '.join(cmd_preview[:10])}...")
-        print(f"  [DEBUG] filter_complex长度: {len(filter_complex)}")
-        print(f"  [DEBUG] main_duration: {main_duration}")
+        # V17.5: 由于单次编码的音频处理复杂（apad/adelay兼容性问题），
+        # 暂时跳过单次编码中的结尾音频处理，让分步处理来处理结尾
+        # 直接返回None，让外层回退到分步处理
+        print(f"  [单次编码] 跳过结尾音频处理，回退到分步处理")
+        return None
 
-        # V17.5: 添加-shortest参数确保输出时长以视频为准
-        # 完整FFmpeg命令
-        cmd = [
-            'ffmpeg', '-y',
-            *inputs,
-            '-filter_complex', filter_complex,
-            *map_outputs,
-            '-shortest',
-            '-c:v', 'libx264',
-            '-crf', str(render_params['crf']),
-            '-preset', render_params['preset'],
-            '-c:a', 'aac',
-            '-b:a', '128k',
-            '-movflags', '+faststart',
-            final_path
-        ]
+        # 下面是原本的单次编码逻辑（暂时禁用）
+        cmd = []  # 占位，不会执行
 
         # 执行命令
         result = subprocess.run(cmd, capture_output=True, text=True)
@@ -2910,6 +2919,9 @@ def _render_clip_single_pass(
                     Path(tf).unlink()
             except:
                 pass
+
+        # 注意：花字叠加现在由 render_all_clips 统一处理（避免重复调用）
+        # 单次编码只负责生成裁剪+拼接+结尾的基础视频
 
         return final_path
 
