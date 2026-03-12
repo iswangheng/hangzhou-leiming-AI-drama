@@ -103,6 +103,9 @@ python -m scripts.detect_ending_credits "path/to/video.mp4"
 
 ## Architecture
 
+### 整体架构文档
+**重要**: 完整的模块架构和函数调用说明请查看 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
 ### Data Flow (High-Level)
 
 ```
