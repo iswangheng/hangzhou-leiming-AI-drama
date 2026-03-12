@@ -70,6 +70,40 @@
 
 **影响文件**：`scripts/understand/render_clips.py`
 
+### 新增 (Added)
+
+#### 花字叠加默认启用
+
+**变更描述**：
+- 花字叠加功能默认启用，提升视频吸引力
+- 用户可通过 `--no-overlay` 参数禁用花字叠加
+- 向后兼容：之前使用 `--add-overlay` 参数的用户行为保持一致
+
+**影响文件**：`scripts/understand/render_clips.py`
+
+#### 视频自动压缩功能
+
+**功能描述**：
+- 新增 `--compress` 参数，启用后自动压缩视频到目标大小以内
+- 新增 `--compress-target` 参数，设置压缩目标大小（可选50/100/150/200MB，默认100MB）
+- 使用CRF编码（18-28）平衡画质和大小
+- 计算公式：`target_bitrate = target_size_mb * 8 / duration_seconds` (Mbps)
+- 如果压缩后仍超过目标，会进行二次压缩（增大CRF值）
+
+**使用示例**：
+```bash
+# 压缩到100MB以内（默认）
+python -m scripts.understand.render_clips data/analysis/项目名 漫剧素材/项目名 --compress
+
+# 压缩到50MB以内（适合社交媒体）
+python -m scripts.understand.render_clips data/analysis/项目名 漫剧素材/项目名 --compress --compress-target 50
+
+# 压缩到200MB以内（更高画质）
+python -m scripts.understand.render_clips data/analysis/项目名 漫剧素材/项目名 --compress --compress-target 200
+```
+
+**影响文件**：`scripts/understand/render_clips.py`
+
 ## [V16.4] - 2026-03-11
 
 ### 修复 (Fixed)

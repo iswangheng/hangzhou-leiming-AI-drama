@@ -49,11 +49,37 @@ python -m scripts.understand.render_clips \
     漫剧素材/项目名 \
     --skip-ending
 
-# Add overlay text (V15)
+# Add overlay text (V15, enabled by default in V17)
+python -m scripts.understand.render_clips \
+    data/analysis/项目名 \
+    漫剧素材/项目名
+
+# Disable overlay text (V17)
 python -m scripts.understand.render_clips \
     data/analysis/项目名 \
     漫剧素材/项目名 \
-    --add-overlay
+    --no-overlay
+
+# Enable video compression (V17)
+# Compress to 100MB (default)
+python -m scripts.understand.render_clips \
+    data/analysis/项目名 \
+    漫剧素材/项目名 \
+    --compress
+
+# Compress to 50MB (for social media)
+python -m scripts.understand.render_clips \
+    data/analysis/项目名 \
+    漫剧素材/项目名 \
+    --compress \
+    --compress-target 50
+
+# Compress to 200MB (higher quality)
+python -m scripts.understand.render_clips \
+    data/analysis/项目名 \
+    漫剧素材/项目名 \
+    --compress \
+    --compress-target 200
 ```
 
 ### Training Pipeline
@@ -412,6 +438,12 @@ data/
 
 ### Version History Context
 
+- **V17** (2026-03-12): 视频自动压缩功能
+  - 新增 `--compress` 参数，启用后自动压缩视频到目标大小以内
+  - 新增 `--compress-target` 参数，设置压缩目标大小（可选50/100/150/200MB，默认100MB）
+  - 使用CRF编码（18-28）平衡画质和大小
+  - 比特率计算公式：`target_bitrate = target_size_mb * 8 / duration_seconds`
+  - 花字叠加默认启用，提升视频吸引力
 - **V16.3** (2026-03-11): 渲染性能优化
   - 完全单次编码：filter_complex合并裁剪+花字+结尾
   - 智能Worker调节：根据CPU/GPU自动计算最优并发数

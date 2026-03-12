@@ -352,18 +352,18 @@ python -m scripts.understand.video_understand "漫剧素材/项目名"
 
 ### 8.2 渲染剪辑
 ```bash
-# 基础渲染
+# 基础渲染（V17: 默认启用花字叠加）
 python -m scripts.understand.render_clips data/analysis/项目名 漫剧素材/项目名
 
 # 添加片尾
 python -m scripts.understand.render_clips data/analysis/项目名 漫剧素材/项目名 --add-ending
 
-# 添加花字
-python -m scripts.understand.render_clips data/analysis/项目名 漫剧素材/项目名 --add-overlay
+# 禁用花字（V17新增）
+python -m scripts.understand.render_clips data/analysis/项目名 漫剧素材/项目名 --no-overlay
 
 # 完整参数
 python -m scripts.understand.render_clips data/analysis/项目名 漫剧素材/项目名 \
-    --add-ending --add-overlay --parallel 4
+    --add-ending --parallel 4
 ```
 
 ### 8.3 片尾检测

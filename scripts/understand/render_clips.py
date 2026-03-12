@@ -9,6 +9,7 @@ V15: 新增视频包装花字叠加功能
 V15.6: 修复处理顺序 + 热门短剧位置随机化（左上/右上各50%概率）
 V16: 新增并行渲染功能（多进程加速）
 V16.3: 智能Worker数调节 + 分辨率自适应输出 + 结尾视频预缓存
+V17: 视频自动压缩功能
 """
 import os
 import json
@@ -249,11 +250,13 @@ class ClipRenderer:
         auto_detect_ending: bool = True,
         skip_ending: bool = False,
         force_detect: bool = False,
-        add_overlay: bool = False,
+        add_overlay: bool = True,
         overlay_style_id: Optional[str] = None,
         hwaccel: bool = False,
         fast_preset: bool = False,
-        force_recache: bool = False
+        force_recache: bool = False,
+        compress: bool = False,
+        compress_target_mb: int = 100
     ):
         """初始化剪辑渲染器
 
@@ -271,11 +274,13 @@ class ClipRenderer:
             auto_detect_ending: 自动检测片尾（V14.1新增）
             skip_ending: 跳过片尾检测（V14.1新增）
             force_detect: 强制重新检测片尾（V14.1新增）
-            add_overlay: 是否添加花字叠加（V15新增）
+            add_overlay: 是否添加花字叠加（V15新增，V17默认启用）
             overlay_style_id: 花字样式ID（None表示随机，V15新增）
             hwaccel: 启用GPU硬件加速（V16.2新增）
             fast_preset: 使用ultrafast预设（V16.2新增）
             force_recache: 强制重新缓存结尾视频（V16.3新增）
+            compress: 是否启用视频压缩（V17新增）
+            compress_target_mb: 压缩目标大小（MB，默认100MB，V17新增）
         """
         self.project_path = Path(project_path)
         self.output_dir = Path(output_dir)
@@ -313,6 +318,10 @@ class ClipRenderer:
         # V16.3: 结尾视频预缓存配置
         self.force_recache = force_recache
         self.cached_endings = {}  # {原始路径: 缓存路径} 映射
+
+        # V17: 视频压缩配置
+        self.compress = compress
+        self.compress_target_mb = compress_target_mb
 
         # V15: 花字叠加配置
         self.add_overlay = add_overlay
@@ -1622,8 +1631,159 @@ class ClipRenderer:
         if self.add_ending_clip:
             output_path = self._append_ending_video(output_path)
 
+        # V17: 视频压缩（如果配置了）
+        if self.compress:
+            output_path = self._compress_video(output_path)
+
         print(f"  ✅ 输出: {output_path}")
         return output_path
+
+    def _compress_video(self, video_path: str) -> str:
+        """V17: 压缩视频到目标大小
+
+        根据目标大小计算比特率，使用CRF编码压缩视频
+
+        Args:
+            video_path: 输入视频路径
+
+        Returns:
+            压缩后的视频路径（覆盖原文件）
+        """
+        import math
+
+        input_path = Path(video_path)
+
+        # 获取文件大小（MB）
+        file_size_mb = input_path.stat().st_size / (1024 * 1024)
+
+        # 如果文件已经小于目标大小，不需要压缩
+        if file_size_mb <= self.compress_target_mb:
+            print(f"  [压缩] 文件大小 {file_size_mb:.1f}MB <= 目标 {self.compress_target_mb}MB，跳过压缩")
+            return video_path
+
+        # 获取视频时长（秒）
+        duration = self._get_video_duration(str(input_path))
+
+        if duration <= 0:
+            print(f"  [压缩] 无法获取视频时长，跳过压缩")
+            return video_path
+
+        # 计算目标比特率
+        # 公式: target_bitrate = target_size_mb * 8 / duration_seconds (Mbps)
+        # 预留一些余量给音频（128kbps = 0.128Mbps）
+        target_bitrate = (self.compress_target_mb * 8 / duration) - 0.128
+        target_bitrate = max(target_bitrate, 0.5)  # 最小比特率 0.5Mbps
+
+        # 计算CRF值（根据目标比特率估算）
+        # 经验公式：CRF ≈ 23 + (8 - bitrate) * 2
+        # bitrate单位是Mbps
+        estimated_crf = 23 + (10 - target_bitrate) * 2
+        crf = max(18, min(28, int(estimated_crf)))  # 限制在18-28之间
+
+        print(f"  [压缩] 原始: {file_size_mb:.1f}MB, 时长: {duration:.1f}秒")
+        print(f"  [压缩] 目标: {self.compress_target_mb}MB, 比特率: {target_bitrate:.2f}Mbp, CRF: {crf}")
+
+        # 临时输出文件
+        temp_output = input_path.parent / f"{input_path.stem}_compressed{input_path.suffix}"
+
+        # 使用FFmpeg压缩
+        cmd = [
+            'ffmpeg',
+            '-y',  # 覆盖输出文件
+            '-i', str(input_path),
+            '-vcodec', 'libx264',
+            '-crf', str(crf),
+            '-preset', 'medium',
+            '-acodec', 'aac',
+            '-b:a', '128k',
+            '-movflags', '+faststart',
+            str(temp_output)
+        ]
+
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=600  # 10分钟超时
+            )
+
+            if result.returncode != 0:
+                print(f"  [压缩] FFmpeg错误: {result.stderr}")
+                return video_path
+
+            # 获取压缩后文件大小
+            compressed_size_mb = temp_output.stat().st_size / (1024 * 1024)
+
+            # 验证压缩成功
+            if compressed_size_mb > self.compress_target_mb:
+                # 如果仍然超过目标，再压缩一次
+                print(f"  [压缩] 首次压缩后 {compressed_size_mb:.1f}MB，仍超过目标，进行二次压缩...")
+                # 增大CRF值
+                crf = min(28, crf + 3)
+                cmd[-1] = str(temp_output)
+                cmd[cmd.index('-crf') + 1] = str(crf)
+
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=600
+                )
+
+                if result.returncode == 0:
+                    compressed_size_mb = temp_output.stat().st_size / (1024 * 1024)
+
+            # 替换原文件
+            if compressed_size_mb < file_size_mb:
+                shutil.move(str(temp_output), str(input_path))
+                saved = file_size_mb - compressed_size_mb
+                ratio = (1 - compressed_size_mb / file_size_mb) * 100
+                print(f"  [压缩] ✅ 完成: {file_size_mb:.1f}MB → {compressed_size_mb:.1f}MB (节省 {saved:.1f}MB, {ratio:.1f}%)")
+            else:
+                # 压缩后反而变大，删除临时文件
+                temp_output.unlink()
+                print(f"  [压缩] ⚠️ 压缩后文件变大，保留原文件")
+
+        except subprocess.TimeoutExpired:
+            print(f"  [压缩] ❌ 压缩超时（10分钟）")
+            if temp_output.exists():
+                temp_output.unlink()
+        except Exception as e:
+            print(f"  [压缩] ❌ 压缩失败: {e}")
+            if temp_output.exists():
+                temp_output.unlink()
+
+        return video_path
+
+    def _get_video_duration(self, video_path: str) -> float:
+        """获取视频时长（秒）
+
+        Args:
+            video_path: 视频文件路径
+
+        Returns:
+            视频时长（秒），失败返回0
+        """
+        try:
+            cmd = [
+                'ffprobe',
+                '-v', 'error',
+                '-show_entries', 'format=duration',
+                '-of', 'default=noprint_wrappers=1:nokey=1',
+                video_path
+            ]
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return float(result.stdout.strip())
+        except Exception:
+            pass
+        return 0
 
     def render_all_clips(
         self,
@@ -3248,7 +3408,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 示例:
-  # 基础渲染（自动检测片尾，默认4个并行worker）
+  # 基础渲染（自动检测片尾，默认自动并行worker）
   python -m scripts.understand.render_clips data/analysis/百里将就 漫剧素材/百里将就
 
   # 并行渲染（指定worker数）
@@ -3272,8 +3432,17 @@ def main():
   # 跳过片尾检测（使用完整时长）
   python -m scripts.understand.render_clips data/analysis/百里将就 漫剧素材/百里将就 --skip-ending
 
-  # 完整功能（片尾检测 + 结尾视频 + 花字叠加 + 并行渲染）
-  python -m scripts.understand.render_clips data/analysis/百里将就 漫剧素材/百里将就 --add-ending --add-overlay --parallel 4
+  # V17: 启用视频压缩（默认压缩到100MB以内）
+  python -m scripts.understand.render_clips data/analysis/百里将就 漫剧素材/百里将就 --compress
+
+  # V17: 压缩到50MB以内（适合社交媒体分享）
+  python -m scripts.understand.render_clips data/analysis/百里将就 漫剧素材/百里将就 --compress --compress-target 50
+
+  # V17: 压缩到200MB以内（更高画质）
+  python -m scripts.understand.render_clips data/analysis/百里将就 漫剧素材/百里将就 --compress --compress-target 200
+
+  # 完整功能（片尾检测 + 结尾视频 + 花字叠加 + 并行渲染 + 视频压缩）
+  python -m scripts.understand.render_clips data/analysis/百里将就 漫剧素材/百里将就 --add-ending --add-overlay --parallel 4 --compress
         '''
     )
 
@@ -3289,8 +3458,9 @@ def main():
     parser.add_argument('--skip-ending', action='store_true', help='跳过片尾检测，使用完整时长')
     parser.add_argument('--force-detect', action='store_true', help='强制重新检测片尾（覆盖缓存）')
 
-    # V15: 花字叠加参数
-    parser.add_argument('--add-overlay', action='store_true', help='添加花字叠加')
+    # V15: 花字叠加参数（V17默认启用）
+    parser.add_argument('--add-overlay', action='store_true', default=True, help='添加花字叠加（默认启用）')
+    parser.add_argument('--no-overlay', action='store_true', help='禁用花字叠加')
     parser.add_argument('--overlay-style', type=str, help='花字样式ID（默认随机选择）')
 
     # V16: 并行渲染参数
@@ -3314,6 +3484,12 @@ def main():
     parser.add_argument('--max-clips', type=int, default=0, help='最多渲染的剪辑数量（0=全部渲染）')
     parser.add_argument('--clip-indices', type=str, default='', help='指定要渲染的剪辑索引（逗号分隔，如：0,2,7）')
 
+    # V17: 视频压缩参数
+    parser.add_argument('--compress', action='store_true', help='启用视频压缩（将视频压缩到目标大小以内）')
+    parser.add_argument('--compress-target', type=int, default=100,
+                       choices=[50, 100, 150, 200],
+                       help='压缩目标大小（MB，默认100MB，可选50/100/150/200）')
+
     args = parser.parse_args()
 
     # 确定是否添加结尾视频
@@ -3330,8 +3506,10 @@ def main():
     if not skip_ending and not force_detect:
         auto_detect_ending = True
 
-    # V15: 花字叠加参数
+    # V15: 花字叠加参数（V17默认启用）
     add_overlay = args.add_overlay
+    if args.no_overlay:
+        add_overlay = False
     overlay_style = args.overlay_style
 
     project_path = args.project_path
@@ -3357,7 +3535,9 @@ def main():
         overlay_style_id=overlay_style,   # V15: 传递花字样式
         hwaccel=args.hwaccel,             # V16.2: GPU硬件加速
         fast_preset=args.fast_preset,     # V16.2: 快速预设
-        force_recache=args.force_recache  # V16.3: 强制重新缓存结尾视频
+        force_recache=args.force_recache,  # V16.3: 强制重新缓存结尾视频
+        compress=args.compress,            # V17: 视频压缩
+        compress_target_mb=args.compress_target  # V17: 压缩目标大小
     )
 
     # 显示配置信息
@@ -3368,6 +3548,8 @@ def main():
     print(f"结尾视频拼接: {'✅ 启用' if add_ending else '❌ 禁用'}")
     print(f"片尾检测: {'✅ 自动检测' if auto_detect_ending else '⚠️ 跳过' if skip_ending else '✅ 正常'}")
     print(f"花字叠加: {'✅ 启用' if add_overlay else '❌ 禁用'}")
+    # V17: 显示压缩配置
+    print(f"视频压缩: {'✅ 启用 (目标 {}MB)'.format(args.compress_target) if args.compress else '❌ 禁用'}")
     if overlay_style:
         print(f"花字样式: {overlay_style}")
     if force_detect:
