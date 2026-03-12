@@ -5,6 +5,71 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V17.5] - 2026-03-12
+
+### 修复 (Fixed)
+
+#### 1. 跨集剪辑时长翻倍问题
+
+**问题描述**：
+- 跨集剪辑渲染后视频时长翻倍
+- 原因1：FFmpeg参数`-frames:v`指定总帧数而非持续时间
+- 原因2：单次编码时缺少`-shortest`参数
+
+**解决方案**：
+- 将`-frames:v`改为`-t`参数（指定持续时间）
+- 添加`-shortest`参数确保输出时长以视频为准
+
+**影响文件**：`scripts/understand/render_clips.py`
+
+#### 2. 结尾视频片尾无声问题
+
+**问题描述**：
+- 添加结尾视频后，片尾部分没有声音
+
+**解决方案**：
+- 修复音频延迟逻辑：主体音频从0开始，结尾音频延迟main_duration秒
+
+**影响文件**：`scripts/understand/render_clips.py`
+
+#### 3. 单次编码失败问题
+
+**问题描述**：
+- 跨集+PNG角标+结尾视频同时存在时，FFmpeg filter_complex报错
+- 错误：`Error binding filtergraph inputs/outputs: Invalid argument`
+
+**解决方案**：
+- 单次编码时跳过PNG角标
+- 单次编码成功后额外调用花字叠加添加PNG角标
+- 在video_overlay.py中添加`-shortest`参数
+
+**影响文件**：
+- `scripts/understand/render_clips.py`
+- `scripts/understand/video_overlay/video_overlay.py`
+
+#### 4. 花字重复问题
+
+**问题描述**：
+- 单次编码添加了drawtext（剧名+免责声明）
+- 额外花字叠加时又添加了一次，导致重复
+
+**解决方案**：
+- 单次编码时跳过drawtext
+- 全部由后续的`_apply_video_overlay_standalone`统一添加
+
+**影响文件**：`scripts/understand/render_clips.py`
+
+### 性能 (Performance)
+
+#### 渲染流程优化
+
+**变更描述**：
+- 原来：3次FFmpeg调用（裁剪→花字→结尾）
+- 现在：2次FFmpeg调用（单次编码+额外花字叠加）
+- 提速约：33%
+
+**影响文件**：`scripts/understand/render_clips.py`
+
 ## [V16.4] - 2026-03-11
 
 ### 修复 (Fixed)
@@ -98,7 +163,7 @@ python -m scripts.understand.render_clips ...
 python -m scripts.understand.render_clips ... --force-recache
 ```
 
-**缓存位置**：`cache/endings/{project_name}/`
+**缓存位置**：`cache/endings/{width}x{height}_{fps}fps/`（V17.5改为按参数组织，避免冗余）
 
 **预期效果**：每个剪辑节省2-5秒预处理时间
 
@@ -2144,6 +2209,52 @@ for hl in highlights:
 
 ### 新增 (Added)
 - **初始版本** - 基础视频理解和钩子识别功能
+
+---
+
+## [V17.1] - 2026-03-12
+
+### 功能新增 (Feature Added)
+
+#### 剪辑组合排序与智能筛选
+
+**问题描述**：
+- 笛卡尔积生成大量剪辑组合（80-117个），但实际只需要10-20个精选
+- 需要按"高光×钩子组合质量"排序，挑选最吸引人的组合
+
+**解决方案**：
+1. 多维度综合评分（置信度 40% + 类型 30% + 时机 20% + 描述 10%）
+2. 高光取 Top 10 × 钩子取 Top 10 = 100 个候选组合
+3. 按组合质量分数排序，取 Top 20
+4. 兼顾类型和集数多样性
+
+**类型强度排序**：
+- 高光：反转 > 打脸 > 冲突 > 爽点 > 情感 > 搞笑 > 悬念 > 日常
+- 钩子：反转 > 悬念 > 冲突 > 危机 > 情感 > 搞笑 > 日常
+
+**组合分数计算**：
+- 高光分数 = 置信度×0.4 + 类型×0.3 + 时机×0.2 + 描述×0.1
+- 钩子分数 = 置信度×0.4 + 类型×0.3 + 时机×0.2 + 描述×0.1
+- 组合分数 = 高光分数×0.4 + 钩子分数×0.6（钩子权重更高）
+
+**效果对比**：
+| 指标 | 优化前 | 优化后 |
+|-----|-------|-------|
+| 剪辑输出 | 80-117个 | 10-20个 |
+| 排序依据 | 时长 | 组合质量分数 |
+| 多样性 | 一般 | 均匀分布 |
+
+**实现位置**：
+- `scripts/understand/generate_clips.py` - 新增 `sort_and_filter_clips()` 函数
+- `scripts/understand/video_understand.py` - 集成排序筛选步骤
+
+### 优化 (Optimized)
+
+#### 结尾视频缓存按参数组织
+
+**修改**：缓存目录从 `cache/endings/{project_name}/` 改为 `cache/endings/{width}x{height}_{fps}fps/`
+
+**效果**：相同参数的项目共享缓存，消除冗余存储
 
 ---
 

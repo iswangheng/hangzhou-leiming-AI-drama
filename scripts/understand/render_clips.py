@@ -348,7 +348,30 @@ class ClipRenderer:
 
         # 计算各集时长（现在使用有效时长）
         self.episode_durations = self._calculate_episode_durations()
+        # V17.2: 同时获取原始总时长（用于跨集clip计算）
+        self.raw_episode_durations = self._get_raw_episode_durations()
         self.video_files = self._discover_video_files()
+
+    def _get_raw_episode_durations(self) -> Dict[int, float]:
+        """获取各集时长（与result.json中的episodeDurations一致）
+
+        V17.4关键修复！
+        result.json中的clip.start/end是基于episodeDurations（整数）计算的累积时间
+        所以渲染时必须使用相同的整数时长来计算，否则累积时间不匹配
+
+        Returns:
+            集数到时长的映射（与result.json中的episodeDurations一致）
+        """
+        durations = {}
+
+        # V17.4: 直接使用result.json中的episodeDurations
+        # 这是关键！clip.start/end就是基于这些整数计算出来的
+        episode_durations = self.result.get('episodeDurations', {})
+        for ep, duration in episode_durations.items():
+            durations[int(ep)] = float(duration)
+            print(f"  第{ep}集: 原始时长 {duration}秒 (与result.json一致)")
+
+        return durations
 
     def _load_result(self) -> dict:
         """加载result.json"""
@@ -790,15 +813,16 @@ class ClipRenderer:
         if not self.ending_videos:
             return {}
 
-        # 创建缓存目录
-        cache_dir = Path(f"cache/endings/{self.project_name}")
-        cache_dir.mkdir(parents=True, exist_ok=True)
-
         # 获取项目视频的统一参数
         target_fps = self._get_target_fps()
         target_width, target_height = self._get_target_resolution()
 
         print(f"  目标参数: {target_width}x{target_height}, {target_fps:.2f}fps")
+
+        # 创建缓存目录（按目标参数组织，避免不同项目相同参数时冗余存储）
+        # 格式: cache/endings/{width}x{height}_{fps}fps/
+        cache_dir = Path(f"cache/endings/{target_width}x{target_height}_{int(target_fps)}fps")
+        cache_dir.mkdir(parents=True, exist_ok=True)
 
         cached_endings = {}
 
@@ -1480,6 +1504,7 @@ class ClipRenderer:
                 'video_dir': str(self.video_dir),
                 'output_dir': str(self.output_dir),
                 'episode_durations': self.episode_durations,
+                'raw_episode_durations': self.raw_episode_durations,  # V17.2: 原始总时长
                 'width': self.width,
                 'height': self.height,
                 'fps': self.fps,
@@ -1498,27 +1523,47 @@ class ClipRenderer:
             result = _render_clip_single_pass(-1, clip_data, render_params)
             if result:
                 print(f"  [单次编码] 串行模式单次编码成功: {result}")
+
+                # V17.5: 单次编码成功后，额外添加PNG角标
+                # 单次编码跳过了PNG，需要单独调用花字叠加来添加PNG
+                if self.add_overlay:
+                    print(f"  [单次编码] 额外添加PNG角标...")
+                    # 重新构建render_params确保参数正确
+                    overlay_params = {
+                        'project_name': self.project_name,
+                        'overlay_style_id': self.overlay_style_id,
+                        'hot_drama_position': 'top-right',
+                        'crf': self.crf,
+                        'preset': self.preset,
+                    }
+                    # 调用花字叠加（会添加PNG角标）
+                    result_with_overlay = _apply_video_overlay_standalone(result, overlay_params)
+                    if result_with_overlay and result_with_overlay != result:
+                        print(f"  [单次编码] PNG角标添加完成")
+                        return result_with_overlay
+
                 return result
 
         # 生成输出文件名（中文格式）
         if output_path is None:
-            # 计算起始和结束时间（在该集内的秒数）
+            # 计算起始和结束时间（使用原始总时长，与result.json一致）
             start_cumulative = clip.start
             end_cumulative = clip.end
 
+            # V17.2: 使用原始总时长计算
             # 计算起始集内的秒数
             cumulative_before_start = 0
-            for ep in sorted(self.episode_durations.keys()):
+            for ep in sorted(self.raw_episode_durations.keys()):
                 if ep < clip.episode:
-                    cumulative_before_start += self.episode_durations[ep]
+                    cumulative_before_start += self.raw_episode_durations[ep]
 
             start_in_episode = start_cumulative - cumulative_before_start
 
             # 计算结束集内的秒数
             cumulative_before_end = 0
-            for ep in sorted(self.episode_durations.keys()):
+            for ep in sorted(self.raw_episode_durations.keys()):
                 if ep < clip.hookEpisode:
-                    cumulative_before_end += self.episode_durations[ep]
+                    cumulative_before_end += self.raw_episode_durations[ep]
 
             end_in_episode = end_cumulative - cumulative_before_end
 
@@ -1709,6 +1754,7 @@ class ClipRenderer:
             'video_dir': str(self.video_dir),
             'output_dir': str(self.output_dir),
             'episode_durations': self.episode_durations,
+            'raw_episode_durations': self.raw_episode_durations,  # V17.2: 原始总时长
             'width': self.width,
             'height': self.height,
             'fps': self.fps,
@@ -1810,20 +1856,22 @@ def _render_clip_unified_standalone(
 
         # 计算起始和结束时间（在该集内的秒数）
         episode_durations = render_params['episode_durations']
+        # V17.2: 使用原始总时长用于跨集计算
+        raw_episode_durations = render_params.get('raw_episode_durations', episode_durations)
 
         # 计算起始集内的秒数
         cumulative_before_start = 0
-        for ep in sorted(episode_durations.keys()):
+        for ep in sorted(raw_episode_durations.keys()):
             if ep < clip.episode:
-                cumulative_before_start += episode_durations[ep]
+                cumulative_before_start += raw_episode_durations[ep]
 
         start_in_episode = clip.start - cumulative_before_start
 
         # 计算结束集内的秒数
         cumulative_before_end = 0
-        for ep in sorted(episode_durations.keys()):
+        for ep in sorted(raw_episode_durations.keys()):
             if ep < clip.hookEpisode:
-                cumulative_before_end += episode_durations[ep]
+                cumulative_before_end += raw_episode_durations[ep]
 
         end_in_episode = clip.end - cumulative_before_end
 
@@ -1837,8 +1885,8 @@ def _render_clip_unified_standalone(
         filename = f"{render_params['project_name']}_第{clip.episode}集{format_time(int(start_in_episode))}_第{clip.hookEpisode}集{format_time(int(end_in_episode))}_tmp{worker_id}.mp4"
         output_path = str(output_dir / filename)
 
-        # 转换为视频片段
-        segments = _clip_to_segments_standalone(clip, episode_durations, render_params['video_dir'])
+        # 转换为视频片段（使用原始总时长 + 有效时长限制）
+        segments = _clip_to_segments_standalone(clip, raw_episode_durations, render_params['video_dir'], episode_durations)
 
         # 如果只有1个片段且不是跨集，直接裁剪
         if len(segments) == 1:
@@ -1900,8 +1948,17 @@ def _render_clip_unified_standalone(
         return None
 
 
-def _clip_to_segments_standalone(clip: Clip, episode_durations: dict, video_dir: str) -> List:
-    """将剪辑转换为视频片段列表（独立函数）(V16新增)"""
+def _clip_to_segments_standalone(clip: Clip, raw_episode_durations: dict, video_dir: str, effective_durations: dict = None) -> List:
+    """将剪辑转换为视频片段列表（独立函数）(V16新增)
+
+    V17.3修复：添加有效时长限制，确保不超出每集的有效时长
+
+    Args:
+        clip: 剪辑对象
+        raw_episode_durations: 原始总时长（用于计算clip.start/end位置）
+        video_dir: 视频目录
+        effective_durations: 有效时长（可选，用于限制每集结束位置）
+    """
     from dataclasses import dataclass
 
     @dataclass
@@ -1910,18 +1967,26 @@ def _clip_to_segments_standalone(clip: Clip, episode_durations: dict, video_dir:
         start: float
         end: float
 
+    # V17.3: 如果没有传入有效时长，默认使用原始时长
+    if effective_durations is None:
+        effective_durations = raw_episode_durations
+
     segments = []
 
     # 简单情况：不跨集
     if clip.episode == clip.hookEpisode:
         # 计算在该集内的秒数
         cumulative_before = 0
-        for ep in sorted(episode_durations.keys()):
+        for ep in sorted(raw_episode_durations.keys()):
             if ep < clip.episode:
-                cumulative_before += episode_durations[ep]
+                cumulative_before += raw_episode_durations[ep]
 
         start_in_episode = clip.start - cumulative_before
         end_in_episode = clip.end - cumulative_before
+
+        # V17.3: 使用有效时长限制结束位置
+        ep_effective = effective_durations.get(clip.episode, raw_episode_durations[clip.episode])
+        end_in_episode = min(end_in_episode, ep_effective)
 
         segments.append(Segment(
             episode=clip.episode,
@@ -1932,38 +1997,45 @@ def _clip_to_segments_standalone(clip: Clip, episode_durations: dict, video_dir:
         # 跨集情况：分割为多个片段
         current_episode = clip.episode
 
-        # 计算累积时间
+        # 计算累积时间（使用原始总时长）
         cumulative = 0
         episode_times = {}
-        for ep in sorted(episode_durations.keys()):
+        for ep in sorted(raw_episode_durations.keys()):
             episode_times[ep] = {
                 'start': cumulative,
-                'end': cumulative + episode_durations[ep]
+                'end': cumulative + raw_episode_durations[ep]
             }
-            cumulative += episode_durations[ep]
+            cumulative += raw_episode_durations[ep]
 
-        # 第一段：从起始时间到该集结束
-        first_episode_end = episode_times[clip.episode]['end']
+        # V17.3: 使用有效时长
+        # 第一段：从起始时间到该集结束（限制在有效时长内）
+        first_episode_end_raw = raw_episode_durations[clip.episode]
+        first_episode_end_eff = effective_durations.get(clip.episode, first_episode_end_raw)
         cumulative_before_start = episode_times[clip.episode]['start']
         start_in_first = clip.start - cumulative_before_start
+        end_in_first = min(first_episode_end_raw, first_episode_end_eff)
 
         segments.append(Segment(
             episode=clip.episode,
             start=start_in_first,
-            end=episode_durations[clip.episode]
+            end=end_in_first
         ))
 
-        # 中间段：完整的集
+        # 中间段：完整的集（限制在有效时长内）
         for ep in range(clip.episode + 1, clip.hookEpisode):
+            ep_end_raw = raw_episode_durations.get(ep, 0)
+            ep_end_eff = effective_durations.get(ep, ep_end_raw)
             segments.append(Segment(
                 episode=ep,
                 start=0,
-                end=episode_durations[ep]
+                end=min(ep_end_raw, ep_end_eff)
             ))
 
-        # 最后一段：从该集开始到结束时间
+        # 最后一段：从该集开始到结束时间（限制在有效时长内）
         cumulative_before_end = episode_times[clip.hookEpisode]['start']
-        end_in_last = clip.end - cumulative_before_end
+        end_in_last_raw = clip.end - cumulative_before_end
+        last_ep_eff = effective_durations.get(clip.hookEpisode, raw_episode_durations[clip.hookEpisode])
+        end_in_last = min(end_in_last_raw, last_ep_eff)
 
         segments.append(Segment(
             episode=clip.hookEpisode,
@@ -2013,7 +2085,7 @@ def _trim_segment_standalone(segment, output_path: str, render_params: dict) -> 
     cmd.extend([
         '-ss', str(segment.start),
         '-i', str(video_file),
-        '-frames:v', str(total_frames),
+        '-t', str(segment.end - segment.start),
     ])
 
     # V16.2: 选择编码方式
@@ -2335,6 +2407,8 @@ def _render_clip_single_pass(
 
         # 获取参数
         episode_durations = render_params['episode_durations']
+        # V17.2: 使用原始总时长用于跨集计算（因为clip.start/end基于总时长）
+        raw_episode_durations = render_params.get('raw_episode_durations', episode_durations)
         video_dir = Path(render_params['video_dir'])
         output_dir = Path(render_params['output_dir'])
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -2343,14 +2417,14 @@ def _render_clip_single_pass(
         add_overlay = render_params['add_overlay']
         add_ending = render_params['add_ending_clip'] and render_params['ending_videos']
 
-        # 计算起始和结束时间
+        # 计算起始和结束时间（使用原始总时长，与result.json中的clip.start/end一致）
         cumulative_before_start = sum(
-            episode_durations[ep] for ep in sorted(episode_durations.keys()) if ep < clip.episode
+            raw_episode_durations[ep] for ep in sorted(raw_episode_durations.keys()) if ep < clip.episode
         )
         start_in_episode = clip.start - cumulative_before_start
 
         cumulative_before_end = sum(
-            episode_durations[ep] for ep in sorted(episode_durations.keys()) if ep < clip.hookEpisode
+            raw_episode_durations[ep] for ep in sorted(raw_episode_durations.keys()) if ep < clip.hookEpisode
         )
         end_in_episode = clip.end - cumulative_before_end
 
@@ -2451,19 +2525,28 @@ def _render_clip_single_pass(
             # 需要裁剪多个片段然后拼接
 
             # 计算需要裁剪的片段
+            # V17.2: 同时使用原始总时长和有效时长
+            # - 使用原始总时长计算clip.start/end对应的位置
+            # - 使用有效时长限制每集的实际结束位置
             segments = []
             for ep in range(clip.episode, clip.hookEpisode + 1):
                 video_file = find_video_file(ep)
                 if not video_file:
                     raise FileNotFoundError(f"找不到第{ep}集视频")
 
-                # 计算该集内的裁剪时间
-                ep_cumulative_before = sum(
-                    episode_durations[e] for e in sorted(episode_durations.keys()) if e < ep
+                # 使用原始总时长计算累积时间
+                ep_cumulative_before_raw = sum(
+                    raw_episode_durations[e] for e in sorted(raw_episode_durations.keys()) if e < ep
                 )
-                ep_start = max(0, clip.start - ep_cumulative_before)
-                ep_end = min(episode_durations[ep], clip.end - ep_cumulative_before)
+                ep_start = max(0, clip.start - ep_cumulative_before_raw)
+                ep_end_raw = clip.end - ep_cumulative_before_raw
 
+                # V17.3: 使用有效时长限制每集的结束位置（关键修复！）
+                # 原始时长可能超出有效时长，需要裁剪到有效时长范围内
+                ep_effective = episode_durations.get(ep, raw_episode_durations[ep])
+                ep_end = min(ep_effective, ep_end_raw)
+
+                # 确保ep_end >= ep_start
                 if ep_start < ep_end:
                     segments.append({
                         'episode': ep,
@@ -2518,24 +2601,21 @@ def _render_clip_single_pass(
             filter_parts.append(scale_filter)
             current_v_stream = "[v_scale]"
 
-        # 4. 添加花字（drawtext）- 使用输出分辨率计算
+        # 4. 添加花字（drawtext）- V17.5修复：跳过drawtext
+        # 单次编码时不添加drawtext（剧名+免责声明）
+        # 全部由后续的_apply_video_overlay_standalone添加，避免重复
         if add_overlay:
-            drawtext_filters = _build_drawtext_filters_standalone(
-                output_width, output_height, project_name, render_params
-            )
-            if drawtext_filters:
-                drawtext_chain = ','.join(drawtext_filters)
-                drawtext_filter = f"{current_v_stream}{drawtext_chain}[v_text]"
-                filter_parts.append(drawtext_filter)
-                current_v_stream = "[v_text]"
+            # 跳过drawtext，让后续处理添加
+            pass
 
-        # 5. 添加倾斜角标（overlay PNG）- V17.1暂时跳过单次编码
-        # PNG loop filter太慢，倾斜角标暂不放入单次编码
-        # 保持fallback到分步处理
+        # 5. 添加倾斜角标（overlay PNG）- V17.5暂时跳过单次编码
+        # PNG输入会导致filter_complex失败，回退到分步处理时会有PNG
+        # 单次编码只保留drawtext花字，跳过PNG
         overlay_png_path = None
         if add_overlay:
-            # 只保留drawtext花字，跳过PNG overlay
-            pass  # 静默跳过
+            # 单次编码时跳过PNG，只保留drawtext
+            # PNG叠加在分步处理时生效
+            pass
 
         # 6. 结尾拼接（如果启用）- 真正的单次编码
         ending_video_path = None
@@ -2545,19 +2625,30 @@ def _render_clip_single_pass(
 
             # V17.1: main_duration已经在前面计算过了，这里直接使用
 
-            # 预处理结尾视频：缩放到相同分辨率 + 帧率转换
+            # V17.5: 获取结尾视频时长，用于限制只取前几秒
+            ending_duration = 5.0  # 默认使用5秒作为结尾视频
+
+            # 预处理结尾视频：缩放到相同分辨率 + 帧率转换 + 限制时长
             # scale滤镜确保分辨率一致，fps滤镜确保帧率一致
-            ending_v_filter = f"[{input_idx}:v]scale={output_width}:{output_height}:force_original_aspect_ratio=decrease,pad={output_width}:{output_height}:(ow-iw)/2:(oh-ih)/2,fps={video_fps},setsar=1[v_ending]"
+            # 添加trim滤镜限制结尾视频只取前ending_duration秒
+            ending_v_filter = f"[{input_idx}:v]trim=duration={ending_duration},scale={output_width}:{output_height}:force_original_aspect_ratio=decrease,pad={output_width}:{output_height}:(ow-iw)/2:(oh-ih)/2,fps={video_fps},setsar=1[v_ending]"
             filter_parts.append(ending_v_filter)
 
-            # 音频延迟（adelay单位是毫秒）
+            # V17.5修复：正确的音频延迟逻辑
+            # 主体音频从0开始正常播放
+            # 结尾音频需要延迟main_duration秒后才开始播放
+
+            # 结尾音频延迟main_duration秒
             delay_ms = int(main_duration * 1000)
-            ending_a_filter = f"[{input_idx}:a]adelay={delay_ms}|{delay_ms}[a_ending_delay]"
+            ending_a_filter = f"[{input_idx}:a]atrim=start=0:duration={ending_duration},adelay={delay_ms}|{delay_ms}[a_ending]"
             audio_filter_parts.append(ending_a_filter)
+
+            # 主体音频不需要延迟，正常播放
+            # 删除之前的错误逻辑：主体音频延迟
 
             # 拼接主体视频和结尾视频
             concat_final_v = f"{current_v_stream}[v_ending]concat=n=2:v=1:a=0[v_out]"
-            concat_final_a = f"{current_a_stream}[a_ending_delay]concat=n=2:v=0:a=1[a_out]"
+            concat_final_a = f"{current_a_stream}[a_ending]concat=n=2:v=0:a=1[a_out]"
             filter_parts.append(concat_final_v)
             audio_filter_parts.append(concat_final_a)
 
@@ -2595,12 +2686,33 @@ def _render_clip_single_pass(
         # V17.1: 单次编码日志
         print(f"  [单次编码] 成功（裁剪+花字+结尾，1次FFmpeg调用）")
 
+        # V17.5调试：打印实际FFmpeg命令
+        # 先打印不加-shortest的命令预览
+        cmd_preview = [
+            'ffmpeg', '-y',
+            *inputs,
+            '-filter_complex', filter_complex,
+            *map_outputs,
+            '-c:v', 'libx264',
+            '-crf', str(render_params['crf']),
+            '-preset', render_params['preset'],
+            '-c:a', 'aac',
+            '-b:a', '128k',
+            '-movflags', '+faststart',
+            final_path
+        ]
+        print(f"  [DEBUG] FFmpeg命令: {' '.join(cmd_preview[:10])}...")
+        print(f"  [DEBUG] filter_complex长度: {len(filter_complex)}")
+        print(f"  [DEBUG] main_duration: {main_duration}")
+
+        # V17.5: 添加-shortest参数确保输出时长以视频为准
         # 完整FFmpeg命令
         cmd = [
             'ffmpeg', '-y',
             *inputs,
             '-filter_complex', filter_complex,
             *map_outputs,
+            '-shortest',
             '-c:v', 'libx264',
             '-crf', str(render_params['crf']),
             '-preset', render_params['preset'],
@@ -2835,6 +2947,8 @@ def _render_clip_unified_standalone(
 
         # 获取参数
         episode_durations = render_params['episode_durations']
+        # V17.2: 使用原始总时长用于跨集计算（因为clip.start/end基于总时长）
+        raw_episode_durations = render_params.get('raw_episode_durations', episode_durations)
         video_dir = Path(render_params['video_dir'])
         output_dir = Path(render_params['output_dir'])
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -2843,14 +2957,14 @@ def _render_clip_unified_standalone(
         add_overlay = render_params['add_overlay']
         add_ending = render_params['add_ending_clip'] and render_params['ending_videos']
 
-        # 计算起始和结束时间（在该集内的秒数）
+        # 计算起始和结束时间（使用原始总时长，与result.json中的clip.start/end一致）
         cumulative_before_start = sum(
-            episode_durations[ep] for ep in sorted(episode_durations.keys()) if ep < clip.episode
+            raw_episode_durations[ep] for ep in sorted(raw_episode_durations.keys()) if ep < clip.episode
         )
         start_in_episode = clip.start - cumulative_before_start
 
         cumulative_before_end = sum(
-            episode_durations[ep] for ep in sorted(episode_durations.keys()) if ep < clip.hookEpisode
+            raw_episode_durations[ep] for ep in sorted(raw_episode_durations.keys()) if ep < clip.hookEpisode
         )
         end_in_episode = clip.end - cumulative_before_end
 
@@ -2928,7 +3042,7 @@ def _render_clip_unified_standalone(
                     'ffmpeg', '-y',
                     '-ss', str(start_in_episode),
                     '-i', str(video_file),
-                    '-frames:v', str(total_frames),
+                    '-t', str(end_in_episode - start_in_episode),
                     '-vf', f'scale={output_width}:{output_height}:flags=lanczos',
                     '-c:v', 'libx264',
                     '-crf', str(render_params['crf']),
@@ -2941,7 +3055,7 @@ def _render_clip_unified_standalone(
                     'ffmpeg', '-y',
                     '-ss', str(start_in_episode),
                     '-i', str(video_file),
-                    '-frames:v', str(total_frames),
+                    '-t', str(end_in_episode - start_in_episode),
                     '-c:v', 'libx264',
                     '-crf', str(render_params['crf']),
                     '-preset', render_params['preset'],
@@ -2954,8 +3068,8 @@ def _render_clip_unified_standalone(
 
         else:
             # 跨集：需要拼接多个片段
-            # 计算每个片段
-            segments = _clip_to_segments_standalone(clip, episode_durations, str(video_dir))
+            # 计算每个片段（使用原始总时长 + 有效时长限制）
+            segments = _clip_to_segments_standalone(clip, raw_episode_durations, str(video_dir), episode_durations)
 
             segment_files = []
             temp_dir = output_dir / f"temp_segments_{os.getpid()}_{clip_index}"
@@ -3001,7 +3115,7 @@ def _render_clip_unified_standalone(
                         'ffmpeg', '-y',
                         '-ss', str(segment.start),
                         '-i', str(video_file),
-                        '-frames:v', str(total_frames),
+                        '-t', str(segment.end - segment.start),
                         '-vf', f'scale={output_width}:{output_height}:flags=lanczos',
                         '-c:v', 'libx264',
                         '-crf', str(render_params['crf']),
@@ -3014,7 +3128,7 @@ def _render_clip_unified_standalone(
                         'ffmpeg', '-y',
                         '-ss', str(segment.start),
                         '-i', str(video_file),
-                        '-frames:v', str(total_frames),
+                        '-t', str(segment.end - segment.start),
                         '-c:v', 'libx264',
                         '-crf', str(render_params['crf']),
                         '-preset', render_params['preset'],

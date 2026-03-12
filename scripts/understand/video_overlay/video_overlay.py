@@ -549,6 +549,7 @@ class VideoOverlayRenderer:
                     '-i', input_video,
                     '-i', tilted_png_path,  # 第二个输入：PNG
                     '-filter_complex', filter_complex,
+                    '-shortest',  # V17.5修复：确保输出时长以视频为准
                     '-c:a', 'copy',  # 音频直接复制，不重新编码
                     '-movflags', '+faststart',  # 优化Web播放
                     output_video
@@ -562,6 +563,7 @@ class VideoOverlayRenderer:
                     '-i', input_video,
                     '-i', tilted_png_path,
                     '-filter_complex', filter_complex,
+                    '-shortest',  # V17.5修复
                     '-c:a', 'copy',
                     '-movflags', '+faststart',
                     output_video
@@ -573,6 +575,7 @@ class VideoOverlayRenderer:
                 '-y',  # 覆盖输出文件
                 '-i', input_video,
                 '-vf', drawtext_filter_complex,
+                '-shortest',  # V17.5修复：确保输出时长以视频为准
                 '-c:a', 'copy',  # 音频直接复制，不重新编码
                 '-movflags', '+faststart',  # 优化Web播放
                 output_video
@@ -583,6 +586,7 @@ class VideoOverlayRenderer:
                 'ffmpeg',
                 '-y',
                 '-i', input_video,
+                '-shortest',  # V17.5修复
                 '-c:a', 'copy',
                 '-movflags', '+faststart',
                 output_video
