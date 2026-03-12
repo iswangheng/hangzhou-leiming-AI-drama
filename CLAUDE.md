@@ -15,6 +15,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Common Commands
 
+### Sensitive Word Mask Preprocessing (V17+)
+```bash
+# Step 1: 敏感词遮罩预处理 - OCR识别+马赛克遮罩
+python -m scripts.preprocess.sensitive_mask_workflow \
+    "漫剧素材/项目名" \
+    --output "干净素材/项目名"
+
+# Skip existing processed videos
+python -m scripts.preprocess.sensitive_mask_workflow \
+    "漫剧素材/项目名" \
+    --skip-existing
+
+# Custom parameters
+python -m scripts.preprocess.sensitive_mask_workflow \
+    "漫剧素材/项目名" \
+    --sample-fps 5.0 \
+    --time-buffer 0.6
+```
+
 ### Video Understanding (Main Workflow)
 ```bash
 # Run complete video understanding pipeline
@@ -438,18 +457,21 @@ data/
 
 ### Version History Context
 
+- **V17.6** (2026-03-12): 渲染性能优化
+  - CRF默认值从18调整为23，提升渲染速度30-50%
+  - 花字叠加默认启用，提升视频吸引力
 - **V17** (2026-03-12): 视频自动压缩功能
   - 新增 `--compress` 参数，启用后自动压缩视频到目标大小以内
   - 新增 `--compress-target` 参数，设置压缩目标大小（可选50/100/150/200MB，默认100MB）
   - 使用CRF编码（18-28）平衡画质和大小
   - 比特率计算公式：`target_bitrate = target_size_mb * 8 / duration_seconds`
-  - 花字叠加默认启用，提升视频吸引力
 - **V16.3** (2026-03-11): 渲染性能优化
   - 完全单次编码：filter_complex合并裁剪+花字+结尾
   - 智能Worker调节：根据CPU/GPU自动计算最优并发数
   - 结尾视频预缓存：项目开始时预处理结尾视频
   - 分辨率自适应：360p素材输出720p，减少编码量
   - 预计渲染速度提升：50-70%
+- **V17.2** (2026-03-12): 敏感词遮罩预处理模块 - OCR识别+马赛克遮罩，主流程脚本
 - **V16** (2026-03-11): OCR+ASR敏感词检测模块
   - OCR识别字幕句子，PaddleOCR 3.x新版API
   - 模糊匹配（相似度>60%）在ASR中找对应片段

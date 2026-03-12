@@ -243,7 +243,7 @@ class ClipRenderer:
         width: int = 1920,
         height: int = 1080,
         fps: int = 30,
-        crf: int = 18,
+        crf: int = 23,  # V17.6: 从18改为23，提升渲染速度30-50%
         preset: str = "fast",
         project_name: Optional[str] = None,
         add_ending_clip: bool = False,
