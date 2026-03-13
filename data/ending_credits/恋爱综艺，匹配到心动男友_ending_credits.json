@@ -1,0 +1,215 @@
+{
+  "project": "恋爱综艺，匹配到心动男友",
+  "episodes": [
+    {
+      "video_path": "新的漫剧素材/恋爱综艺，匹配到心动男友/1.mp4",
+      "episode": 1,
+      "total_duration": 289.111995,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.066666666666663,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ]
+        }
+      },
+      "effective_duration": 287.0453283333333
+    },
+    {
+      "video_path": "新的漫剧素材/恋爱综艺，匹配到心动男友/10.mp4",
+      "episode": 10,
+      "total_duration": 91.602902,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.9666666666666686,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
+        }
+      },
+      "effective_duration": 88.63623533333333
+    },
+    {
+      "video_path": "新的漫剧素材/恋爱综艺，匹配到心动男友/2.mp4",
+      "episode": 2,
+      "total_duration": 64.087007,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.700000000000003,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
+        }
+      },
+      "effective_duration": 60.387007
+    },
+    {
+      "video_path": "新的漫剧素材/恋爱综艺，匹配到心动男友/3.mp4",
+      "episode": 3,
+      "total_duration": 83.94,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.700000000000003,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ]
+        }
+      },
+      "effective_duration": 80.24
+    },
+    {
+      "video_path": "新的漫剧素材/恋爱综艺，匹配到心动男友/4.mp4",
+      "episode": 4,
+      "total_duration": 88.281995,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.066666666666663,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ]
+        }
+      },
+      "effective_duration": 85.21532833333333
+    },
+    {
+      "video_path": "新的漫剧素材/恋爱综艺，匹配到心动男友/5.mp4",
+      "episode": 5,
+      "total_duration": 85.588912,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.700000000000003,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
+        }
+      },
+      "effective_duration": 81.88891199999999
+    },
+    {
+      "video_path": "新的漫剧素材/恋爱综艺，匹配到心动男友/6.mp4",
+      "episode": 6,
+      "total_duration": 99.776009,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.700000000000003,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ]
+        }
+      },
+      "effective_duration": 96.076009
+    },
+    {
+      "video_path": "新的漫剧素材/恋爱综艺，匹配到心动男友/7.mp4",
+      "episode": 7,
+      "total_duration": 99.241995,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 1.8333333333333428,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
+        }
+      },
+      "effective_duration": 97.40866166666666
+    },
+    {
+      "video_path": "新的漫剧素材/恋爱综艺，匹配到心动男友/8.mp4",
+      "episode": 8,
+      "total_duration": 121.881769,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.0333333333333314,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ]
+        }
+      },
+      "effective_duration": 119.84843566666667
+    },
+    {
+      "video_path": "新的漫剧素材/恋爱综艺，匹配到心动男友/9.mp4",
+      "episode": 9,
+      "total_duration": 94.249977,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.700000000000003,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
+        }
+      },
+      "effective_duration": 90.549977
+    }
+  ]
+}

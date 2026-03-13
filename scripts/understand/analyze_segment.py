@@ -495,10 +495,44 @@ class SegmentAnalysis:
     hook_confidence: float  # 置信度 0-10
 
 
-def encode_image(image_path: str) -> str:
-    """将图片编码为base64"""
-    with open(image_path, 'rb') as f:
-        return base64.b64encode(f.read()).decode('utf-8')
+def encode_image(image_path: str, max_width: int = 320) -> str:
+    """将图片编码为base64（V16性能优化：压缩图片）
+
+    Args:
+        image_path: 图片路径
+        max_width: 最大宽度（默认320px，减少数据传输量）
+
+    Returns:
+        Base64编码的图片数据
+    """
+    try:
+        from PIL import Image
+        import io
+
+        # 打开图片
+        img = Image.open(image_path)
+
+        # 如果图片宽度大于 max_width，缩放
+        if img.width > max_width:
+            ratio = max_width / img.width
+            new_height = int(img.height * ratio)
+            img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
+
+        # 转换为 RGB（如果需要）
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+
+        # 编码为 JPEG（质量 75，平衡大小和质量）
+        buffer = io.BytesIO()
+        img.save(buffer, format='JPEG', quality=75)
+        img_data = buffer.getvalue()
+
+        return base64.b64encode(img_data).decode('utf-8')
+
+    except Exception as e:
+        # 如果 PIL 失败，回退到原始方式
+        with open(image_path, 'rb') as f:
+            return base64.b64encode(f.read()).decode('utf-8')
 
 
 def build_analyze_prompt(segment: VideoSegment, skill_framework: dict) -> dict:
@@ -538,13 +572,30 @@ def build_analyze_prompt(segment: VideoSegment, skill_framework: dict) -> dict:
         HOOK_TYPES=hook_types_text
     )
 
-    # ========== V14: 智能关键帧过滤 ==========
-    # 使用智能过滤：只传"有意义"的帧（对话 + 画面变化）
+    # ========== V17.1: 智能过滤 + 数量保证 ==========
+    # 使用智能过滤选择有意义的帧，同时保证数量在合理范围
+    MIN_KEYFRAMES = 15  # 最少关键帧数
+    MAX_KEYFRAMES = 24  # 最多关键帧数
+
+    # 步骤1: 使用智能过滤（只花 ~0.1秒/片段，值得保留）
     selected_keyframes = smart_select_keyframes(
         keyframes=segment.keyframes,
         asr_segments=segment.asr_segments,
         change_threshold=0.4  # 画面变化阈值
     )
+
+    # 步骤2: 确保关键帧数量在合理范围
+    if len(selected_keyframes) < MIN_KEYFRAMES:
+        # 智能过滤结果太少，补充均匀采样
+        all_keyframes = segment.keyframes
+        need_more = MIN_KEYFRAMES - len(selected_keyframes)
+        step = max(1, len(all_keyframes) // need_more)
+        additional = [all_keyframes[i * step] for i in range(need_more) if i * step < len(all_keyframes)]
+        selected_keyframes = list(set(selected_keyframes + additional))
+    elif len(selected_keyframes) > MAX_KEYFRAMES:
+        # 智能过滤结果太多，均匀采样到 MAX_KEYFRAMES
+        step = len(selected_keyframes) // MAX_KEYFRAMES
+        selected_keyframes = [selected_keyframes[i * step] for i in range(MAX_KEYFRAMES)]
 
     # 准备关键帧图片
     keyframe_parts = []
@@ -781,7 +832,7 @@ def analyze_segment(
 def analyze_all_segments(
     segments: List[VideoSegment],
     skill_framework: dict,
-    max_concurrent: int = 3
+    max_concurrent: int = 10
 ) -> List[SegmentAnalysis]:
     """并行分析所有片段
     

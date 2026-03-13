@@ -7,14 +7,19 @@
       "total_duration": 170.602653,
       "ending_info": {
         "has_ending": true,
-        "duration": 3.0,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "duration": 3.6999999999999886,
+        "confidence": 0.95,
+        "method": "similarity",
         "features": {
-          "duration": 3.0
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
         }
       },
-      "effective_duration": 167.602653
+      "effective_duration": 166.90265300000002
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/我是外星人/10.mp4",
@@ -22,14 +27,19 @@
       "total_duration": 136.405011,
       "ending_info": {
         "has_ending": true,
-        "duration": 3.0,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "duration": 3.6999999999999886,
+        "confidence": 0.95,
+        "method": "similarity",
         "features": {
-          "duration": 3.0
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
         }
       },
-      "effective_duration": 133.405011
+      "effective_duration": 132.705011
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/我是外星人/11.mp4",
@@ -37,14 +47,19 @@
       "total_duration": 95.457007,
       "ending_info": {
         "has_ending": true,
-        "duration": 3.0,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "duration": 3.700000000000003,
+        "confidence": 0.95,
+        "method": "similarity",
         "features": {
-          "duration": 3.0
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
         }
       },
-      "effective_duration": 92.457007
+      "effective_duration": 91.757007
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/我是外星人/2.mp4",
@@ -52,14 +67,19 @@
       "total_duration": 143.722653,
       "ending_info": {
         "has_ending": true,
-        "duration": 3.0,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "duration": 3.6999999999999886,
+        "confidence": 0.95,
+        "method": "similarity",
         "features": {
-          "duration": 3.0
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
         }
       },
-      "effective_duration": 140.722653
+      "effective_duration": 140.02265300000002
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/我是外星人/3.mp4",
@@ -67,59 +87,69 @@
       "total_duration": 105.088005,
       "ending_info": {
         "has_ending": true,
-        "duration": 3.0,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "duration": 3.0600000000000023,
+        "confidence": 0.95,
+        "method": "similarity",
         "features": {
-          "duration": 3.0
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
         }
       },
-      "effective_duration": 102.088005
+      "effective_duration": 102.028005
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/我是外星人/4.mp4",
       "episode": 4,
       "total_duration": 151.935986,
       "ending_info": {
-        "has_ending": true,
-        "duration": 3.0,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_false_positive_fix",
         "features": {
-          "duration": 3.0
+          "original_method": "similarity",
+          "original_duration": 3.6999999999999886,
+          "reason": "ASR修正：对白密度高，是正常剧情"
         }
       },
-      "effective_duration": 148.935986
+      "effective_duration": 151.935986
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/我是外星人/5.mp4",
       "episode": 5,
       "total_duration": 103.488005,
       "ending_info": {
-        "has_ending": true,
-        "duration": 3.0,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_false_positive_fix",
         "features": {
-          "duration": 3.0
+          "original_method": "similarity",
+          "original_duration": 3.5400000000000063,
+          "reason": "ASR修正：对白密度高，是正常剧情"
         }
       },
-      "effective_duration": 100.488005
+      "effective_duration": 103.488005
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/我是外星人/6.mp4",
       "episode": 6,
       "total_duration": 137.461995,
       "ending_info": {
-        "has_ending": true,
-        "duration": 3.0,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 0.0,
+        "method": "none",
         "features": {
-          "duration": 3.0
+          "methods_used": [],
+          "features_found": []
         }
       },
-      "effective_duration": 134.461995
+      "effective_duration": 137.461995
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/我是外星人/7.mp4",
@@ -127,29 +157,36 @@
       "total_duration": 136.085011,
       "ending_info": {
         "has_ending": true,
-        "duration": 3.0,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "duration": 3.6999999999999886,
+        "confidence": 0.95,
+        "method": "similarity",
         "features": {
-          "duration": 3.0
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
         }
       },
-      "effective_duration": 133.085011
+      "effective_duration": 132.38501100000002
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/我是外星人/8.mp4",
       "episode": 8,
       "total_duration": 152.362653,
       "ending_info": {
-        "has_ending": true,
-        "duration": 3.0,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_false_positive_fix",
         "features": {
-          "duration": 3.0
+          "original_method": "similarity",
+          "original_duration": 1.7399999999999807,
+          "reason": "ASR修正：对白密度高，是正常剧情"
         }
       },
-      "effective_duration": 149.362653
+      "effective_duration": 152.362653
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/我是外星人/9.mp4",
@@ -157,14 +194,19 @@
       "total_duration": 162.121995,
       "ending_info": {
         "has_ending": true,
-        "duration": 3.0,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "duration": 3.4199999999999875,
+        "confidence": 0.95,
+        "method": "similarity",
         "features": {
-          "duration": 3.0
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
         }
       },
-      "effective_duration": 159.121995
+      "effective_duration": 158.701995
     }
   ]
 }

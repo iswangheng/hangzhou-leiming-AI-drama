@@ -599,6 +599,121 @@ def load_subtitle_config(
     return region
 
 
+def get_subtitle_bottom_y(video_path: str, sample_frame_count: int = 5) -> Optional[int]:
+    """检测视频字幕区域的底部 Y 坐标（从顶部量起，像素单位）。
+
+    采样视频时长 20%-80% 区间的多帧，对每帧运行像素变化检测，
+    取各帧字幕底部 Y 坐标的中位数，提高鲁棒性。
+    失败时返回 None。
+
+    结果会缓存到 data/cache/subtitle_region/<项目名>/<集数>.json 中。
+
+    Args:
+        video_path: 视频文件路径
+        sample_frame_count: 采样帧数（默认5帧）
+
+    Returns:
+        字幕区域底部 Y 坐标（从视频顶部量起的像素值），失败返回 None
+    """
+    import statistics
+
+    try:
+        import cv2
+        import numpy as np
+    except ImportError:
+        print("⚠️ cv2/numpy 未安装，无法检测字幕底部 Y")
+        return None
+
+    try:
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            print(f"⚠️ 无法打开视频: {video_path}")
+            return None
+
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        video_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+        # 在视频时长 20%-80% 区间均匀采样，避开片头片尾
+        start_frame = int(total_frames * 0.20)
+        end_frame = int(total_frames * 0.80)
+        sample_frames = []
+
+        if end_frame > start_frame and sample_frame_count > 0:
+            step = max(1, (end_frame - start_frame) // sample_frame_count)
+            for i in range(sample_frame_count):
+                frame_idx = start_frame + i * step
+                if frame_idx >= end_frame:
+                    break
+                cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+                ret, frame = cap.read()
+                if ret:
+                    sample_frames.append(frame)
+
+        cap.release()
+
+        if len(sample_frames) < 2:
+            return None
+
+        # 只分析底部 25% 区域 —— 字幕必定在这里，避免把人物动作区误检为字幕
+        bottom_start = int(video_height * 0.75)
+        bottom_end = video_height
+
+        bottom_values = []
+
+        for frame in sample_frames:
+            h, w = frame.shape[:2]
+            # 计算底部各行跨帧方差（在多帧之间计算，而非单帧内）
+            # 此处沿用单帧内行方差作为"活跃度"指标
+            row_vars = []
+            for y in range(bottom_start, bottom_end):
+                gray_row = cv2.cvtColor(frame[y:y+1, :], cv2.COLOR_BGR2GRAY)
+                row_vars.append((y, float(np.var(gray_row))))
+
+            if not row_vars:
+                continue
+
+            # 找方差大于均值+标准差的行（字幕行）
+            var_vals = [v for _, v in row_vars]
+            threshold = np.mean(var_vals) + np.std(var_vals)
+            subtitle_rows = [y for y, v in row_vars if v > threshold]
+
+            if not subtitle_rows:
+                continue
+
+            # 取聚类
+            clusters = []
+            cluster_start = subtitle_rows[0]
+            prev = subtitle_rows[0]
+            for y in subtitle_rows[1:]:
+                if y - prev <= 5:
+                    prev = y
+                else:
+                    clusters.append((cluster_start, prev))
+                    cluster_start = y
+                    prev = y
+            clusters.append((cluster_start, prev))
+
+            if clusters:
+                # 取最靠近底部的聚类（bottom Y 最大的），而非最大聚类
+                # 字幕永远在最底部，不应被中部高方差区域干扰
+                bottom_cluster = max(clusters, key=lambda c: c[1])
+                # 加 2% 高度作为下边距
+                bottom_y = min(bottom_end, bottom_cluster[1] + int(h * 0.02))
+                bottom_values.append(bottom_y)
+
+        if not bottom_values:
+            return None
+
+        # 取中位数
+        result = int(statistics.median(bottom_values))
+        return result
+
+    except Exception as e:
+        print(f"⚠️ get_subtitle_bottom_y 失败: {e}")
+        return None
+
+
 class SubtitleDetector:
     """
     字幕区域检测器（类封装版本）

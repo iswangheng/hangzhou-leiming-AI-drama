@@ -2,10 +2,12 @@
 生成剪辑组合模块
 根据高光点/钩子点生成剪辑片段（笛卡尔积）
 V13: 支持ASR辅助的时间戳精度优化（毫秒级）
+V17: 添加剪辑组合排序与智能筛选（Top N 精选）
 """
 import json
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Optional
 from dataclasses import dataclass
+from collections import defaultdict
 
 try:
     from scripts.understand.analyze_segment import SegmentAnalysis
@@ -334,3 +336,411 @@ if __name__ == "__main__":
     print(f"最长剪辑: {MAX_CLIP_DURATION}秒")
     print(f"去重窗口: {DEDUP_WINDOW}秒 (同集内)")
     print("支持: 跨集笛卡尔积组合")
+    print("支持: V17 剪辑组合排序与智能筛选")
+
+
+# =============================================================================
+# V17: 剪辑组合排序与智能筛选
+# =============================================================================
+
+# 配置参数
+TOP_HIGHLIGHTS = 10       # 参与组合的高光数量
+TOP_HOOKS = 10            # 参与组合的钩子数量
+MAX_CLIPS_OUTPUT = 20    # 最终输出数量
+MIN_CLIPS_OUTPUT = 10    # 最少输出数量
+
+# 组合质量权重
+COMBO_WEIGHT_HL = 0.4    # 高光权重（钩子更重要，决定用户是否看完）
+COMBO_WEIGHT_HOOK = 0.6  # 钩子权重
+
+# 置信度归一化权重
+CONF_WEIGHT = 0.4         # 置信度权重
+TYPE_WEIGHT = 0.3         # 类型权重
+TIMING_WEIGHT = 0.2       # 时机权重
+DESC_WEIGHT = 0.1         # 描述详细程度权重
+
+# 类型强度排序（越靠前越能吸引观众）
+HIGHLIGHT_TYPE_STRENGTH = {
+    '反转': 10,
+    '打脸': 9,
+    '冲突': 8,
+    '爽点': 7,
+    '情感': 6,
+    '搞笑': 5,
+    '悬念': 4,
+    '日常': 3,
+    '其他': 2,
+    '未知': 1,
+}
+
+HOOK_TYPE_STRENGTH = {
+    '反转': 10,
+    '悬念': 9,
+    '冲突': 8,
+    '危机': 7,
+    '情感': 6,
+    '搞笑': 5,
+    '日常': 4,
+    '其他': 3,
+    '未知': 2,
+}
+
+
+def normalize_score(value: float, min_val: float, max_val: float) -> float:
+    """归一化分数到 0-1 范围
+
+    Args:
+        value: 原始分数
+        min_val: 最小值
+        max_val: 最大值
+
+    Returns:
+        归一化后的分数
+    """
+    if max_val <= min_val:
+        return 0.5
+    return (value - min_val) / (max_val - min_val)
+
+
+def calculate_type_weight(hl_type: Optional[str], hook_type: Optional[str]) -> tuple:
+    """计算类型权重
+
+    Args:
+        hl_type: 高光类型
+        hook_type: 钩子类型
+
+    Returns:
+        (高光类型权重, 钩子类型权重)
+    """
+    hl_score = HIGHLIGHT_TYPE_STRENGTH.get(hl_type or '未知', 1)
+    hook_score = HOOK_TYPE_STRENGTH.get(hook_type or '未知', 1)
+
+    # 归一化到 0-1
+    max_hl = max(HIGHLIGHT_TYPE_STRENGTH.values())
+    max_hook = max(HOOK_TYPE_STRENGTH.values())
+
+    return hl_score / max_hl, hook_score / max_hook
+
+
+def calculate_timing_weight(
+    hl_timestamp: float,
+    hl_episode: int,
+    hook_timestamp: float,
+    hook_episode: int,
+    episode_durations: Dict[int, int]
+) -> tuple:
+    """计算时机权重
+
+    高光：在集前/集中越好（能吸引观众看下去）
+    钩子：在集末越好（观众想看后续）
+
+    Args:
+        hl_timestamp: 高光时间戳
+        hl_episode: 高光集数
+        hook_timestamp: 钩子时间戳
+        hook_episode: 钩子集数
+        episode_durations: 各集时长
+
+    Returns:
+        (高光时机权重, 钩子时机权重)
+    """
+    # 高光时机：集的前30%给予加分
+    ep_duration = episode_durations.get(hl_episode, 180)
+    hl_position = hl_timestamp / ep_duration  # 0=开头, 1=结尾
+    hl_timing = 1.0 - hl_position * 0.5  # 越靠前分数越高
+
+    # 钩子时机：集的末尾30%给予加分
+    ep_duration = episode_durations.get(hook_episode, 180)
+    hook_position = hook_timestamp / ep_duration
+    hook_timing = hook_position * 0.5 + 0.5  # 越靠后分数越高
+
+    return hl_timing, hook_timing
+
+
+def calculate_desc_weight(desc: str) -> float:
+    """计算描述详细程度权重
+
+    描述越详细越可信
+
+    Args:
+        desc: 描述文本
+
+    Returns:
+        详细程度分数 (0-1)
+    """
+    if not desc or len(desc) < 5:
+        return 0.2
+    if len(desc) < 20:
+        return 0.5
+    if len(desc) < 50:
+        return 0.8
+    return 1.0
+
+
+def calculate_combo_score(
+    highlight: 'SegmentAnalysis',
+    hook: 'SegmentAnalysis',
+    episode_durations: Dict[int, int],
+    hl_confidence_range: tuple,
+    hook_confidence_range: tuple
+) -> float:
+    """计算组合质量分数
+
+    综合多维度计算高光×钩子的组合质量
+
+    Args:
+        highlight: 高光点分析结果
+        hook: 钩子点分析结果
+        episode_durations: 各集时长
+        hl_confidence_range: (min, max) 高光置信度范围
+        hook_confidence_range: (min, max) 钩子置信度范围
+
+    Returns:
+        组合质量分数 (0-1)
+    """
+    # 1. 归一化置信度
+    hl_conf_norm = normalize_score(
+        highlight.highlight_confidence,
+        hl_confidence_range[0],
+        hl_confidence_range[1]
+    )
+    hook_conf_norm = normalize_score(
+        hook.hook_confidence,
+        hook_confidence_range[0],
+        hook_confidence_range[1]
+    )
+
+    # 2. 类型权重
+    hl_type_weight, hook_type_weight = calculate_type_weight(
+        highlight.highlight_type,
+        hook.hook_type
+    )
+
+    # 3. 时机权重
+    hl_timing_weight, hook_timing_weight = calculate_timing_weight(
+        highlight.highlight_timestamp,
+        highlight.episode,
+        hook.hook_timestamp,
+        hook.episode,
+        episode_durations
+    )
+
+    # 4. 描述详细程度
+    hl_desc_weight = calculate_desc_weight(highlight.highlight_desc)
+    hook_desc_weight = calculate_desc_weight(hook.hook_desc)
+
+    # 5. 综合分数计算
+    hl_score = (
+        hl_conf_norm * CONF_WEIGHT +
+        hl_type_weight * TYPE_WEIGHT +
+        hl_timing_weight * TIMING_WEIGHT +
+        hl_desc_weight * DESC_WEIGHT
+    )
+
+    hook_score = (
+        hook_conf_norm * CONF_WEIGHT +
+        hook_type_weight * TYPE_WEIGHT +
+        hook_timing_weight * TIMING_WEIGHT +
+        hook_desc_weight * DESC_WEIGHT
+    )
+
+    # 6. 组合分数（钩子权重更高）
+    combo_score = hl_score * COMBO_WEIGHT_HL + hook_score * COMBO_WEIGHT_HOOK
+
+    return combo_score
+
+
+def sort_and_filter_clips(
+    highlights: List['SegmentAnalysis'],
+    hooks: List['SegmentAnalysis'],
+    episode_durations: Dict[int, int],
+    max_output: int = MAX_CLIPS_OUTPUT,
+    min_output: int = MIN_CLIPS_OUTPUT,
+    top_highlights: int = TOP_HIGHLIGHTS,
+    top_hooks: int = TOP_HOOKS,
+    max_same_type: int = 2,
+    max_same_episode: int = 2
+) -> List['Clip']:
+    """剪辑组合排序与智能筛选 (V17)
+
+    核心思路：
+    1. 高光按综合质量取 Top N
+    2. 钩子按综合质量取 Top N
+    3. 生成组合后按组合质量排序
+    4. 取 Top M，兼顾类型和集数多样性
+
+    Args:
+        highlights: 所有高光点
+        hooks: 所有钩子点
+        episode_durations: 各集时长
+        max_output: 最大输出数量
+        min_output: 最小输出数量
+        top_highlights: 参与组合的高光数量
+        top_hooks: 参与组合的钩子数量
+        max_same_type: 同类型最多保留数
+        max_same_episode: 同集最多保留数
+
+    Returns:
+        排序并筛选后的剪辑组合列表
+    """
+    if not highlights or not hooks:
+        print("  ⚠️ 高光点或钩子点为空，跳过排序筛选")
+        return []
+
+    print(f"\n{'='*60}")
+    print("V17 剪辑组合排序与智能筛选")
+    print(f"{'='*60}")
+
+    # 步骤1: 计算置信度范围（用于归一化）
+    hl_confidences = [h.highlight_confidence for h in highlights]
+    hook_confidences = [h.hook_confidence for h in hooks]
+    hl_conf_range = (min(hl_confidences), max(hl_confidences))
+    hook_conf_range = (min(hook_confidences), max(hook_confidences))
+
+    print(f"  高光置信度范围: {hl_conf_range[0]:.1f} - {hl_conf_range[1]:.1f}")
+    print(f"  钩子置信度范围: {hook_conf_range[0]:.1f} - {hook_conf_range[1]:.1f}")
+
+    # 步骤2: 为每个高光点计算综合分数
+    for hl in highlights:
+        hl_type_w, _ = calculate_type_weight(hl.highlight_type, None)
+        hl_timing_w, _ = calculate_timing_weight(
+            hl.highlight_timestamp, hl.episode, 0, 0, episode_durations
+        )
+        hl_desc_w = calculate_desc_weight(hl.highlight_desc)
+
+        # 综合分数
+        hl_conf_norm = normalize_score(hl.highlight_confidence, hl_conf_range[0], hl_conf_range[1])
+        hl.quality_score = (
+            hl_conf_norm * CONF_WEIGHT +
+            hl_type_w * TYPE_WEIGHT +
+            hl_timing_w * TIMING_WEIGHT +
+            hl_desc_w * DESC_WEIGHT
+        )
+
+    # 步骤3: 为每个钩子点计算综合分数
+    for hook in hooks:
+        _, hook_type_w = calculate_type_weight(None, hook.hook_type)
+        _, hook_timing_w = calculate_timing_weight(
+            0, 0, hook.hook_timestamp, hook.episode, episode_durations
+        )
+        hook_desc_w = calculate_desc_weight(hook.hook_desc)
+
+        hook_conf_norm = normalize_score(hook.hook_confidence, hook_conf_range[0], hook_conf_range[1])
+        hook.quality_score = (
+            hook_conf_norm * CONF_WEIGHT +
+            hook_type_w * TYPE_WEIGHT +
+            hook_timing_w * TIMING_WEIGHT +
+            hook_desc_w * DESC_WEIGHT
+        )
+
+    # 步骤4: 按综合质量排序，取 Top N
+    sorted_hl = sorted(highlights, key=lambda x: x.quality_score, reverse=True)[:top_highlights]
+    sorted_hooks = sorted(hooks, key=lambda x: x.quality_score, reverse=True)[:top_hooks]
+
+    print(f"  筛选后: {len(sorted_hl)} 个高光 × {len(sorted_hooks)} 个钩子")
+
+    # 步骤5: 生成所有组合并计算组合质量分数
+    temp_clips = []
+    for hl in sorted_hl:
+        for hook in sorted_hooks:
+            # 计算时长（使用累积时间）
+            hl_cumulative = calculate_cumulative_duration(
+                hl.episode, hl.highlight_timestamp, episode_durations
+            )
+            hook_cumulative = calculate_cumulative_duration(
+                hook.episode, hook.hook_timestamp, episode_durations
+            )
+
+            duration = hook_cumulative - hl_cumulative
+
+            # 检查时长范围
+            if MIN_CLIP_DURATION <= duration <= MAX_CLIP_DURATION:
+                combo_score = calculate_combo_score(
+                    hl, hook, episode_durations, hl_conf_range, hook_conf_range
+                )
+
+                temp_clips.append({
+                    'hl': hl,
+                    'hook': hook,
+                    'start': hl_cumulative,
+                    'end': hook_cumulative,
+                    'duration': duration,
+                    'combo_score': combo_score
+                })
+
+    print(f"  时长筛选后: {len(temp_clips)} 个有效组合")
+
+    if not temp_clips:
+        print("  ⚠️ 没有满足时长要求的组合")
+        return []
+
+    # 步骤6: 按组合质量分数排序
+    temp_clips.sort(key=lambda x: x['combo_score'], reverse=True)
+
+    # 步骤7: 兼顾多样性（类型和集数分布）
+    final_clips = []
+    type_count = defaultdict(int)
+    ep_count = defaultdict(int)
+
+    for clip in temp_clips:
+        hl = clip['hl']
+        hook = clip['hook']
+
+        # 检查类型多样性
+        clip_type = f"{hl.highlight_type}-{hook.hook_type}"
+        if type_count[clip_type] >= max_same_type:
+            continue
+
+        # 检查集数多样性
+        ep_key = f"{hl.episode}-{hook.episode}"
+        if ep_count[ep_key] >= max_same_episode:
+            continue
+
+        # 添加到最终结果
+        final_clips.append(clip)
+        type_count[clip_type] += 1
+        ep_count[ep_key] += 1
+
+        # 达到最大数量停止
+        if len(final_clips) >= max_output:
+            break
+
+    # 如果多样性筛选后数量不足，补充高分组合
+    if len(final_clips) < min_output:
+        for clip in temp_clips:
+            if clip in final_clips:
+                continue
+            final_clips.append(clip)
+            if len(final_clips) >= min_output:
+                break
+
+    print(f"  多样性筛选后: {len(final_clips)} 个精选组合")
+
+    # 步骤8: 转换为 Clip 对象
+    result_clips = []
+    for i, clip in enumerate(final_clips):
+        hl = clip['hl']
+        hook = clip['hook']
+
+        result_clips.append(Clip(
+            start=clip['start'],
+            end=clip['end'],
+            duration=clip['duration'],
+            highlight_type=hl.highlight_type or "未知",
+            highlight_desc=hl.highlight_desc,
+            hook_type=hook.hook_type or "未知",
+            hook_desc=hook.hook_desc,
+            episode=hl.episode,
+            hook_episode=hook.episode
+        ))
+
+    # 打印 Top 5 详情
+    print(f"\n  Top 5 组合预览:")
+    for i, c in enumerate(result_clips[:5]):
+        print(f"    [{i+1}] 第{c.episode}集{c.start:.0f}s → 第{c.hook_episode}集{c.end:.0f}s "
+              f"时长{c.duration:.0f}s [{c.highlight_type} × {c.hook_type}]")
+
+    print(f"\n✅ 排序筛选完成: {len(result_clips)} 个精选组合")
+    print(f"{'='*60}\n")
+
+    return result_clips

@@ -1,12 +1,69 @@
 # 敏感词字幕遮盖功能设计方案
 
-> 文档版本: v1.0
+> 文档版本: v2.0
 > 创建日期: 2026-03-10
-> 状态: 设计完成，待开发
+> 更新日期: 2026-03-12
+> 状态: 已实现主流程，待集成到video_understand
 
 ---
 
-## 一、功能概述
+## 一、功能概述（v2.0 更新）
+
+### 1.0 实现状态
+
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| 敏感词配置 | ✅ 已完成 | `config/sensitive_words.txt` |
+| 敏感词检测模块 | ✅ 已完成 | `scripts/preprocess/sensitive_detector.py` |
+| 字幕区域检测 | ✅ 已完成 | `scripts/preprocess/subtitle_detector.py` |
+| OCR字幕识别 | ✅ 已完成 | `scripts/preprocess/subtitle_ocr.py` |
+| 视频马赛克遮罩 | ✅ 已完成 | `scripts/preprocess/video_cleaner.py` |
+| 主流程脚本 | ✅ 已完成 | `scripts/preprocess/sensitive_mask_workflow.py` |
+| 集成到video_understand | ⏳ 待集成 | 未来工作 |
+
+### 1.1 完整流程（三个步骤）
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          完整处理流程                                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Step 1: 敏感词遮罩预处理                                               │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ python -m scripts.preprocess.sensitive_mask_workflow \          │   │
+│  │     "漫剧素材/项目名" --output "干净素材/项目名"               │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              ↓                                         │
+│  Step 2: AI分析（视频理解）                                            │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ python -m scripts.understand.video_understand "干净素材/项目名"│   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              ↓                                         │
+│  Step 3: 渲染剪辑                                                      │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ python -m scripts.understand.render_clips \                     │   │
+│  │     data/analysis/项目名 "干净素材/项目名"                      │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 1.2 当前使用方法
+
+```bash
+# Step 1: 敏感词遮罩预处理
+python -m scripts.preprocess.sensitive_mask_workflow "漫剧素材/项目名" --output "干净素材/项目名"
+
+# Step 2: AI分析（视频理解）
+python -m scripts.understand.video_understand "干净素材/项目名"
+
+# Step 3: 渲染剪辑
+python -m scripts.understand.render_clips data/analysis/项目名 "干净素材/项目名"
+```
+
+---
+
+## 二、功能概述（原版）
 
 ### 1.1 需求背景
 
@@ -345,9 +402,20 @@ def clean_video(
 
 ---
 
-## 八、集成方案
+## 八、集成方案（v2.0 更新）
 
-### 8.1 集成位置
+### 8.1 当前状态
+
+主流程脚本已实现，可独立运行：
+
+```bash
+# 单独运行敏感词遮罩预处理
+python -m scripts.preprocess.sensitive_mask_workflow "漫剧素材/项目名" --output "干净素材/项目名"
+
+# 完整流程需要手动分三步执行（见1.1节）
+```
+
+### 8.2 未来集成方案
 
 集成到 `scripts/understand/video_understand.py` 的分析流程中：
 
@@ -364,8 +432,10 @@ def video_understand(project_path):
     # 3. 【新增】字幕区域检测
     subtitle_region = detect_subtitle_region(keyframes)
 
-    # 4. 【新增】敏感词检测
-    sensitive_segments = detect_sensitive_words(asr_segments)
+    # 4. 【新增】敏感词检测（使用OCR）
+    sensitive_segments = detect_sensitive_words_from_ocr(
+        video_path, subtitle_region, sensitive_words
+    )
 
     # 5. 【新增】预处理视频（如果有敏感词）
     if sensitive_segments:
@@ -384,18 +454,27 @@ def video_understand(project_path):
     return clips
 ```
 
-### 8.2 命令行接口
+### 8.3 集成选项
 
+**选项A: 自动集成（推荐）**
+- 在 `video_understand.py` 开头自动检测敏感词并遮罩
+- 优点：用户无感知，一条命令完成
+- 缺点：每次都要检测，速度稍慢
+
+**选项B: 可选参数**
 ```bash
-# 自动处理（分析时自动预处理）
+# 默认不遮罩
 python -m scripts.understand.video_understand "漫剧素材/项目名"
 
-# 单独预处理（不进行分析）
-python -m scripts.preprocess "漫剧素材/项目名"
-
-# 查看遮盖记录
-python -m scripts.preprocess --show-mask "项目名"
+# 启用遮罩
+python -m scripts.understand.video_understand "漫剧素材/项目名" --mask-sensitive
 ```
+
+**选项C: 预处理先行**
+- 用户先运行 `sensitive_mask_workflow` 生成干净视频
+- 然后再运行 `video_understand` 处理干净视频
+- 优点：解耦，可复用
+- 缺点：需要两步操作
 
 ---
 
@@ -433,10 +512,68 @@ python -m scripts.preprocess --show-mask "项目名"
 
 ## 十、注意事项
 
+### 10.1 已知问题
+
 1. **视频质量**：马赛克遮盖后视频质量不受影响（仅字幕区域模糊）
 2. **音频处理**：音频保持原样，不做修改
 3. **存储空间**：预处理会生成新的视频文件，注意磁盘空间
 4. **可逆性**：原始视频保留，遮盖操作可重新执行
+
+### 10.2 OCR检测精度
+
+- **采样率影响**：当前使用5fps采样，时间精度约±0.2秒
+- **文字识别误差**：PaddleOCR可能误识别（如"尸"识别为"户"）
+- **解决方案**：使用词组匹配而非单字匹配，减少误判
+
+### 10.3 时间缓冲区
+
+- **默认值**：0.6秒
+- **作用**：确保字幕开始和结束时的马赛克覆盖完整
+- **调整建议**：如果遮罩仍有遗漏，可增大到0.8-1.0秒
+
+### 10.4 未来优化方向
+
+1. **ASR+OCR结合**：OCR检测时间点 → ASR找对应片段 → 更精确时间
+2. **批量处理优化**：多集并行OCR识别
+3. **遮罩记录保存**：生成 `sensitive_mask.json` 记录遮罩位置
+4. **缓存复用**：已处理视频跳过重复检测
+
+---
+
+## 附录B：主流程脚本参数说明
+
+### sensitive_mask_workflow.py 参数
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `input` | 输入视频目录或文件 | 必填 |
+| `--output, -o` | 输出目录 | `{input}_cleaned` |
+| `--sensitive-words` | 敏感词配置文件 | `config/sensitive_words.txt` |
+| `--sample-fps` | OCR采样帧率 | `5.0` |
+| `--time-buffer` | 遮罩时间缓冲区 | `0.6` |
+| `--skip-existing` | 跳过已存在文件 | `False` |
+| `--quiet, -q` | 安静模式 | `False` |
+
+### 使用示例
+
+```bash
+# 处理整个项目目录
+python -m scripts.preprocess.sensitive_mask_workflow "漫剧素材/烈日重生"
+
+# 处理单个视频
+python -m scripts.preprocess.sensitive_mask_workflow "漫剧素材/烈日重生/烈日重生-1.mp4"
+
+# 指定输出目录
+python -m scripts.preprocess.sensitive_mask_workflow "漫剧素材/烈日重生" -o "干净素材/烈日重生"
+
+# 跳过已有处理
+python -m scripts.preprocess.sensitive_mask_workflow "漫剧素材/烈日重生" --skip-existing
+
+# 自定义参数
+python -m scripts.preprocess.sensitive_mask_workflow "漫剧素材/烈日重生" \
+    --sample-fps 3.0 \
+    --time-buffer 0.8
+```
 
 ---
 

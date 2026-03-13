@@ -1,0 +1,209 @@
+{
+  "project": "雪烬梨香",
+  "episodes": [
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/1.mp4",
+      "episode": 1,
+      "total_duration": 559.466667,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.1000000000000227,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
+        }
+      },
+      "effective_duration": 557.366667
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/10.mp4",
+      "episode": 10,
+      "total_duration": 54.333333,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.6000000000000014,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ]
+        }
+      },
+      "effective_duration": 51.733333
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/2.mp4",
+      "episode": 2,
+      "total_duration": 72.0,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.2666666666666657,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
+        }
+      },
+      "effective_duration": 69.73333333333333
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/3.mp4",
+      "episode": 3,
+      "total_duration": 61.633333,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 2.9000000000000057,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity",
+            "brightness"
+          ],
+          "features_found": [
+            "慢动作",
+            "渐变/黑屏"
+          ]
+        }
+      },
+      "effective_duration": 58.733332999999995
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/4.mp4",
+      "episode": 4,
+      "total_duration": 58.5,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.700000000000003,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
+        }
+      },
+      "effective_duration": 54.8
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/5.mp4",
+      "episode": 5,
+      "total_duration": 65.966667,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.700000000000003,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
+        }
+      },
+      "effective_duration": 62.266667
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/6.mp4",
+      "episode": 6,
+      "total_duration": 59.733333,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.700000000000003,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
+        }
+      },
+      "effective_duration": 56.033333
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/7.mp4",
+      "episode": 7,
+      "total_duration": 58.233333,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.700000000000003,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
+        }
+      },
+      "effective_duration": 54.533333
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/8.mp4",
+      "episode": 8,
+      "total_duration": 67.333333,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.700000000000003,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
+        }
+      },
+      "effective_duration": 63.63333299999999
+    },
+    {
+      "video_path": "新的漫剧素材/雪烬梨香/9.mp4",
+      "episode": 9,
+      "total_duration": 63.766667,
+      "ending_info": {
+        "has_ending": true,
+        "duration": 3.0333333333333385,
+        "confidence": 0.95,
+        "method": "similarity",
+        "features": {
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
+        }
+      },
+      "effective_duration": 60.73333366666666
+    }
+  ]
+}

@@ -100,18 +100,20 @@ def adjust_hook_point(
         except Exception as e:
             print(f"  ⚠️ 智能切割失败，回退到基础模式: {e}")
 
-    # 基础模式：找到包含钩子点或钩子点之后的第一个ASR片段
-    for segment in target_asr:  # 使用筛选后的ASR
-        # 如果ASR片段开始时间在钩子点之后，或者钩子点在ASR片段内
-        if segment.start > hook_timestamp or (segment.start <= hook_timestamp <= segment.end):
-            # 找到该片段的结束时间
-            adjusted_time = segment.end + (buffer_ms / 1000.0)
-            print(f"  🔧 钩子点优化(基础): {hook_timestamp}秒 → {adjusted_time:.3f}秒（+{buffer_ms}ms缓冲，ASR: '{segment.text[:20]}...'）")
+    # 基础模式：先检查钩子点是否落在某个 ASR 片段内
+    # V18修复：gap 情况（钩子点在两段之间的间隙）应停在间隙处，不应包含下一句话
+    buffer_seconds = buffer_ms / 1000.0
+    for segment in target_asr:
+        if segment.start <= hook_timestamp <= segment.end:
+            # 钩子点在片段内：返回该片段结束时间
+            adjusted_time = segment.end + buffer_seconds
+            print(f"  🔧 钩子点优化(基础): {hook_timestamp}秒 → {adjusted_time:.3f}秒（片段内，ASR: '{segment.text[:20]}'）")
             return adjusted_time
 
-    # 如果没有找到合适的ASR片段，返回原时间戳
-    print(f"  ⚠️  钩子点未找到ASR数据，保持原时间: {hook_timestamp}秒")
-    return float(hook_timestamp)
+    # gap 情况：钩子点在两段之间的静音间隙内，停在间隙处
+    # 修复前的错误行为：取"下一个片段的 end"，把整句话都包含进去
+    print(f"  🔧 钩子点优化(基础-gap): {hook_timestamp}秒 → {hook_timestamp + buffer_seconds:.3f}秒（在间隙内停止）")
+    return hook_timestamp + buffer_seconds
 
 
 def adjust_highlight_point(

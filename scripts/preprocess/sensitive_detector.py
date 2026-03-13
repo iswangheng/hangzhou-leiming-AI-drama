@@ -33,6 +33,11 @@ class SensitiveSegment:
     asr_text: str            # ASR原文
     start_time: float        # 开始时间（秒）
     end_time: float          # 结束时间（秒）
+    boxes: List = None       # 文字框坐标（精确遮罩用）
+
+    def __post_init__(self):
+        if self.boxes is None:
+            self.boxes = []
 
     def __repr__(self):
         return f"SensitiveSegment(ep{self.episode}, {self.start_time:.1f}s-{self.end_time:.1f}s, '{self.sensitive_word}')"
@@ -372,3 +377,93 @@ if __name__ == "__main__":
     print(f"\n检测结果:")
     for seg in segments:
         print(f"  {seg}")
+
+
+def detect_sensitive_words_with_boxes(
+    subtitle_segments: List,
+    sensitive_words: Set[str],
+    episode: int = 1,
+    verbose: bool = True
+) -> List[SensitiveSegment]:
+    """
+    检测字幕中的敏感词，并计算精确的box坐标
+
+    使用字符等分策略：根据敏感词在句子中的位置，计算对应的box坐标
+
+    Args:
+        subtitle_segments: OCR识别结果，包含text和boxes
+        sensitive_words: 敏感词集合
+        episode: 集数
+        verbose: 是否打印详细信息
+
+    Returns:
+        敏感词片段列表，包含精确的box坐标
+    """
+    if not sensitive_words:
+        if verbose:
+            print("⚠️ 敏感词列表为空，跳过检测")
+        return []
+
+    results = []
+
+    for seg in subtitle_segments:
+        text = seg.text if hasattr(seg, 'text') else seg.get('text', '')
+        boxes = seg.boxes if hasattr(seg, 'boxes') else seg.get('boxes', [])
+
+        if not text:
+            continue
+
+        # 检查每个敏感词
+        for word in sensitive_words:
+            if word in text:
+                # 找到敏感词在句子中的位置
+                start_idx = text.find(word)
+                end_idx = start_idx + len(word)
+                total_chars = len(text)
+
+                # 计算位置比例
+                start_ratio = start_idx / total_chars if total_chars > 0 else 0
+                end_ratio = end_idx / total_chars if total_chars > 0 else 1
+
+                # 计算精确的box坐标
+                # PaddleOCR返回格式: [x1, y1, x2, y2]，这里boxes只有1个元素（整行）
+                keyword_boxes = []
+
+                for box in boxes:
+                    # box可能是numpy array或list
+                    try:
+                        if hasattr(box, '__iter__') and len(box) >= 4:
+                            x1, y1, x2, y2 = float(box[0]), float(box[1]), float(box[2]), float(box[3])
+                        else:
+                            continue
+                    except:
+                        continue
+
+                    # 等分计算关键词的x范围
+                    keyword_x1 = int(x1 + (x2 - x1) * start_ratio)
+                    keyword_x2 = int(x1 + (x2 - x1) * end_ratio)
+
+                    keyword_boxes.append([keyword_x1, int(y1), keyword_x2, int(y2)])
+
+                if keyword_boxes:
+                    results.append(SensitiveSegment(
+                        episode=episode,
+                        sensitive_word=word,
+                        asr_text=text,
+                        start_time=seg.start_time if hasattr(seg, 'start_time') else seg.get('start_time', 0),
+                        end_time=seg.end_time if hasattr(seg, 'end_time') else seg.get('end_time', 0),
+                        boxes=keyword_boxes
+                    ))
+
+                    if verbose:
+                        print(f"  🔍 [{seg.start_time:.1f}s-{seg.end_time:.1f}s] 发现敏感词'{word}'")
+                        print(f"     原文: {text}")
+                        print(f"     精确box: {keyword_boxes}")
+
+    if verbose:
+        if results:
+            print(f"\n📊 敏感词检测完成: 共发现 {len(results)} 个敏感片段")
+        else:
+            print("\n📊 敏感词检测完成: 未发现敏感词")
+
+    return results

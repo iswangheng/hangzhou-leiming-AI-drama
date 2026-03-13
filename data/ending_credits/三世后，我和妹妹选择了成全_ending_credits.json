@@ -6,60 +6,68 @@
       "episode": 1,
       "total_duration": 32.415011,
       "ending_info": {
-        "has_ending": true,
-        "duration": 1.6207505500000001,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_false_positive_fix",
         "features": {
-          "duration": 1.6207505500000001
+          "original_method": "similarity",
+          "original_duration": 1.620000000000001,
+          "reason": "ASR修正：对白密度高，是正常剧情"
         }
       },
-      "effective_duration": 30.79426045
+      "effective_duration": 32.415011
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/三世后，我和妹妹选择了成全/10.mp4",
       "episode": 10,
       "total_duration": 32.52,
       "ending_info": {
-        "has_ending": true,
-        "duration": 1.6260000000000003,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_false_positive_fix",
         "features": {
-          "duration": 1.6260000000000003
+          "original_method": "similarity",
+          "original_duration": 2.5799999999999983,
+          "reason": "ASR修正：对白密度高，是正常剧情"
         }
       },
-      "effective_duration": 30.894000000000002
+      "effective_duration": 32.52
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/三世后，我和妹妹选择了成全/11.mp4",
       "episode": 11,
       "total_duration": 58.52,
       "ending_info": {
-        "has_ending": true,
-        "duration": 2.926,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_false_positive_fix",
         "features": {
-          "duration": 2.926
+          "original_method": "similarity",
+          "original_duration": 2.0600000000000023,
+          "reason": "ASR修正：对白密度高，是正常剧情"
         }
       },
-      "effective_duration": 55.594
+      "effective_duration": 58.52
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/三世后，我和妹妹选择了成全/12.mp4",
       "episode": 12,
       "total_duration": 36.408889,
       "ending_info": {
-        "has_ending": true,
-        "duration": 1.82044445,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_false_positive_fix",
         "features": {
-          "duration": 1.82044445
+          "original_method": "similarity",
+          "original_duration": 2.6600000000000037,
+          "reason": "ASR修正：对白密度高，是正常剧情"
         }
       },
-      "effective_duration": 34.588444550000006
+      "effective_duration": 36.408889
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/三世后，我和妹妹选择了成全/2.mp4",
@@ -67,119 +75,138 @@
       "total_duration": 49.12,
       "ending_info": {
         "has_ending": true,
-        "duration": 2.456,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "duration": 2.220000000000006,
+        "confidence": 0.95,
+        "method": "similarity",
         "features": {
-          "duration": 2.456
+          "methods_used": [
+            "similarity"
+          ],
+          "features_found": [
+            "慢动作"
+          ]
         }
       },
-      "effective_duration": 46.663999999999994
+      "effective_duration": 46.89999999999999
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/三世后，我和妹妹选择了成全/3.mp4",
       "episode": 3,
       "total_duration": 60.32,
       "ending_info": {
-        "has_ending": true,
-        "duration": 3.0,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_false_positive_fix",
         "features": {
-          "duration": 3.0
+          "original_method": "similarity",
+          "original_duration": 1.8599999999999994,
+          "reason": "ASR修正：对白密度高，是正常剧情"
         }
       },
-      "effective_duration": 57.32
+      "effective_duration": 60.32
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/三世后，我和妹妹选择了成全/4.mp4",
       "episode": 4,
       "total_duration": 56.819002,
       "ending_info": {
-        "has_ending": true,
-        "duration": 2.8409501,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_false_positive_fix",
         "features": {
-          "duration": 2.8409501
+          "original_method": "similarity",
+          "original_duration": 1.6200000000000045,
+          "reason": "ASR修正：对白密度高，是正常剧情"
         }
       },
-      "effective_duration": 53.9780519
+      "effective_duration": 56.819002
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/三世后，我和妹妹选择了成全/5.mp4",
       "episode": 5,
       "total_duration": 46.52,
       "ending_info": {
-        "has_ending": true,
-        "duration": 2.326,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_false_positive_fix",
         "features": {
-          "duration": 2.326
+          "original_method": "similarity",
+          "original_duration": 3.700000000000003,
+          "reason": "ASR修正：对白密度高，是正常剧情"
         }
       },
-      "effective_duration": 44.194
+      "effective_duration": 46.52
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/三世后，我和妹妹选择了成全/6.mp4",
       "episode": 6,
       "total_duration": 50.200998,
       "ending_info": {
-        "has_ending": true,
-        "duration": 2.5100499000000003,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_false_positive_fix",
         "features": {
-          "duration": 2.5100499000000003
+          "original_method": "similarity",
+          "original_duration": 3.700000000000003,
+          "reason": "ASR修正：对白密度高，是正常剧情"
         }
       },
-      "effective_duration": 47.6909481
+      "effective_duration": 50.200998
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/三世后，我和妹妹选择了成全/7.mp4",
       "episode": 7,
       "total_duration": 53.72,
       "ending_info": {
-        "has_ending": true,
-        "duration": 2.686,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_false_positive_fix",
         "features": {
-          "duration": 2.686
+          "original_method": "similarity",
+          "original_duration": 3.700000000000003,
+          "reason": "ASR修正：对白密度高，是正常剧情"
         }
       },
-      "effective_duration": 51.034
+      "effective_duration": 53.72
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/三世后，我和妹妹选择了成全/8.mp4",
       "episode": 8,
       "total_duration": 71.122721,
       "ending_info": {
-        "has_ending": true,
-        "duration": 3.0,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_false_positive_fix",
         "features": {
-          "duration": 3.0
+          "original_method": "similarity",
+          "original_duration": 3.3400000000000034,
+          "reason": "ASR修正：对白密度高，是正常剧情"
         }
       },
-      "effective_duration": 68.122721
+      "effective_duration": 71.122721
     },
     {
       "video_path": "260310-待剪辑-360 短剧素材/三世后，我和妹妹选择了成全/9.mp4",
       "episode": 9,
       "total_duration": 30.52,
       "ending_info": {
-        "has_ending": true,
-        "duration": 1.526,
-        "confidence": 0.8,
-        "method": "simplified_detection",
+        "has_ending": false,
+        "duration": 0.0,
+        "confidence": 1.0,
+        "method": "asr_false_positive_fix",
         "features": {
-          "duration": 1.526
+          "original_method": "similarity",
+          "original_duration": 2.419999999999998,
+          "reason": "ASR修正：对白密度高，是正常剧情"
         }
       },
-      "effective_duration": 28.994
+      "effective_duration": 30.52
     }
   ]
 }

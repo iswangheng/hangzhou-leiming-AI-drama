@@ -366,7 +366,7 @@ def _get_optimal_workers(hwaccel: bool = False) -> int:
 
 ```bash
 # 缓存位置
-cache/endings/{project_name}/
+cache/endings/{width}x{height}_{fps}fps/
 
 # 强制重新缓存
 --force-recache
