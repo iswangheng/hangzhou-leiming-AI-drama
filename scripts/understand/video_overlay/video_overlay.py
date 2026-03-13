@@ -325,7 +325,8 @@ class VideoOverlayRenderer:
         self,
         input_video: str,
         output_video: str,
-        on_progress: Optional[callable] = None
+        on_progress: Optional[callable] = None,
+        subtitle_bottom_y: Optional[int] = None,
     ) -> str:
         """在视频上应用花字叠加
 
@@ -333,6 +334,8 @@ class VideoOverlayRenderer:
             input_video: 输入视频路径
             output_video: 输出视频路径
             on_progress: 进度回调函数
+            subtitle_bottom_y: 原始字幕区域底部 Y 坐标（从顶部量起，像素单位）。
+                               提供时，剧名定位于字幕下方；否则使用保守百分比。
 
         Returns:
             输出视频路径
@@ -391,13 +394,45 @@ class VideoOverlayRenderer:
         print(f"   剧名: {drama_title_font_size}px (原始×0.95, 略小于字幕)")
         print(f"   免责声明: {disclaimer_font_size}px (原始×0.85, 精简)")
 
-        # 动态计算位置（使用视频高度的百分比）
-        # 剧名：底部往上 15% 处
-        drama_title_y = f"h-{int(video_height * 0.15)}"
-        # 免责声明：底部往上 6% 处（剧名下方）
-        disclaimer_y = f"h-{int(video_height * 0.06)}"
+        # 动态计算剧名和免责声明 Y 坐标
+        # 布局从底部往上：底部边缘 → 免责声明 → 间隙 → 剧名 → 间隙 → 原始字幕
+        TITLE_GAP = 8        # 字幕底部 → 剧名顶部间隙（像素）
+        DISCLAIMER_GAP = 4   # 剧名底部 → 免责声明顶部间隙（像素）
+        BOTTOM_MARGIN = 4    # 免责声明底部 → 视频底部最小边距（像素）
 
-        print(f"📍 动态位置:")
+        # 计算动态定位所需的总像素高度
+        required_space = TITLE_GAP + drama_title_font_size + DISCLAIMER_GAP + disclaimer_font_size + BOTTOM_MARGIN
+        available_space = (video_height - subtitle_bottom_y) if subtitle_bottom_y is not None else 0
+
+        # use_single_row：空间不足时启用同行左右布局
+        use_single_row = False
+        drama_title_x_override = None
+        disclaimer_x_override = None
+
+        if subtitle_bottom_y is not None and subtitle_bottom_y < video_height * 0.95 and available_space >= required_space:
+            # 动态定位：字幕下方空间足够，剧名紧跟字幕下方（两行）
+            drama_title_top = subtitle_bottom_y + TITLE_GAP
+            disclaimer_top = drama_title_top + drama_title_font_size + DISCLAIMER_GAP
+            drama_title_y = str(drama_title_top)
+            disclaimer_y = str(disclaimer_top)
+            print(f"📍 动态位置（基于字幕检测 subtitle_bottom_y={subtitle_bottom_y}，可用={available_space}px≥需要={required_space}px）:")
+        elif subtitle_bottom_y is not None and subtitle_bottom_y < video_height * 0.95:
+            # 空间不足：剧名左对齐、免责声明右对齐，同行显示在字幕正下方
+            common_y = str(subtitle_bottom_y + TITLE_GAP)
+            drama_title_y = common_y
+            disclaimer_y = common_y
+            drama_title_x_override = "8"        # 左对齐
+            disclaimer_x_override = "w-tw-8"   # 右对齐
+            use_single_row = True
+            print(f"📍 单行左右布局（字幕下方空间不足 {available_space}px < {required_space}px）:")
+        else:
+            # Fallback：保守百分比（距底部 12% 和 4%）
+            # 用于：未检测到字幕、空间不足、或字幕过于靠下
+            drama_title_y = f"h-{int(video_height * 0.12)}"
+            disclaimer_y = f"h-{int(video_height * 0.04)}"
+            reason = "未检测到字幕" if subtitle_bottom_y is None else f"空间不足({available_space}px < {required_space}px)"
+            print(f"📍 动态位置（Fallback 保守百分比，原因: {reason}）:")
+
         print(f"   剧名: y={drama_title_y}")
         print(f"   免责声明: y={disclaimer_y}")
         print(f"   热门短剧: 由tilted_label模块自动计算（倾斜角标）")
@@ -511,7 +546,7 @@ class VideoOverlayRenderer:
             shadow_color=self.style.drama_title.shadow_color,
             shadow_x=self.style.drama_title.shadow_x,
             shadow_y=self.style.drama_title.shadow_y,
-            x="(w-tw)/2",  # 居中
+            x=drama_title_x_override if use_single_row else "(w-tw)/2",  # 单行左对齐，否则居中
             y=drama_title_y  # 动态Y位置
         )
         drawtext_filters.append(self._build_drawtext_filter(drama_title_layer, font_path))
@@ -527,7 +562,7 @@ class VideoOverlayRenderer:
             shadow_color=self.style.disclaimer.shadow_color,
             shadow_x=self.style.disclaimer.shadow_x,
             shadow_y=self.style.disclaimer.shadow_y,
-            x="(w-tw)/2",  # 居中
+            x=disclaimer_x_override if use_single_row else "(w-tw)/2",  # 单行右对齐，否则居中
             y=disclaimer_y  # 动态Y位置
         )
         drawtext_filters.append(self._build_drawtext_filter(disclaimer_layer, font_path))

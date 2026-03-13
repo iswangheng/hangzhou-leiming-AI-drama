@@ -335,6 +335,26 @@ hot_drama_font_size = hot_drama_font_size if hot_drama_font_size % 2 == 0 else h
 - [x] 1080p视频字体过大 - V2.3 v3已完美解决（基准值54px，实测热门~20-25px、剧名~30-35px）
 - [x] 720p分辨率支持 - 使用较小边计算分辨率倍数，完美适配横竖屏
 - [x] 剧名≈原始字幕 - 剧名系数×0.95，接近原始字幕大小（用户要求）
+- [x] 横屏字幕下方空间不足 - V18.1 新增同行左右布局（剧名左对齐，免责声明右对齐）
+
+**V18.1 横屏同行布局逻辑**：
+
+```
+available_space = video_height - subtitle_bottom_y
+required_space = TITLE_GAP(8) + drama_font + DISCLAIMER_GAP(4) + disc_font + BOTTOM_MARGIN(4)
+
+if available_space >= required_space:
+    两行布局，字幕下方（竖屏 ✅）
+elif subtitle_bottom_y is not None:
+    同行左右布局（横屏空间不足时 ✅）
+    剧名: x="8"（左对齐），免责: x="w-tw-8"（右对齐），共用同一 y
+else:
+    Fallback 百分比
+```
+
+字幕缓存路径：`data/cache/subtitle_region/<项目名>/<集数>.json`
+- standalone 渲染路径（并行/串行）均预加载缓存，传入 `render_params['subtitle_region_cache']`
+- 无缓存时自动对当前视频实时检测（`sample_frame_count=3`）
 
 **V2.3 v3核心方案**:
 - 使用**基于实测字幕数据的动态缩放**
@@ -457,6 +477,10 @@ data/
 
 ### Version History Context
 
+- **V18.1** (2026-03-13): 横屏花字布局 & 花字双重渲染修复
+  - 横屏（640×360）字幕下方空间不足时，剧名左对齐+免责声明右对齐同行显示
+  - standalone 渲染路径预加载字幕区域缓存，无缓存时自动实时检测
+  - 修复花字叠加被执行两次（文字重叠两层）的 bug
 - **V17.8** (2026-03-13): 第1集第0秒重复高光点修复
   - 修复 result.json 中第1集第0秒存在两个高光点的问题
   - 添加固定开篇高光前，移除第1集前5秒内的 AI 检测高光点

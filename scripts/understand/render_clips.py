@@ -1425,7 +1425,66 @@ class ClipRenderer:
             if concat_file.exists():
                 concat_file.unlink()
 
-    def _apply_video_overlay(self, clip_path: str) -> str:
+    def _get_subtitle_bottom_y(self, episode: int, video_path: str) -> Optional[int]:
+        """检测并缓存指定集数视频的字幕底部 Y 坐标。
+
+        每集只检测一次，结果缓存到
+        data/cache/subtitle_region/<project_name>/<episode>.json 中。
+
+        Args:
+            episode: 集数（整数）
+            video_path: 该集视频文件路径
+
+        Returns:
+            字幕底部 Y 坐标（从顶部量起，像素），失败返回 None
+        """
+        # 初始化缓存字典
+        if not hasattr(self, '_subtitle_bottom_cache'):
+            self._subtitle_bottom_cache: dict = {}
+
+        if episode in self._subtitle_bottom_cache:
+            return self._subtitle_bottom_cache[episode]
+
+        # 磁盘缓存路径
+        cache_dir = Path("data/cache/subtitle_region") / self.project_name
+        cache_file = cache_dir / f"{episode}.json"
+
+        if cache_file.exists():
+            try:
+                import json as _json
+                data = _json.loads(cache_file.read_text(encoding="utf-8"))
+                value = data.get("subtitle_bottom_y")
+                self._subtitle_bottom_cache[episode] = value
+                print(f"  [字幕检测] 从缓存加载 EP{episode}: subtitle_bottom_y={value}")
+                return value
+            except Exception as e:
+                print(f"  [字幕检测] 缓存读取失败: {e}")
+
+        # 执行检测
+        try:
+            from scripts.preprocess.subtitle_detector import get_subtitle_bottom_y
+            print(f"  [字幕检测] 检测 EP{episode} 字幕底部 Y...")
+            value = get_subtitle_bottom_y(video_path, sample_frame_count=5)
+            print(f"  [字幕检测] EP{episode} subtitle_bottom_y={value}")
+        except Exception as e:
+            print(f"  [字幕检测] 检测失败: {e}")
+            value = None
+
+        # 写入磁盘缓存
+        try:
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            import json as _json
+            cache_file.write_text(
+                _json.dumps({"subtitle_bottom_y": value}, ensure_ascii=False),
+                encoding="utf-8"
+            )
+        except Exception as e:
+            print(f"  [字幕检测] 缓存写入失败: {e}")
+
+        self._subtitle_bottom_cache[episode] = value
+        return value
+
+    def _apply_video_overlay(self, clip_path: str, episode: Optional[int] = None, video_path: Optional[str] = None) -> str:
         """为视频添加花字叠加
 
         V15: 在视频上叠加"热门短剧"、剧名、免责声明
@@ -1433,6 +1492,8 @@ class ClipRenderer:
 
         Args:
             clip_path: 原视频文件路径
+            episode: 来源集数（用于字幕检测缓存）
+            video_path: 来源集视频路径（用于字幕检测）
 
         Returns:
             添加花字后的文件路径
@@ -1443,6 +1504,11 @@ class ClipRenderer:
                 self._overlay_renderer_instance = self._overlay_renderer_class(
                     self.overlay_config
                 )
+
+            # 检测字幕底部 Y（每集缓存一次）
+            subtitle_bottom_y = None
+            if episode is not None and video_path is not None:
+                subtitle_bottom_y = self._get_subtitle_bottom_y(episode, video_path)
 
             # 生成新的输出文件名（添加 "_带花字" 标记）
             clip_path_obj = Path(clip_path)
@@ -1455,7 +1521,8 @@ class ClipRenderer:
             # 应用花字叠加
             result_path = self._overlay_renderer_instance.apply_overlay(
                 input_video=clip_path,
-                output_video=new_output_path
+                output_video=new_output_path,
+                subtitle_bottom_y=subtitle_bottom_y,
             )
 
             # 删除原视频文件
@@ -1503,6 +1570,21 @@ class ClipRenderer:
                 'hookEpisode': clip.hookEpisode,
             }
 
+            # 预加载字幕区域缓存（串行路径也需要）
+            _subtitle_region_cache = {}
+            _subtitle_cache_dir = Path("data/cache/subtitle_region") / self.project_name
+            if _subtitle_cache_dir.exists():
+                import json as _json
+                for _cf in _subtitle_cache_dir.glob("*.json"):
+                    try:
+                        _ep = int(_cf.stem)
+                        _data = _json.loads(_cf.read_text(encoding="utf-8"))
+                        _val = _data.get("subtitle_bottom_y")
+                        if _val is not None:
+                            _subtitle_region_cache[_ep] = _val
+                    except Exception:
+                        pass
+
             # 构建render_params
             render_params = {
                 'video_dir': str(self.video_dir),
@@ -1521,38 +1603,13 @@ class ClipRenderer:
                 'overlay_style_id': self.overlay_style_id,
                 'hot_drama_position': 'top-right',
                 'hwaccel': self.hwaccel,
+                'subtitle_region_cache': _subtitle_region_cache,  # 字幕区域缓存
             }
 
             # 尝试单次编码（传入-1表示串行模式）
             result = _render_clip_single_pass(-1, clip_data, render_params)
             if result:
                 print(f"  [单次编码] 串行模式单次编码成功: {result}")
-
-                # V17.5: 单次编码成功后，额外添加PNG角标
-                # 单次编码跳过了PNG，需要单独调用花字叠加来添加PNG
-                if self.add_overlay:
-                    print(f"  [单次编码] 额外添加PNG角标...")
-                    # 重新构建render_params确保参数正确
-                    overlay_params = {
-                        'project_name': self.project_name,
-                        'overlay_style_id': self.overlay_style_id,
-                        'hot_drama_position': 'top-right',
-                        'crf': self.crf,
-                        'preset': self.preset,
-                    }
-                    # 调用花字叠加（会添加PNG角标）
-                    result_with_overlay = _apply_video_overlay_standalone(result, overlay_params)
-                    if result_with_overlay and result_with_overlay != result:
-                        print(f"  [单次编码] PNG角标添加完成")
-                        # V17.5修复: 移除 _overlay 后缀（带花字已在文件名中）
-                        if '_overlay' in result_with_overlay:
-                            result_obj = Path(result_with_overlay)
-                            result_stem = result_obj.stem.replace('_overlay', '')
-                            result_final = str(result_obj.parent / (result_stem + result_obj.suffix))
-                            Path(result_with_overlay).rename(result_final)
-                            return result_final
-                        return result_with_overlay
-
                 return result
 
         # 生成输出文件名（中文格式）
@@ -1627,7 +1684,10 @@ class ClipRenderer:
 
         # V15.6: 添加花字叠加（如果配置了）- 先叠加花字
         if self.add_overlay and hasattr(self, '_overlay_renderer_class'):
-            output_path = self._apply_video_overlay(output_path)
+            # 传入高光点所在集数和视频路径，用于检测字幕底部 Y
+            src_episode = clip.episode
+            src_video_path = self.video_files[src_episode].path if src_episode in self.video_files else None
+            output_path = self._apply_video_overlay(output_path, episode=src_episode, video_path=src_video_path)
 
         # V14: 添加结尾视频（如果配置了）- 再拼接片尾
         if self.add_ending_clip:
@@ -1901,6 +1961,21 @@ class ClipRenderer:
         # 限制worker数量不超过CPU核心数
         max_workers = min(max_workers, multiprocessing.cpu_count())
 
+        # 预加载字幕区域缓存（从磁盘读，供 standalone worker 使用）
+        subtitle_region_cache = {}
+        subtitle_cache_dir = Path("data/cache/subtitle_region") / self.project_name
+        if subtitle_cache_dir.exists():
+            import json as _json
+            for cache_file in subtitle_cache_dir.glob("*.json"):
+                try:
+                    ep = int(cache_file.stem)
+                    data = _json.loads(cache_file.read_text(encoding="utf-8"))
+                    value = data.get("subtitle_bottom_y")
+                    if value is not None:
+                        subtitle_region_cache[ep] = value
+                except Exception:
+                    pass
+
         # 准备渲染参数
         render_params = {
             'video_dir': str(self.video_dir),
@@ -1919,6 +1994,7 @@ class ClipRenderer:
             'overlay_style_id': self.overlay_style_id,
             'hot_drama_position': getattr(self, 'overlay_config', None).hot_drama_position if hasattr(self, 'overlay_config') and self.overlay_config else 'top-right',
             'hwaccel': self.hwaccel,  # V16.2: GPU硬件加速
+            'subtitle_region_cache': subtitle_region_cache,  # 字幕区域缓存（供 standalone 用）
         }
 
         output_paths = []
@@ -2072,7 +2148,7 @@ def _render_clip_unified_standalone(
 
         # V15: 添加花字叠加（如果配置了）
         if render_params['add_overlay']:
-            output_path = _apply_video_overlay_standalone(output_path, render_params)
+            output_path = _apply_video_overlay_standalone(output_path, render_params, episode=clip.episode)
 
         # V14: 添加结尾视频（如果配置了）
         if render_params['add_ending_clip'] and render_params['ending_videos']:
@@ -2360,7 +2436,7 @@ def _concat_segments_standalone(segment_files: List[str], output_path: str, outp
     concat_file.unlink()
 
 
-def _apply_video_overlay_standalone(clip_path: str, render_params: dict) -> str:
+def _apply_video_overlay_standalone(clip_path: str, render_params: dict, episode: int = None) -> str:
     """应用花字叠加（独立函数）(V16新增)"""
     try:
         from .video_overlay.video_overlay import VideoOverlayRenderer, OverlayConfig
@@ -2376,13 +2452,29 @@ def _apply_video_overlay_standalone(clip_path: str, render_params: dict) -> str:
 
         renderer = VideoOverlayRenderer(config)
 
+        # 从缓存中获取字幕底部 Y 坐标
+        subtitle_bottom_y = None
+        if episode is not None:
+            subtitle_region_cache = render_params.get('subtitle_region_cache', {})
+            subtitle_bottom_y = subtitle_region_cache.get(episode)
+
+        # 没缓存时，从视频本身检测（兜底逻辑）
+        if subtitle_bottom_y is None:
+            try:
+                from scripts.preprocess.subtitle_detector import get_subtitle_bottom_y
+                subtitle_bottom_y = get_subtitle_bottom_y(clip_path, sample_frame_count=3)
+                if subtitle_bottom_y is not None:
+                    print(f"  [字幕检测] standalone 实时检测: subtitle_bottom_y={subtitle_bottom_y}")
+            except Exception:
+                pass
+
         # 生成新的输出路径
         clip_path_obj = Path(clip_path)
         overlay_filename = clip_path_obj.stem + "_overlay" + clip_path_obj.suffix
         overlay_path = str(clip_path_obj.parent / overlay_filename)
 
         # 应用花字
-        renderer.apply_overlay(clip_path, overlay_path)
+        renderer.apply_overlay(clip_path, overlay_path, subtitle_bottom_y=subtitle_bottom_y)
 
         # 删除原文件
         Path(clip_path).unlink()
@@ -3309,23 +3401,10 @@ def _render_clip_unified_standalone(
 
         # ===== 步骤2：应用花字叠加（如果启用）=====
         if add_overlay:
-            temp_overlay = output_dir / f"temp_overlay_{os.getpid()}_{clip_index}.mp4"
-            temp_files.append(temp_overlay)
-
-            # 调用花字叠加
-            from .video_overlay.video_overlay import apply_overlay_to_video
-            apply_overlay_to_video(
-                input_video=clip_input,
-                output_video=str(temp_overlay),
-                project_name=project_name,
-                drama_title=project_name,
-                style_id=render_params.get('overlay_style_id'),
-                hot_drama_position=render_params.get('hot_drama_position', 'top-right')
-            )
-
-            # 删除裁剪文件
-            Path(clip_input).unlink()
-            clip_input = str(temp_overlay)
+            # 使用 _apply_video_overlay_standalone，支持字幕区域缓存（subtitle_bottom_y）
+            result = _apply_video_overlay_standalone(clip_input, render_params, episode=clip.episode)
+            if result and result != clip_input:
+                clip_input = result
 
         # ===== 步骤3：添加结尾视频（如果启用）=====
         if add_ending:

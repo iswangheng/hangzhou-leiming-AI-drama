@@ -5,6 +5,138 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+---
+
+## [TODO / 待处理]
+
+### 高优先级
+
+- [ ] **渲染命令默认附加片尾视频**
+  - 现状：`--add-ending` 默认关闭，需手动加参数
+  - 期望：片尾是正常成品的必要组成部分，应默认开启
+  - 影响文件：`scripts/understand/render_clips.py` 中 `add_ending_clip` 默认值 + argparse 文档
+
+- [ ] **烈日重生 V18 效果验证**
+  - 需完成带片尾渲染，人工核查高光/钩子是否还有截断感
+  - result.json 已更新为 top-20（77 → 20）
+  - 等 Gemini API 恢复后可考虑重跑分析
+
+- [ ] **yunwu.ai Gemini 代理不稳定问题**
+  - 上次跑 video_understand.py 时全部 30 个 AI 分析片段失败（ProxyError/SSLEOFError）
+  - 需要：① 有重试逻辑（目前已有 retry.py 但不确定是否覆盖这个场景）
+  - 需要：② 出错时不覆盖 result.json（保留旧结果）
+
+### 中优先级
+
+- [ ] **result.json 旧数据自动修复**
+  - 旧代码运行后 result.json 可能存有所有笛卡尔积组合（如 77 个）而非 top-20
+  - `test/refilter_result_clips.py` 是临时工具，应考虑在 video_understand.py 里加保护
+  - 方案：如果 clips 数量 > 20，自动调用 `sort_and_filter_clips`
+
+- [ ] **`unhashable type: 'KeyFrame'` bug**
+  - 在 AI 分析时多次出现，未深入调查
+  - 猜测：某处用 KeyFrame 对象作为 set/dict key
+
+### 低优先级
+
+- [ ] **临时文件清理机制加强**
+  - 渲染被强制 kill 时会留下 `temp_overlay_*.mp4` / `temp_concat_*.mp4`
+  - 可在渲染开始时扫描并清理同项目的残留临时文件
+
+---
+
+## [V18.1] - 2026-03-13
+
+### 修复 (Fixed)
+
+#### 横屏花字布局错位 & 花字叠加双重渲染问题
+
+**问题1：横屏视频（640×360）字幕下方空间不足，剧名+免责声明与字幕重叠**
+
+- 横屏字幕区域底部约在 332px，字幕下方只剩 28px
+- 两行文字需要 50px（TITLE_GAP 8 + 剧名 18 + DISCLAIMER_GAP 4 + 免责 16 + 边距 4）
+- 原 Fallback 使用百分比定位，与字幕区域重叠不可读
+
+**修复（同行左右布局）**：空间不足时，剧名和免责声明放在**同一行**：
+- 剧名：`x=8`（左对齐）
+- 免责声明：`x=w-tw-8`（FFmpeg 右对齐）
+- 共用同一 Y 坐标（字幕底部 + TITLE_GAP）
+
+验证：640×360 横屏可用 28px，单行仅需 1 行高度，恰好合适 ✅
+
+**问题2：standalone 渲染路径字幕缓存未传递，始终 Fallback**
+
+- 并行渲染路径（`render_params`）和串行路径的两套 `render_params` 均未包含 `subtitle_region_cache`
+- 导致 `_apply_video_overlay_standalone` 无法加载字幕检测缓存，始终走 Fallback 百分比
+
+**修复**：两套 `render_params` 均预加载 `data/cache/subtitle_region/` 下的磁盘缓存，
+并在 `_apply_video_overlay_standalone` 中通过 `render_params['subtitle_region_cache'].get(episode)` 读取。
+
+**问题3：无字幕缓存时无兜底检测**
+
+**修复**：`_apply_video_overlay_standalone` 中，若缓存中找不到该集的 `subtitle_bottom_y`，
+自动对当前视频文件做实时字幕区域检测（`sample_frame_count=3`），避免无谓 Fallback。
+
+**问题4：花字叠加被执行两次，剧名/免责声明文字重叠两层**
+
+根本原因：
+- `_render_clip_single_pass` 始终 fallback 到 `_render_clip_unified_standalone`
+- `_render_clip_unified_standalone` 调用 `apply_overlay_to_video` 完成第一次叠加
+- 串行路径在 `_render_clip_single_pass` 返回后又调用 `_apply_video_overlay_standalone` 第二次叠加
+
+**修复**：
+1. `_render_clip_unified_standalone` 步骤2改用 `_apply_video_overlay_standalone`（支持字幕缓存）
+2. 串行路径删除多余的"额外添加PNG角标"第二次叠加调用
+
+**影响文件**：
+- `scripts/understand/video_overlay/video_overlay.py` - 新增同行左右布局分支
+- `scripts/understand/render_clips.py` - 字幕缓存传递、兜底检测、双重叠加修复
+
+---
+
+## [V18.0] - 2026-03-13
+
+### 修复 (Fixed)
+
+#### 高光点/钩子点中途截断问题
+
+**问题描述**：
+- 高光点不是一集开头时：剪辑从一句话的中途突然开始播放
+- 钩子点不是一集末尾时：一句话还没说完就突然结束
+
+**根本原因**：
+Whisper 在换气停顿（0.2-0.3s）处切割 ASR，导致一句完整台词被拆成多个片段。
+例如："你这辈子（换气0.2s）完了" → `[你这辈子]` + `[完了]`，
+钩子点在 `[你这辈子]` 内时，V15.6 只返回该片段结束时间，"完了"被截断。
+
+**Fix 1：保守句子粘合逻辑（smart_cut_finder.py）**
+
+`find_sentence_end()` 和 `find_sentence_start()` 新增双重信号判断：
+
+| gap 时长 | 当前片段字数 | 动作 |
+|---------|------------|------|
+| ≤ 0.25s | ≤ 5字（明显碎片）| 粘合 |
+| ≤ 0.15s | ≤ 10字（中等长度）| 粘合 |
+| 其他 | — | 不粘合 |
+
+硬上限：最多粘合1个额外片段，总延伸不超过1.5s。
+（防止 V15.2 的灾难性连续合并）
+
+**Fix 2：基础模式钩子 gap 逻辑修复（timestamp_optimizer.py）**
+
+修复前（有 bug）：
+```python
+if segment.start > hook_timestamp:  # gap 情况
+    return segment.end + buffer    # 把整个下一句话都包含进去！
+```
+修复后：gap 情况下停在间隙处，不包含下一句话。
+
+**影响文件**：
+- `scripts/understand/smart_cut_finder.py` - Fix 1，`find_sentence_end()` + `find_sentence_start()`
+- `scripts/understand/timestamp_optimizer.py` - Fix 2，`adjust_hook_point()` 基础模式
+
+---
+
 ## [V17.10] - 2026-03-13
 
 ### 新增 (Added)
