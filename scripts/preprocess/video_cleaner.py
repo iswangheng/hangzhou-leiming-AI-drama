@@ -115,7 +115,7 @@ def build_mosaic_filter(
 
     for i, seg in enumerate(sensitive_segments):
         # 时间条件
-        time_condition = f"between(t,{seg.start_time:.2f},{seg.end_time:.2f})"
+        time_condition = f"between(t\\,{seg.start_time:.2f}\\,{seg.end_time:.2f})"
 
         if i == 0:
             # 第一个马赛克
@@ -151,7 +151,8 @@ def clean_video(
     sensitive_segments: List[SensitiveSegment],
     subtitle_region: SubtitleRegion,
     output_path: str,
-    verbose: bool = True
+    verbose: bool = True,
+    time_buffer: float = 0.6
 ) -> str:
     """
     清洗视频（马赛克遮盖）
@@ -162,6 +163,7 @@ def clean_video(
         subtitle_region: 字幕区域配置
         output_path: 输出视频路径
         verbose: 是否打印详细信息
+        time_buffer: 遮罩时间缓冲区（秒），默认0.6秒
 
     Returns:
         输出视频路径
@@ -222,7 +224,10 @@ def clean_video(
     current_input = "0:v"
 
     for i, seg in enumerate(sensitive_segments):
-        time_cond = f"between(t,{seg.start_time:.3f},{seg.end_time:.3f})"
+        # 添加时间缓冲区
+        start_time = max(0, seg.start_time - time_buffer)
+        end_time = seg.end_time + time_buffer
+        time_cond = f"between(t\\,{start_time:.3f}\\,{end_time:.3f})"
 
         # 裁剪字幕区域
         filter_complex_parts.append(
@@ -284,6 +289,185 @@ def clean_video(
 
     if verbose:
         print(f"✅ 视频清洗完成: {output_path}")
+
+    return str(output_path)
+
+
+def clean_video_precise(
+    video_path: str,
+    sensitive_segments: List[SensitiveSegment],
+    subtitle_region: SubtitleRegion,
+    output_path: str,
+    verbose: bool = True,
+    time_buffer: float = 0.3
+) -> str:
+    """
+    精确遮罩 - 只遮罩敏感词所在位置的文字，不影响其他字幕
+
+    Args:
+        video_path: 输入视频路径
+        sensitive_segments: 敏感词片段列表（包含boxes信息）
+        subtitle_region: 字幕区域配置
+        output_path: 输出视频路径
+        verbose: 是否打印详细信息
+        time_buffer: 遮罩时间缓冲区（秒），默认0.3秒
+
+    Returns:
+        输出视频路径
+    """
+    video_path = Path(video_path)
+    output_path = Path(output_path)
+
+    if not video_path.exists():
+        raise FileNotFoundError(f"视频文件不存在: {video_path}")
+
+    # 过滤出有boxes信息的片段
+    segments_with_boxes = [seg for seg in sensitive_segments if seg.boxes]
+
+    if not segments_with_boxes:
+        if verbose:
+            print(f"  ℹ️ 无精确坐标信息，使用区域遮罩")
+        return clean_video(video_path, sensitive_segments, subtitle_region, output_path, verbose, time_buffer)
+
+    if verbose:
+        print(f"\n{'=' * 60}")
+        print(f"精确遮罩: {video_path.name}")
+        print(f"{'=' * 60}")
+        print(f"  精确遮罩片段: {len(segments_with_boxes)}个")
+        print(f"  字幕区域: y={subtitle_region.y_ratio:.2%}, h={subtitle_region.height_ratio:.2%}")
+
+    # 获取视频信息
+    video_info = get_video_info(str(video_path))
+
+    if verbose:
+        print(f"  视频信息: {video_info['width']}x{video_info['height']}, {video_info['fps']:.1f}fps")
+
+    # 计算字幕区域的基准坐标
+    video_height = video_info['height']
+    video_width = video_info['width']
+    subtitle_y = int(video_height * subtitle_region.y_ratio)
+    subtitle_h = int(video_height * subtitle_region.height_ratio)
+    subtitle_x = 0  # 字幕区域从视频左侧开始
+
+    if verbose:
+        print(f"  字幕区域: y={subtitle_y}px, h={subtitle_h}px")
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # 构建FFmpeg滤镜
+    # 策略：每个敏感词的每个文字框分别应用boxblur
+    filter_complex_parts = []
+    
+    # 首先需要对源视频进行split，分成 N 份供 crop 使用，外加 1 份作为底图
+    num_splits = len(segments_with_boxes)
+    split_str = "".join([f"[orig{i}]" for i in range(num_splits)])
+    filter_complex_parts.append(f"[0:v]split={num_splits+1}{split_str}[base0];")
+
+    # 处理每个敏感词片段
+    for i, seg in enumerate(segments_with_boxes):
+        boxes = seg.boxes
+        if not boxes:
+            continue
+
+        # 计算时间范围
+        start_time = max(0, seg.start_time - time_buffer)
+        end_time = seg.end_time + time_buffer
+        time_cond = f"between(t\\,{start_time:.3f}\\,{end_time:.3f})"
+
+        if verbose:
+            print(f"  处理: '{seg.sensitive_word}' @ {seg.start_time:.1f}s-{seg.end_time:.1f}s")
+            print(f"    文字框数量: {len(boxes)}")
+
+        # 合并所有文字框，获取整体覆盖区域
+        # 注意：PaddleOCR返回的boxes已经是全屏坐标（相对于完整视频）
+        # 但y坐标是相对于裁剪后的字幕区域，需要加上subtitle_y偏移
+        all_x = []
+        all_y = []
+        for box in boxes:
+            if isinstance(box, (list, tuple)):
+                if len(box) >= 4 and isinstance(box[0], (list, tuple)):
+                    # 四点坐标格式: [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
+                    for p in box[:4]:
+                        all_x.append(p[0])
+                        all_y.append(p[1] + subtitle_y)
+                elif len(box) >= 4:
+                    # 格式: [x1, y1, x2, y2]
+                    x1, y1, x2, y2 = box[0], box[1], box[2], box[3]
+                    all_x.append(x1)
+                    all_x.append(x2)
+                    all_y.append(y1 + subtitle_y)
+                    all_y.append(y2 + subtitle_y)
+
+        if not all_x or not all_y:
+            continue
+
+        # 计算合并后的区域
+        min_x = int(min(all_x))
+        max_x = int(max(all_x))
+        min_y = int(min(all_y))
+        max_y = int(max(all_y))
+
+        # 扩展区域以确保完整覆盖文字
+        padding = 5
+        min_x = max(0, min_x - padding)
+        min_y = max(0, min_y - padding)
+        max_x = min(video_info['width'], max_x + padding)
+        max_y = min(video_height, max_y + padding)
+
+        box_w = max_x - min_x
+        box_h = max_y - min_y
+
+        if verbose:
+            print(f"    遮罩区域: x={min_x}, y={min_y}, w={box_w}, h={box_h}")
+
+        # 使用split分离出的流进行crop和模糊
+        filter_complex_parts.append(
+            f"[orig{i}]crop=x={min_x}:y={min_y}:w={box_w}:h={box_h},boxblur=5[blur{i}];"
+        )
+        out_pad = f"[base{i+1}]" if i < len(segments_with_boxes) - 1 else ""
+        filter_complex_parts.append(
+            f"[base{i}][blur{i}]overlay=x={min_x}:y={min_y}:enable='{time_cond}'{out_pad}"
+        )
+        if i < len(segments_with_boxes) - 1:
+            filter_complex_parts.append(";")
+
+    if not filter_complex_parts:
+        if verbose:
+            print(f"  ℹ️ 无有效文字框，直接复制视频")
+        shutil.copy2(video_path, output_path)
+        return str(output_path)
+
+    # 构建完整的滤镜链（用分号连接多个滤镜）
+    filter_complex = "".join(filter_complex_parts)
+
+    # 构建FFmpeg命令
+    cmd = [
+        'ffmpeg',
+        '-y',
+        '-i', str(video_path),
+        '-filter_complex', filter_complex,
+        '-c:v', 'libx264',
+        '-preset', 'medium',
+        '-crf', '23',
+        '-c:a', 'copy',
+        str(output_path)
+    ]
+
+    if verbose:
+        print(f"\n  执行FFmpeg命令...")
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        print(f"❌ FFmpeg执行失败:")
+        print(result.stderr)
+        # 如果精确遮罩失败，回退到区域遮罩
+        if verbose:
+            print(f"  回退到区域遮罩模式...")
+        return clean_video(video_path, sensitive_segments, subtitle_region, output_path, verbose, time_buffer)
+
+    if verbose:
+        print(f"✅ 精确遮罩完成: {output_path}")
 
     return str(output_path)
 
