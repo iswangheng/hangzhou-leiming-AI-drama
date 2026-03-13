@@ -698,8 +698,9 @@ def get_subtitle_bottom_y(video_path: str, sample_frame_count: int = 5) -> Optio
                 # 取最靠近底部的聚类（bottom Y 最大的），而非最大聚类
                 # 字幕永远在最底部，不应被中部高方差区域干扰
                 bottom_cluster = max(clusters, key=lambda c: c[1])
-                # 加 2% 高度作为下边距
-                bottom_y = min(bottom_end, bottom_cluster[1] + int(h * 0.02))
+                # 注意：不加额外 buffer，视觉间距由 apply_overlay 的 TITLE_GAP 负责
+                # 加 buffer 会导致边界字幕位置超过 95% 阈值，误触发 Fallback 布局
+                bottom_y = bottom_cluster[1]
                 bottom_values.append(bottom_y)
 
         if not bottom_values:

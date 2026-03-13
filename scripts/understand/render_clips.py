@@ -1425,18 +1425,23 @@ class ClipRenderer:
             if concat_file.exists():
                 concat_file.unlink()
 
-    def _get_subtitle_bottom_y(self, episode: int, video_path: str) -> Optional[int]:
-        """检测并缓存指定集数视频的字幕底部 Y 坐标。
+    def _get_subtitle_bottom_y(self, episode: int, video_path: str) -> Optional[float]:
+        """检测并缓存指定集数视频的字幕底部 Y 比例（相对视频高度的 0~1 值）。
 
         每集只检测一次，结果缓存到
         data/cache/subtitle_region/<project_name>/<episode>.json 中。
+
+        返回比例值（y_ratio）而非绝对像素，避免 1080p 原始视频检测值
+        被错误地用于降分辨率后的 720p clip（坐标系不匹配问题）。
+
+        调用方需根据 clip 实际高度换算：subtitle_bottom_y = int(y_ratio * clip_height)
 
         Args:
             episode: 集数（整数）
             video_path: 该集视频文件路径
 
         Returns:
-            字幕底部 Y 坐标（从顶部量起，像素），失败返回 None
+            字幕底部 Y 比例（0.0~1.0），失败返回 None
         """
         # 初始化缓存字典
         if not hasattr(self, '_subtitle_bottom_cache'):
@@ -1453,36 +1458,51 @@ class ClipRenderer:
             try:
                 import json as _json
                 data = _json.loads(cache_file.read_text(encoding="utf-8"))
-                value = data.get("subtitle_bottom_y")
-                self._subtitle_bottom_cache[episode] = value
-                print(f"  [字幕检测] 从缓存加载 EP{episode}: subtitle_bottom_y={value}")
-                return value
+                # 优先读取 y_ratio（新格式），兼容旧格式（subtitle_bottom_y + original_height）
+                y_ratio = data.get("y_ratio")
+                if y_ratio is None and data.get("subtitle_bottom_y") is not None and data.get("original_height"):
+                    y_ratio = data["subtitle_bottom_y"] / data["original_height"]
+                self._subtitle_bottom_cache[episode] = y_ratio
+                print(f"  [字幕检测] 从缓存加载 EP{episode}: y_ratio={y_ratio:.3f}" if y_ratio else f"  [字幕检测] EP{episode} 缓存无效")
+                return y_ratio
             except Exception as e:
                 print(f"  [字幕检测] 缓存读取失败: {e}")
 
-        # 执行检测
+        # 执行检测，同时获取视频高度以计算比例
+        y_ratio = None
         try:
             from scripts.preprocess.subtitle_detector import get_subtitle_bottom_y
             print(f"  [字幕检测] 检测 EP{episode} 字幕底部 Y...")
-            value = get_subtitle_bottom_y(video_path, sample_frame_count=5)
-            print(f"  [字幕检测] EP{episode} subtitle_bottom_y={value}")
+            pixel_value = get_subtitle_bottom_y(video_path, sample_frame_count=5)
+            if pixel_value is not None:
+                # 获取原始视频高度，计算比例
+                probe = run_command(
+                    ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
+                     '-show_entries', 'stream=height', '-of', 'csv=p=0', video_path],
+                    timeout=TimeoutConfig.FFPROBE_QUICK, retries=1
+                )
+                original_height = int(probe.stdout.strip()) if probe else 0
+                if original_height > 0:
+                    y_ratio = pixel_value / original_height
+                    print(f"  [字幕检测] EP{episode}: pixel={pixel_value}, height={original_height}, y_ratio={y_ratio:.3f}")
+                else:
+                    print(f"  [字幕检测] EP{episode}: 无法获取视频高度，跳过比例计算")
         except Exception as e:
             print(f"  [字幕检测] 检测失败: {e}")
-            value = None
 
-        # 写入磁盘缓存
+        # 写入磁盘缓存（存储比例值）
         try:
             cache_dir.mkdir(parents=True, exist_ok=True)
             import json as _json
             cache_file.write_text(
-                _json.dumps({"subtitle_bottom_y": value}, ensure_ascii=False),
+                _json.dumps({"y_ratio": y_ratio}, ensure_ascii=False),
                 encoding="utf-8"
             )
         except Exception as e:
             print(f"  [字幕检测] 缓存写入失败: {e}")
 
-        self._subtitle_bottom_cache[episode] = value
-        return value
+        self._subtitle_bottom_cache[episode] = y_ratio
+        return y_ratio
 
     def _apply_video_overlay(self, clip_path: str, episode: Optional[int] = None, video_path: Optional[str] = None) -> str:
         """为视频添加花字叠加
@@ -1505,10 +1525,23 @@ class ClipRenderer:
                     self.overlay_config
                 )
 
-            # 检测字幕底部 Y（每集缓存一次）
-            subtitle_bottom_y = None
+            # 检测字幕底部 Y（每集缓存一次，返回 0~1 比例值）
+            subtitle_y_ratio = None
             if episode is not None and video_path is not None:
-                subtitle_bottom_y = self._get_subtitle_bottom_y(episode, video_path)
+                subtitle_y_ratio = self._get_subtitle_bottom_y(episode, video_path)
+
+            # 将比例值换算为 clip 实际像素坐标（解决 1080p→720p 分辨率不匹配问题）
+            subtitle_bottom_y = None
+            if subtitle_y_ratio is not None:
+                probe = run_command(
+                    ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
+                     '-show_entries', 'stream=height', '-of', 'csv=p=0', clip_path],
+                    timeout=TimeoutConfig.FFPROBE_QUICK, retries=1
+                )
+                clip_height = int(probe.stdout.strip()) if probe else 0
+                if clip_height > 0:
+                    subtitle_bottom_y = int(subtitle_y_ratio * clip_height)
+                    print(f"  [字幕定位] y_ratio={subtitle_y_ratio:.3f} × clip_height={clip_height} = {subtitle_bottom_y}px")
 
             # 生成新的输出文件名（添加 "_带花字" 标记）
             clip_path_obj = Path(clip_path)
@@ -1571,6 +1604,7 @@ class ClipRenderer:
             }
 
             # 预加载字幕区域缓存（串行路径也需要）
+            # 缓存存储 y_ratio（0~1 比例值），standalone 根据 clip 实际高度换算
             _subtitle_region_cache = {}
             _subtitle_cache_dir = Path("data/cache/subtitle_region") / self.project_name
             if _subtitle_cache_dir.exists():
@@ -1579,7 +1613,10 @@ class ClipRenderer:
                     try:
                         _ep = int(_cf.stem)
                         _data = _json.loads(_cf.read_text(encoding="utf-8"))
-                        _val = _data.get("subtitle_bottom_y")
+                        # 优先读取 y_ratio，兼容旧格式
+                        _val = _data.get("y_ratio")
+                        if _val is None and _data.get("subtitle_bottom_y") is not None and _data.get("original_height"):
+                            _val = _data["subtitle_bottom_y"] / _data["original_height"]
                         if _val is not None:
                             _subtitle_region_cache[_ep] = _val
                     except Exception:
@@ -1962,6 +1999,7 @@ class ClipRenderer:
         max_workers = min(max_workers, multiprocessing.cpu_count())
 
         # 预加载字幕区域缓存（从磁盘读，供 standalone worker 使用）
+        # 缓存中存储 y_ratio（0~1 比例值），由 standalone 函数根据 clip 实际高度换算
         subtitle_region_cache = {}
         subtitle_cache_dir = Path("data/cache/subtitle_region") / self.project_name
         if subtitle_cache_dir.exists():
@@ -1970,9 +2008,12 @@ class ClipRenderer:
                 try:
                     ep = int(cache_file.stem)
                     data = _json.loads(cache_file.read_text(encoding="utf-8"))
-                    value = data.get("subtitle_bottom_y")
-                    if value is not None:
-                        subtitle_region_cache[ep] = value
+                    # 优先读取 y_ratio（新格式），兼容旧格式（subtitle_bottom_y + original_height）
+                    y_ratio = data.get("y_ratio")
+                    if y_ratio is None and data.get("subtitle_bottom_y") is not None and data.get("original_height"):
+                        y_ratio = data["subtitle_bottom_y"] / data["original_height"]
+                    if y_ratio is not None:
+                        subtitle_region_cache[ep] = y_ratio
                 except Exception:
                     pass
 
@@ -2452,18 +2493,36 @@ def _apply_video_overlay_standalone(clip_path: str, render_params: dict, episode
 
         renderer = VideoOverlayRenderer(config)
 
-        # 从缓存中获取字幕底部 Y 坐标
+        # 从缓存中获取字幕比例（y_ratio，0~1），换算为当前 clip 的实际像素坐标
         subtitle_bottom_y = None
         if episode is not None:
             subtitle_region_cache = render_params.get('subtitle_region_cache', {})
-            subtitle_bottom_y = subtitle_region_cache.get(episode)
+            y_ratio = subtitle_region_cache.get(episode)
+            if y_ratio is not None:
+                # 探测 clip 实际高度，换算为像素（解决 1080p→720p 坐标系不匹配问题）
+                try:
+                    from scripts.utils.subprocess_utils import run_command
+                    from scripts.config import TimeoutConfig
+                    probe = run_command(
+                        ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
+                         '-show_entries', 'stream=height', '-of', 'csv=p=0', clip_path],
+                        timeout=TimeoutConfig.FFPROBE_QUICK, retries=1
+                    )
+                    clip_height = int(probe.stdout.strip()) if probe else 0
+                    if clip_height > 0:
+                        subtitle_bottom_y = int(y_ratio * clip_height)
+                        print(f"  [字幕定位] standalone: y_ratio={y_ratio:.3f} × clip_height={clip_height} = {subtitle_bottom_y}px")
+                except Exception as e:
+                    print(f"  [字幕定位] standalone 换算失败: {e}")
 
         # 没缓存时，从视频本身检测（兜底逻辑）
         if subtitle_bottom_y is None:
             try:
                 from scripts.preprocess.subtitle_detector import get_subtitle_bottom_y
-                subtitle_bottom_y = get_subtitle_bottom_y(clip_path, sample_frame_count=3)
-                if subtitle_bottom_y is not None:
+                pixel_value = get_subtitle_bottom_y(clip_path, sample_frame_count=3)
+                if pixel_value is not None:
+                    # 实时检测直接在 clip 上运行，坐标系一致，直接使用
+                    subtitle_bottom_y = pixel_value
                     print(f"  [字幕检测] standalone 实时检测: subtitle_bottom_y={subtitle_bottom_y}")
             except Exception:
                 pass

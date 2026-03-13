@@ -425,12 +425,24 @@ class VideoOverlayRenderer:
             disclaimer_x_override = "w-tw-8"   # 右对齐
             use_single_row = True
             print(f"📍 单行左右布局（字幕下方空间不足 {available_space}px < {required_space}px）:")
+        elif subtitle_bottom_y is not None and subtitle_bottom_y < video_height:
+            # 字幕过于靠底（>= 95%），但坐标有效（< video_height）
+            # 空间不足以放置任何布局 → 贴着字幕下方单行左右布局
+            # 即使可能轻微溢出，也比放在字幕上方更符合设计意图
+            common_y_val = min(subtitle_bottom_y + TITLE_GAP, video_height - drama_title_font_size - 2)
+            common_y = str(common_y_val)
+            drama_title_y = common_y
+            disclaimer_y = common_y
+            drama_title_x_override = "8"
+            disclaimer_x_override = "w-tw-8"
+            use_single_row = True
+            print(f"📍 极限单行布局（字幕紧靠底部 {subtitle_bottom_y}px >= {video_height * 0.95:.0f}px，贴字幕下方 y={common_y_val}）:")
         else:
             # Fallback：保守百分比（距底部 12% 和 4%）
-            # 用于：未检测到字幕、空间不足、或字幕过于靠下
+            # 用于：未检测到字幕（subtitle_bottom_y=None）或坐标越界
             drama_title_y = f"h-{int(video_height * 0.12)}"
             disclaimer_y = f"h-{int(video_height * 0.04)}"
-            reason = "未检测到字幕" if subtitle_bottom_y is None else f"空间不足({available_space}px < {required_space}px)"
+            reason = "未检测到字幕" if subtitle_bottom_y is None else f"坐标越界({subtitle_bottom_y} >= {video_height})"
             print(f"📍 动态位置（Fallback 保守百分比，原因: {reason}）:")
 
         print(f"   剧名: y={drama_title_y}")
@@ -452,15 +464,7 @@ class VideoOverlayRenderer:
         font_path = self._find_font_file()
 
         # ===== V15.6 集成V4.9修复投影计算逻辑 =====
-        # 获取视频尺寸
-        probe_cmd = [
-            'ffprobe', '-v', 'error',
-            '-select_streams', 'v:0',
-            '-show_entries', 'stream=width,height',
-            '-of', 'csv=p=0', input_video
-        ]
-        result = run_command(probe_cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
-        video_width, video_height = map(int, result.stdout.strip().split(',')) if result else (360, 640)
+        # 注意：video_width/video_height 已在上方第一次 ffprobe 时获取，此处直接复用
 
         # 完全复制tilted_label.py的apply_label缩放逻辑（V4.9版本）
         smaller_dimension = min(video_width, video_height)
