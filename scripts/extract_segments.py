@@ -8,8 +8,9 @@ from typing import List, Tuple, Dict, Any
 from pathlib import Path
 import subprocess
 
-from .config import TrainingConfig
+from .config import TrainingConfig, TimeoutConfig
 from .data_models import KeyFrame, ASRSegment
+from .utils.subprocess_utils import run_command
 
 
 @dataclass
@@ -64,12 +65,12 @@ def extract_keyframes_from_video(
     ]
 
     try:
-        result = subprocess.run(
+        result = run_command(
             cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True
+            timeout=TimeoutConfig.FFMPEG_KEYFRAME_EXTRACT,
+            retries=1,
+            raise_on_error=True,
+            error_msg="关键帧提取超时"
         )
 
         # 收集生成的帧文件
@@ -204,15 +205,16 @@ def get_video_duration(video_path: str) -> float:
     ]
 
     try:
-        result = subprocess.run(
+        result = run_command(
             cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True
+            timeout=TimeoutConfig.FFPROBE_QUICK,
+            retries=1,
+            error_msg="ffprobe获取视频时长超时"
         )
+        if result is None or result.returncode != 0:
+            raise Exception(f"无法获取视频时长: {video_path}")
         return float(result.stdout.strip())
-    except subprocess.CalledProcessError:
+    except (ValueError, AttributeError):
         raise Exception(f"无法获取视频时长: {video_path}")
 
 

@@ -300,9 +300,56 @@ class VideoAnalysis:
 
 ### 6.1 项目配置
 - **文件**: `scripts/config.py`
-- **内容**: 项目路径、API配置等
+- **内容**: 项目路径、API配置、`TimeoutConfig`（V17.10 新增）
 
-### 6.2 敏感词配置
+#### TimeoutConfig — subprocess 超时常量（V17.10+）
+
+所有 subprocess 调用统一使用 `TimeoutConfig` 中的常量，禁止硬编码秒数：
+
+| 常量 | 值 | 适用场景 |
+|------|----|---------|
+| `FFPROBE_QUICK` | 30s | ffprobe 元数据查询（时长/帧率/分辨率）|
+| `FFPROBE_METADATA` | 60s | 较复杂的元数据查询 |
+| `FFMPEG_FRAME_SINGLE` | 30s | 单帧提取（`-vframes 1`）|
+| `FFMPEG_AUDIO_EXTRACT` | 120s | 音频提取（wav 格式，供 ASR 使用）|
+| `FFMPEG_HWACCEL_CHECK` | 10s | 硬件加速检测 |
+| `FFMPEG_KEYFRAME_EXTRACT` | 600s | 单集关键帧批量提取（10 分钟上限）|
+| `FFMPEG_ENDING_DETECT` | 60s | 片尾检测帧提取（轻量，60 秒足够）|
+| `FFMPEG_ENDING_PREPROCESS` | 300s | 结尾视频预处理（转码、帧率对齐）|
+| `FFMPEG_CLIP_RENDER` | 600s | 单条 clip 渲染（剪切+concat+花字）|
+| `FFMPEG_MASK_APPLY` | 1800s | 全片马赛克遮罩（短剧单集 30 分钟足够）|
+| `FFMPEG_COMPRESS` | 1800s | 视频压缩 |
+
+### 6.2 subprocess 工具模块（V17.10+）
+
+- **文件**: `scripts/utils/subprocess_utils.py`
+- **作用**: 替换项目中所有裸 `subprocess.run()` / `subprocess.Popen()` 调用，统一提供超时、重试和错误处理
+
+#### `run_command(cmd, timeout, retries=0, retry_delay=2.0, error_msg="", raise_on_error=False)`
+
+- 超时时 kill 进程，按 `retries` 次数重试，重试耗尽返回 `None`
+- `raise_on_error=True`：**同时覆盖超时和非零返回码**，两种失败都 raise RuntimeError，调用方无需手动检查 `result is None`
+
+#### `run_popen_with_timeout(cmd, timeout, on_line=None)`
+
+- 使用 `threading.Timer` 在超时后 kill 进程，保留实时流式日志输出
+- 超时返回 `-1`；正常返回 `process.returncode`
+- `returncode=-1` 满足 `!= 0` 条件，自动触发外层 clip 渲染循环的 skip 逻辑
+
+#### 各操作超时后行为
+
+| 操作 | 超时后行为 |
+|------|-----------|
+| ffprobe 查询 | 返回默认值（fps=30, duration=5.0 等）或 raise |
+| 关键帧提取 | raise RuntimeError → 调用方跳过该集 |
+| 音频提取 | raise RuntimeError → 调用方返回空 ASR |
+| 精确马赛克遮罩 | fallback 到区域遮罩 |
+| 区域马赛克遮罩 | raise RuntimeError（上层捕获报警）|
+| clip 渲染（Popen）| returncode=-1 → raise → 跳过该 clip |
+| 视频压缩 | 返回原未压缩文件 |
+| 片尾检测 | 返回「无片尾」 |
+
+### 6.3 敏感词配置
 - **文件**: `config/sensitive_words.txt`
 - **内容**: 敏感词列表(用于OCR+ASR检测)
 
@@ -377,6 +424,7 @@ python -m scripts.detect_ending_credits "视频路径.mp4"
 
 | 版本 | 日期 | 主要变更 |
 |-----|------|----------|
+| V17.10 | 2026-03-13 | subprocess 全量超时治理：subprocess_utils + TimeoutConfig，覆盖 14 个文件 58+ 处调用 |
 | V17.8 | 2026-03-13 | 修复第1集第0秒重复高光点问题 |
 | V17.7 | 2026-03-13 | 渲染分辨率优化：360p/480p保持原分辨率，720p及以上统一720p |
 | V17.6 | 2026-03-12 | 渲染性能优化：CRF=23，花字叠加默认启用 |

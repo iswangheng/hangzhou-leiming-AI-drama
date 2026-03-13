@@ -10,7 +10,8 @@ import hashlib
 import whisper
 
 from .data_models import ASRSegment
-from .config import TrainingConfig
+from .config import TrainingConfig, TimeoutConfig
+from .utils.subprocess_utils import run_command
 
 
 def extract_audio(video_path: str, audio_path: str) -> str:
@@ -46,17 +47,19 @@ def extract_audio(video_path: str, audio_path: str) -> str:
         '-y'  # 覆盖输出
     ]
 
-    try:
-        subprocess.run(cmd, capture_output=True, text=True, check=True)
-        print(f"音频提取完成: {audio_path}")
-        return audio_path
-    except subprocess.CalledProcessError as e:
-        print(f"FFmpeg错误: {e.stderr}")
-        raise
-    except FileNotFoundError:
-        raise FileNotFoundError(
-            "未找到FFmpeg命令。请确保已安装FFmpeg并添加到PATH环境变量中。"
-        )
+    # 音频提取（重试1次，仍失败返回空ASR继续）
+    result = run_command(
+        cmd,
+        timeout=TimeoutConfig.FFMPEG_AUDIO_EXTRACT,
+        retries=1,
+        error_msg=f"音频提取超时: {video_path}"
+    )
+    if result is None or result.returncode != 0:
+        err = result.stderr[:300] if result is not None else "超时"
+        print(f"FFmpeg音频提取失败: {err}")
+        raise RuntimeError(f"音频提取失败: {err}")
+    print(f"音频提取完成: {audio_path}")
+    return audio_path
 
 
 def transcribe_audio(

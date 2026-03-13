@@ -5,6 +5,49 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V17.10] - 2026-03-13
+
+### 新增 (Added)
+
+#### subprocess 全量超时治理
+
+**背景**：项目存在大量 subprocess 调用缺少超时保护，批量运行时存在「无限期卡死」风险。
+
+**新增模块**：
+- `scripts/utils/subprocess_utils.py`：两个核心工具函数
+  - `run_command(cmd, timeout, retries, ...)`：替换所有 `subprocess.run()`，支持超时、可选重试、`raise_on_error`（同时覆盖超时和非零返回码）
+  - `run_popen_with_timeout(cmd, timeout, on_line)`：替换 `subprocess.Popen()`，保留实时流式输出，超时返回 -1
+- `TimeoutConfig`（新增至 `scripts/config.py`）：按操作类型分组的超时常量
+
+**超时常量一览**：
+
+| 常量 | 值 | 适用场景 |
+|------|----|---------|
+| `FFPROBE_QUICK` | 30s | ffprobe 元数据查询 |
+| `FFPROBE_METADATA` | 60s | 复杂元数据查询 |
+| `FFMPEG_FRAME_SINGLE` | 30s | 单帧提取 |
+| `FFMPEG_AUDIO_EXTRACT` | 120s | 音频提取（供 ASR）|
+| `FFMPEG_HWACCEL_CHECK` | 10s | 硬件加速检测 |
+| `FFMPEG_KEYFRAME_EXTRACT` | 600s | 单集关键帧批量提取 |
+| `FFMPEG_ENDING_DETECT` | 60s | 片尾检测（轻量操作）|
+| `FFMPEG_ENDING_PREPROCESS` | 300s | 结尾视频转码预处理 |
+| `FFMPEG_CLIP_RENDER` | 600s | 单条 clip 渲染 |
+| `FFMPEG_MASK_APPLY` | 1800s | 全片马赛克遮罩 |
+| `FFMPEG_COMPRESS` | 1800s | 视频压缩 |
+
+**覆盖范围**：14 个业务文件、58+ 处调用全部迁移，按操作语义分配超时后行为（重试/fallback/跳过/抛异常）。
+
+**同期修复的 Bug**：
+- `raise_on_error=True` 现在同时覆盖超时和非零返回码，删除 10 处冗余 `if result is None: raise`
+- 修复双重重试 bug（手动重试 + 内置 retries=1 导致实际执行 4 次）
+- 修复不完整 None 检查（`if result else` → `if result and result.returncode == 0`）
+- 删除 `render_clips.py` 中 `return` 之后的死代码段（`cmd=[]` 占位符分支）
+- `FFMPEG_MASK_APPLY` 两处调用加 `retries=1`，`FFMPEG_ENDING_DETECT` 从 300s 调整为 60s，`FFMPEG_MASK_APPLY` 从 3600s 调整为 1800s
+
+**影响文件**：`scripts/utils/subprocess_utils.py`（新增）、`scripts/config.py`、`scripts/utils/__init__.py`、`scripts/preprocess/video_cleaner.py`、`scripts/detect_ending_credits.py`、`scripts/extract_keyframes.py`、`scripts/extract_asr.py`、`scripts/asr_transcriber.py`、`scripts/preprocess/subtitle_detector.py`、`scripts/understand/video_understand.py`、`scripts/understand/render_clips.py`、`scripts/understand/video_overlay/video_overlay.py`、`scripts/understand/video_overlay/tilted_label.py`、`scripts/understand/smart_cut_finder.py`、`scripts/extract_segments.py`、`test/test_subprocess_utils.py`（新增）
+
+---
+
 ## [V17.9] - 2026-03-13
 
 ### 修复 (Fixed)

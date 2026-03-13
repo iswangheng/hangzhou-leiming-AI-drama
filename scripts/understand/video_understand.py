@@ -28,7 +28,8 @@ from scripts.extract_asr import load_asr_from_file, get_asr_output_path, extract
 
 # 导入文件名解析工具
 from scripts.utils.filename_parser import parse_episode_number
-from scripts.config import TrainingConfig
+from scripts.utils.subprocess_utils import run_command
+from scripts.config import TrainingConfig, TimeoutConfig
 import shutil
 
 
@@ -225,7 +226,6 @@ def load_episode_data(project_path: str, auto_extract: bool = True,
                 print(f"  ⚠️  第{episode}集关键帧不存在或为空，开始自动提取...")
 
                 # V14.2: 检测视频实际帧率
-                import subprocess
                 try:
                     cmd = [
                         'ffprobe',
@@ -235,8 +235,13 @@ def load_episode_data(project_path: str, auto_extract: bool = True,
                         '-of', 'default=noprint_wrappers=1:nokey=1',
                         str(mp4_file)
                     ]
-                    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-                    fps_str = result.stdout.strip()
+                    result = run_command(
+                        cmd,
+                        timeout=TimeoutConfig.FFPROBE_QUICK,
+                        retries=2,
+                        error_msg="ffprobe获取帧率超时"
+                    )
+                    fps_str = result.stdout.strip() if result else ""
 
                     # 解析帧率
                     if '/' in fps_str:
@@ -259,7 +264,7 @@ def load_episode_data(project_path: str, auto_extract: bool = True,
                         extract_fps = 1.0  # 30fps视频，每秒1帧（标准）
                         print(f"     提取参数: fps={extract_fps} (标准帧率视频)")
 
-                except (subprocess.CalledProcessError, ValueError) as e:
+                except (ValueError, AttributeError) as e:
                     print(f"     ⚠️  无法检测帧率，使用默认值: 1.0 fps")
                     extract_fps = 1.0
 
@@ -281,7 +286,6 @@ def load_episode_data(project_path: str, auto_extract: bool = True,
 
         # ===== 获取视频时长 =====
         # V15.9: 将时长获取移到前面，因为 ASR 并行提取时也需要
-        import subprocess
         try:
             cmd = [
                 'ffprobe',
@@ -290,10 +294,18 @@ def load_episode_data(project_path: str, auto_extract: bool = True,
                 '-of', 'default=noprint_wrappers=1:nokey=1',
                 str(mp4_file)
             ]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            duration = float(result.stdout.strip())
-            episode_durations[episode] = int(duration)  # 使用ffprobe获取的准确时长
-        except (subprocess.CalledProcessError, ValueError) as e:
+            result = run_command(
+                cmd,
+                timeout=TimeoutConfig.FFPROBE_METADATA,
+                retries=2,
+                error_msg="ffprobe获取视频时长超时"
+            )
+            if result is not None and result.returncode == 0:
+                duration = float(result.stdout.strip())
+                episode_durations[episode] = int(duration)  # 使用ffprobe获取的准确时长
+            else:
+                raise ValueError("ffprobe返回失败或超时")
+        except (ValueError, AttributeError) as e:
             # ffprobe失败时，回退到关键帧估算
             if episode_keyframes.get(episode):
                 max_ms = max(kf.timestamp_ms for kf in episode_keyframes[episode])
@@ -739,11 +751,15 @@ def video_understand(
     video_fps = 30.0
     if video_path:
         try:
-            import subprocess
             cmd = ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
                    '-show_entries', 'stream=r_frame_rate', '-of', 'csv=p=0', video_path]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-            fps_str = result.stdout.strip()
+            result = run_command(
+                cmd,
+                timeout=TimeoutConfig.FFPROBE_QUICK,
+                retries=1,
+                error_msg="ffprobe获取视频帧率超时"
+            )
+            fps_str = result.stdout.strip() if result else ""
             if '/' in fps_str:
                 num, denom = fps_str.split('/')
                 video_fps = float(num) / float(denom)

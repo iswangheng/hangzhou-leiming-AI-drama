@@ -21,6 +21,9 @@ from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass, asdict
 import hashlib
 
+from scripts.utils.subprocess_utils import run_command
+from scripts.config import TimeoutConfig
+
 
 # ========== 数据结构 ==========
 
@@ -390,7 +393,15 @@ class EndingCreditsDetector:
                     '-y',
                     str(frame_file)
                 ]
-                subprocess.run(cmd, capture_output=True, check=True)
+                # 单帧提取，超时则跳过本帧继续
+                ret = run_command(
+                    cmd,
+                    timeout=TimeoutConfig.FFMPEG_FRAME_SINGLE,
+                    retries=1,
+                    error_msg="片尾帧提取超时"
+                )
+                if ret is None or ret.returncode != 0:
+                    continue
 
                 if frame_file.exists():
                     img = Image.open(frame_file)
@@ -510,7 +521,13 @@ class EndingCreditsDetector:
                 '-f', 'null',
                 '-'
             ]
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = run_command(
+                cmd,
+                timeout=TimeoutConfig.FFMPEG_ENDING_DETECT,
+                error_msg="片尾音频分析超时"
+            )
+            if result is None:
+                return {'has_music': False, 'duration': 0.0, 'confidence': 0.0}
 
             silence_durations = []
             for line in result.stdout.split('\n'):
@@ -585,7 +602,14 @@ class EndingCreditsDetector:
             video_path
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        result = run_command(
+            cmd,
+            timeout=TimeoutConfig.FFPROBE_QUICK,
+            retries=1,
+            error_msg="ffprobe获取视频时长超时"
+        )
+        if result is None or result.returncode != 0:
+            raise RuntimeError(f"无法获取视频时长: {video_path}")
         return float(result.stdout.strip())
 
 

@@ -202,6 +202,35 @@ def get_prompt_template() -> str:
         return get_default_prompt_template()
 
 
+class TimeoutConfig:
+    """所有 subprocess 操作的超时配置（秒）
+
+    设计原则：
+    - 轻量查询（ffprobe）：秒级完成，超时=30-60秒
+    - 中等操作（关键帧提取、音频提取）：分钟级，超时=2-10分钟
+    - 重型操作（马赛克、压缩、渲染）：可能很长，超时=0.5-1小时
+    """
+
+    # ── ffprobe 查询（轻量，应该秒级完成）────────────────────
+    FFPROBE_QUICK = 30          # 获取时长、分辨率、帧率等元数据
+    FFPROBE_METADATA = 60       # 较复杂的元数据查询
+
+    # ── FFmpeg 轻量操作 ───────────────────────────────────
+    FFMPEG_FRAME_SINGLE = 30    # 单帧提取（-vframes 1）
+    FFMPEG_AUDIO_EXTRACT = 120  # 音频提取（wav 格式，供 ASR 使用）
+    FFMPEG_HWACCEL_CHECK = 10   # 硬件加速检测
+
+    # ── FFmpeg 中等操作 ───────────────────────────────────
+    FFMPEG_KEYFRAME_EXTRACT = 600   # 单集关键帧批量提取（10分钟上限）
+    FFMPEG_ENDING_DETECT = 60       # 片尾检测帧提取（轻量，60秒足够）
+    FFMPEG_ENDING_PREPROCESS = 300  # 结尾视频预处理（转码、帧率对齐）
+    FFMPEG_CLIP_RENDER = 600        # 单条 clip 渲染（剪切+concat+花字）
+
+    # ── FFmpeg 重型操作 ───────────────────────────────────
+    FFMPEG_MASK_APPLY = 1800    # 全片马赛克遮罩（短剧单集5-15分钟，30分钟足够）
+    FFMPEG_COMPRESS = 1800      # 视频压缩（30 分钟）
+
+
 def get_default_prompt_template() -> str:
     """获取默认的Prompt模板"""
     return """你是一位专业的短剧剪辑分析师。你的任务是分析历史标记数据，总结剪辑技能。

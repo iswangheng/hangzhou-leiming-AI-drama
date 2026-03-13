@@ -30,6 +30,9 @@ from pathlib import Path
 from typing import List, Tuple, Optional
 from dataclasses import dataclass, asdict
 
+from scripts.utils.subprocess_utils import run_command
+from scripts.config import TimeoutConfig
+
 
 @dataclass
 class SubtitleRegion:
@@ -89,9 +92,13 @@ def get_video_resolution(video_path: str) -> Tuple[int, int]:
         video_path
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
-
-    if result.returncode != 0:
+    result = run_command(
+        cmd,
+        timeout=TimeoutConfig.FFPROBE_QUICK,
+        retries=1,
+        error_msg=f"ffprobe获取分辨率超时: {video_path}"
+    )
+    if result is None or result.returncode != 0:
         print(f"⚠️ 无法获取视频分辨率: {video_path}")
         return 1920, 1080  # 默认返回1080p
 
@@ -177,9 +184,9 @@ def detect_subtitle_region_pixel_variance(video_path: str, verbose: bool = True)
     if verbose:
         print(f"  ✅ 提取了 {len(frames)} 帧")
 
-    # 分析底部区域（高度60%-100%）
+    # 分析底部区域（高度50%-100%，扩大范围以覆盖不同位置）
     h, w = frames[0].shape[:2]
-    bottom_start = int(h * 0.6)  # 从60%高度开始分析
+    bottom_start = int(h * 0.5)  # 从50%高度开始分析，覆盖更多位置
     bottom_end = h
 
     # 计算每行的方差

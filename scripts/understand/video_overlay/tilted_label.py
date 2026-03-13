@@ -45,6 +45,9 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional, Literal
 
+from scripts.utils.subprocess_utils import run_command, run_popen_with_timeout
+from scripts.config import TimeoutConfig
+
 
 @dataclass
 class TiltedLabelConfig:
@@ -151,9 +154,15 @@ class TiltedLabelRenderer:
             output_path
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            raise RuntimeError(f"PNG生成失败: {result.stderr}")
+        result = run_command(
+            cmd,
+            timeout=TimeoutConfig.FFMPEG_FRAME_SINGLE,
+            retries=1,
+            error_msg="PNG生成超时"
+        )
+        if result is None or result.returncode != 0:
+            err = result.stderr if result is not None else "超时"
+            raise RuntimeError(f"PNG生成失败: {err}")
 
         return output_path
 
@@ -237,8 +246,8 @@ class TiltedLabelRenderer:
             '-show_entries', 'stream=width,height',
             '-of', 'csv=p=0', input_video
         ]
-        result = subprocess.run(probe_cmd, capture_output=True, text=True)
-        video_width, video_height = map(int, result.stdout.strip().split(','))
+        result = run_command(probe_cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
+        video_width, video_height = map(int, result.stdout.strip().split(',')) if result else (360, 640)
 
         # ===== V4.6 新增：统一动态缩放计算（包括corner_offset）=====
         # 基于较小边计算分辨率倍数（适配横竖屏）
@@ -316,25 +325,22 @@ class TiltedLabelRenderer:
                 output_video
             ]
 
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                universal_newlines=True
-            )
-
-            for line in process.stdout:
+            def _on_line(line: str):
                 if "time=" in line and on_progress:
                     try:
-                        time_str = line.split("time=")[1].split()[0]
                         on_progress(0.5)
                     except:
                         pass
 
-            process.wait()
+            returncode = run_popen_with_timeout(
+                cmd,
+                timeout=TimeoutConfig.FFMPEG_CLIP_RENDER,
+                on_line=_on_line,
+                log_prefix="角标叠加"
+            )
 
-            if process.returncode != 0:
-                raise RuntimeError(f"视频叠加失败 (返回码: {process.returncode})")
+            if returncode != 0:
+                raise RuntimeError(f"视频叠加失败 (返回码: {returncode})")
 
             print(f"✅ 倾斜角标应用完成")
             print(f"📁 输出文件: {output_video}\n")

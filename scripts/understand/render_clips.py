@@ -23,7 +23,8 @@ import shutil
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from scripts.config import TrainingConfig
+from scripts.config import TrainingConfig, TimeoutConfig
+from scripts.utils.subprocess_utils import run_command, run_popen_with_timeout
 
 
 def format_time(seconds: int) -> str:
@@ -65,7 +66,12 @@ def _get_optimal_workers(hwaccel: bool = False) -> int:
 
 
 def _get_output_resolution(input_width: int, input_height: int) -> tuple:
-    """V16.3: 智能选择输出分辨率
+    """V17.7: 智能选择输出分辨率
+
+    优化策略:
+    - 360p/480p → 保持原分辨率（不upscale，避免额外计算）
+    - 720p → 保持720p
+    - 1080p → 降低到720p（大幅提升渲染速度）
 
     Args:
         input_width: 输入视频宽度
@@ -76,15 +82,18 @@ def _get_output_resolution(input_width: int, input_height: int) -> tuple:
     """
     smaller = min(input_width, input_height)
 
-    if smaller <= 480:
-        # 360p/480p素材 → 输出720p
-        return (720, 1280) if input_height > input_width else (1280, 720)
-    elif smaller <= 720:
-        # 720p素材 → 输出720p
-        return (720, 1280) if input_height > input_width else (1280, 720)
+    # 判断是竖屏还是横屏
+    is_portrait = input_height > input_width
+
+    if smaller < 720:
+        # 360p/480p素材 → 保持原始分辨率（不upscale）
+        return (input_width, input_height)
+    elif smaller == 720:
+        # 720p素材 → 保持720p
+        return (input_width, input_height)
     else:
-        # 1080p素材 → 输出1080p
-        return (1080, 1920) if input_height > input_width else (1920, 1080)
+        # 1080p及以上 → 统一输出720p（大幅提速）
+        return (720, 1280) if is_portrait else (1280, 720)
 
 
 @dataclass
@@ -797,8 +806,8 @@ class ClipRenderer:
             '-of', 'csv=p=0',
             video_path
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
+        result = run_command(cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
+        if result is None or result.returncode != 0:
             return (self.width, self.height)
 
         parts = result.stdout.strip().split(',')
@@ -857,8 +866,8 @@ class ClipRenderer:
                 '-of', 'default=noprint_wrappers=1:nokey=1',
                 str(ending_path)
             ]
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            video_duration = float(result.stdout.strip()) if result.returncode == 0 else 5.0
+            result = run_command(cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=2)
+            video_duration = float(result.stdout.strip()) if (result and result.returncode == 0) else 5.0
 
             # 转换结尾视频（匹配分辨率和帧率）
             cmd = [
@@ -876,12 +885,17 @@ class ClipRenderer:
                 str(cache_path)
             ]
 
-            try:
-                subprocess.run(cmd, capture_output=True, check=True)
+            result = run_command(
+                cmd,
+                timeout=TimeoutConfig.FFMPEG_ENDING_PREPROCESS,
+                error_msg=f"结尾视频预处理超时: {ending_path_obj.name}"
+            )
+            if result is not None and result.returncode == 0:
                 cached_endings[ending_path] = str(cache_path)
                 print(f"     ✅ 缓存完成: {cache_filename}")
-            except subprocess.CalledProcessError as e:
-                print(f"     ❌ 预处理失败: {e}")
+            else:
+                err = result.stderr[:200] if result is not None else "超时"
+                print(f"     ❌ 预处理失败: {err}")
                 # 预处理失败时，使用原始路径
                 cached_endings[ending_path] = ending_path
 
@@ -924,11 +938,14 @@ class ClipRenderer:
             str(video_path)
         ]
 
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            return float(result.stdout.strip())
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"无法获取视频时长: {video_path}, 错误: {e}")
+        result = run_command(
+            cmd,
+            timeout=TimeoutConfig.FFPROBE_QUICK,
+            retries=1,
+            raise_on_error=True,
+            error_msg=f"无法获取视频时长: {video_path}"
+        )
+        return float(result.stdout.strip())
 
     def _clip_to_segments(self, clip: Clip) -> List[ClipSegment]:
         """将剪辑转换为视频片段列表
@@ -1052,23 +1069,15 @@ class ClipRenderer:
             output_path
         ]
 
-        # 执行命令
-        process = subprocess.Popen(
+        # 执行命令（带超时，超时 returncode=-1 → 触发 RuntimeError → 外层跳过该 clip）
+        returncode = run_popen_with_timeout(
             cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,  # 合并stdout和stderr
-            universal_newlines=True
+            timeout=TimeoutConfig.FFMPEG_CLIP_RENDER,
+            log_prefix="裁剪"
         )
-
-        # 实时输出日志
-        for line in process.stdout:
-            print(f"\r  {line.strip()[:100]}", end='', flush=True)
-
-        process.wait()
-
-        if process.returncode != 0:
+        if returncode != 0:
             raise RuntimeError(
-                f"FFmpeg裁剪失败 (返回码: {process.returncode})\n"
+                f"FFmpeg裁剪失败 (返回码: {returncode})\n"
                 f"命令: {' '.join(cmd)}\n"
             )
 
@@ -1092,8 +1101,8 @@ class ClipRenderer:
             video_path
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
+        result = run_command(cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
+        if result is None or result.returncode != 0:
             # 如果无法获取帧率，使用默认值
             return float(self.fps)
 
@@ -1140,25 +1149,21 @@ class ClipRenderer:
             output_path
         ]
 
-        # 执行命令
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True
-        )
-
-        # 简单进度（concat很快，粗略估计）
+        # 执行命令（带超时，超时返回-1触发RuntimeError）
         if on_progress:
             on_progress(0.5)
 
-        process.wait()
+        returncode = run_popen_with_timeout(
+            cmd,
+            timeout=TimeoutConfig.FFMPEG_CLIP_RENDER,
+            log_prefix="拼接"
+        )
 
         if on_progress:
             on_progress(1.0)
 
-        if process.returncode != 0:
-            raise RuntimeError(f"FFmpeg拼接失败: {process.stderr.read()}")
+        if returncode != 0:
+            raise RuntimeError(f"FFmpeg拼接失败 (返回码: {returncode})")
 
         # 删除临时文件
         concat_file.unlink()
@@ -1224,8 +1229,8 @@ class ClipRenderer:
             '-of', 'csv=p=0',
             clip_path
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
+        result = run_command(cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
+        if result is None or result.returncode != 0:
             # 如果获取失败，使用默认值
             clip_width, clip_height = self.width, self.height
         else:
@@ -1241,8 +1246,8 @@ class ClipRenderer:
             '-of', 'default=noprint_wrappers=1:nokey=1',
             ending_video
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
+        result = run_command(cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
+        if result is None or result.returncode != 0:
             # 如果获取失败，使用ffprobe获取格式时长
             cmd = [
                 'ffprobe', '-v', 'error',
@@ -1250,8 +1255,8 @@ class ClipRenderer:
                 '-of', 'default=noprint_wrappers=1:nokey=1',
                 ending_video
             ]
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            video_duration = float(result.stdout.strip())
+            result = run_command(cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
+            video_duration = float(result.stdout.strip()) if (result and result.returncode == 0) else 5.0
         else:
             video_duration = float(result.stdout.strip())
 
@@ -1273,8 +1278,8 @@ class ClipRenderer:
             '-of', 'csv=p=0',
             clip_path
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode == 0:
+        result = run_command(cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
+        if result is not None and result.returncode == 0:
             fps_str = result.stdout.strip()
             # 解析帧率（如 "30/1" -> 30.0）
             if '/' in fps_str:
@@ -1310,23 +1315,17 @@ class ClipRenderer:
             str(temp_ending)
         ]
 
-        # 执行命令
+        # 执行命令（带超时）
         try:
             print(f"  🔄 预处理结尾视频（{clip_width}x{clip_height}，时长{video_duration:.3f}秒）...")
-            process = subprocess.Popen(
+            returncode = run_popen_with_timeout(
                 cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,  # V14.8: 分离stderr以便获取错误信息
-                universal_newlines=True
+                timeout=TimeoutConfig.FFMPEG_ENDING_PREPROCESS,
+                log_prefix="预处理结尾"
             )
 
-            # 等待完成并获取输出
-            stdout, stderr = process.communicate()
-
-            if process.returncode != 0:
-                print(f"  ❌ FFmpeg错误输出:")
-                print(stderr[-1000:] if len(stderr) > 1000 else stderr)  # 打印最后1000个字符
-                raise RuntimeError(f"FFmpeg预处理失败 (返回码: {process.returncode})")
+            if returncode != 0:
+                raise RuntimeError(f"FFmpeg预处理失败 (返回码: {returncode})")
 
             print(f"  ✅ 结尾视频预处理完成")
 
@@ -1337,13 +1336,14 @@ class ClipRenderer:
                 '-of', 'csv=p=0',
                 str(temp_ending)
             ]
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = run_command(cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
             durations = {}
-            for line in result.stdout.strip().split('\n'):
-                if line:
-                    parts = line.split(',')
-                    if len(parts) >= 2:
-                        durations[parts[0]] = float(parts[1])
+            if result and result.returncode == 0:
+                for line in result.stdout.strip().split('\n'):
+                    if line:
+                        parts = line.split(',')
+                        if len(parts) >= 2:
+                            durations[parts[0]] = float(parts[1])
 
             if 'video' in durations and 'audio' in durations:
                 diff = abs(durations['video'] - durations['audio'])
@@ -1401,24 +1401,19 @@ class ClipRenderer:
             output_path
         ]
 
-        # 执行命令
+        # 执行命令（带超时）
         try:
             print(f"  🔄 拼接视频...")
             print(f"  📋 FFmpeg命令: {' '.join(cmd)}")  # V14.9调试：打印完整命令
 
-            process = subprocess.Popen(
+            returncode = run_popen_with_timeout(
                 cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True
+                timeout=TimeoutConfig.FFMPEG_CLIP_RENDER,
+                log_prefix="视频拼接"
             )
 
-            # 等待完成
-            process.wait()
-
-            if process.returncode != 0:
-                error_output = process.stderr.read()
-                raise RuntimeError(f"FFmpeg拼接失败: {error_output}")
+            if returncode != 0:
+                raise RuntimeError(f"FFmpeg拼接失败 (返回码: {returncode})")
 
             print(f"  ✅ 视频拼接完成")
 
@@ -1708,15 +1703,15 @@ class ClipRenderer:
         ]
 
         try:
-            result = subprocess.run(
+            result = run_command(
                 cmd,
-                capture_output=True,
-                text=True,
-                timeout=600  # 10分钟超时
+                timeout=TimeoutConfig.FFMPEG_COMPRESS,
+                error_msg="视频压缩超时"
             )
 
-            if result.returncode != 0:
-                print(f"  [压缩] FFmpeg错误: {result.stderr}")
+            if result is None or result.returncode != 0:
+                err = result.stderr[:200] if result is not None else "超时"
+                print(f"  [压缩] FFmpeg错误: {err}")
                 return video_path
 
             # 获取压缩后文件大小
@@ -1731,14 +1726,13 @@ class ClipRenderer:
                 cmd[-1] = str(temp_output)
                 cmd[cmd.index('-crf') + 1] = str(crf)
 
-                result = subprocess.run(
+                result = run_command(
                     cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=600
+                    timeout=TimeoutConfig.FFMPEG_COMPRESS,
+                    error_msg="视频二次压缩超时"
                 )
 
-                if result.returncode == 0:
+                if result is not None and result.returncode == 0:
                     compressed_size_mb = temp_output.stat().st_size / (1024 * 1024)
 
             # 替换原文件
@@ -1752,10 +1746,6 @@ class ClipRenderer:
                 temp_output.unlink()
                 print(f"  [压缩] ⚠️ 压缩后文件变大，保留原文件")
 
-        except subprocess.TimeoutExpired:
-            print(f"  [压缩] ❌ 压缩超时（10分钟）")
-            if temp_output.exists():
-                temp_output.unlink()
         except Exception as e:
             print(f"  [压缩] ❌ 压缩失败: {e}")
             if temp_output.exists():
@@ -1780,13 +1770,8 @@ class ClipRenderer:
                 '-of', 'default=noprint_wrappers=1:nokey=1',
                 video_path
             ]
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            if result.returncode == 0 and result.stdout.strip():
+            result = run_command(cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
+            if result is not None and result.returncode == 0 and result.stdout.strip():
                 return float(result.stdout.strip())
         except Exception:
             pass
@@ -2276,8 +2261,13 @@ def _trim_segment_standalone(segment, output_path: str, render_params: dict) -> 
 
     cmd.append(output_path)
 
-    # 执行命令（静默模式）
-    subprocess.run(cmd, capture_output=True, check=True)
+    # 执行命令（静默模式），含超时保护
+    result = run_command(
+        cmd,
+        timeout=TimeoutConfig.FFMPEG_CLIP_RENDER,
+        raise_on_error=True,
+        error_msg="GPU加速片段裁剪超时"
+    )
 
 
 def _detect_gpu_encoder() -> Optional[dict]:
@@ -2319,11 +2309,12 @@ def _detect_gpu_encoder() -> Optional[dict]:
 
     # 检查FFmpeg是否支持这些编码器
     try:
-        result = subprocess.run(
+        result = run_command(
             ['ffmpeg', '-encoders'],
-            capture_output=True, text=True, timeout=5
+            timeout=TimeoutConfig.FFMPEG_HWACCEL_CHECK,
+            error_msg="硬件加速检测超时"
         )
-        available_encoders = result.stdout
+        available_encoders = result.stdout if result else ""
 
         for config in encoders_to_try:
             if config['encoder'] in available_encoders:
@@ -2358,7 +2349,12 @@ def _concat_segments_standalone(segment_files: List[str], output_path: str, outp
         output_path
     ]
 
-    subprocess.run(cmd, capture_output=True, check=True)
+    result = run_command(
+        cmd,
+        timeout=TimeoutConfig.FFMPEG_CLIP_RENDER,
+        raise_on_error=True,
+        error_msg="片段拼接超时"
+    )
 
     # 删除临时文件
     concat_file.unlink()
@@ -2441,8 +2437,8 @@ def _preprocess_ending_video_standalone(clip_path: str, ending_video: str, rende
         '-of', 'csv=p=0',
         clip_path
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    parts = result.stdout.strip().split(',')
+    result = run_command(cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
+    parts = result.stdout.strip().split(',') if result else ['1920', '1080', '30/1']
     clip_width = int(parts[0])
     clip_height = int(parts[1])
 
@@ -2462,8 +2458,8 @@ def _preprocess_ending_video_standalone(clip_path: str, ending_video: str, rende
         '-of', 'default=noprint_wrappers=1:nokey=1',
         ending_video
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    video_duration = float(result.stdout.strip())
+    result = run_command(cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
+    video_duration = float(result.stdout.strip()) if (result and result.returncode == 0) else 5.0
 
     # 生成临时输出路径
     output_dir = Path(clip_path).parent
@@ -2486,7 +2482,12 @@ def _preprocess_ending_video_standalone(clip_path: str, ending_video: str, rende
         processed_path
     ]
 
-    subprocess.run(cmd, capture_output=True, check=True)
+    result = run_command(
+        cmd,
+        timeout=TimeoutConfig.FFMPEG_ENDING_PREPROCESS,
+        raise_on_error=True,
+        error_msg="结尾视频预处理超时"
+    )
 
     return processed_path
 
@@ -2511,7 +2512,12 @@ def _concat_videos_standalone(video_paths: List[str], output_path: str) -> None:
         output_path
     ]
 
-    subprocess.run(cmd, capture_output=True, check=True)
+    result = run_command(
+        cmd,
+        timeout=TimeoutConfig.FFMPEG_CLIP_RENDER,
+        raise_on_error=True,
+        error_msg="视频拼接超时"
+    )
     concat_file.unlink()
 
 
@@ -2639,8 +2645,8 @@ def _render_clip_single_pass(
             '-show_entries', 'stream=width,height,r_frame_rate',
             '-of', 'csv=p=0', str(first_video_file)
         ]
-        result = subprocess.run(probe_cmd, capture_output=True, text=True)
-        parts = result.stdout.strip().split(',')
+        result = run_command(probe_cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
+        parts = result.stdout.strip().split(',') if result else ['1920', '1080', '30/1']
         input_width = int(parts[0])
         input_height = int(parts[1])
 
@@ -2884,46 +2890,9 @@ def _render_clip_single_pass(
 
         # V17.5: 由于单次编码的音频处理复杂（apad/adelay兼容性问题），
         # 暂时跳过单次编码中的结尾音频处理，让分步处理来处理结尾
-        # 直接返回None，让外层回退到分步处理
+        # 回退到分步处理
         print(f"  [单次编码] 跳过结尾音频处理，回退到分步处理")
-        return None
-
-        # 下面是原本的单次编码逻辑（暂时禁用）
-        cmd = []  # 占位，不会执行
-
-        # 执行命令
-        result = subprocess.run(cmd, capture_output=True, text=True)
-
-        if result.returncode != 0:
-            # 打印完整的stderr来排查问题
-            stderr_full = result.stderr
-            print(f"  ⚠️ FFmpeg单次编码失败(returncode={result.returncode})，回退到分步处理")
-            # 查找真正的错误信息（跳过版本信息）
-            error_lines = [line for line in stderr_full.split('\n') if 'error' in line.lower() or 'invalid' in line.lower() or 'failed' in line.lower()]
-            if error_lines:
-                print(f"  错误详情: {error_lines[:3]}")
-            # 清理临时文件
-            for tf in temp_files:
-                try:
-                    if Path(tf).exists():
-                        Path(tf).unlink()
-                except:
-                    pass
-            # 回退到分步渲染
-            return _render_clip_unified_standalone(clip_index, clip_data, render_params)
-
-        # 清理临时文件
-        for tf in temp_files:
-            try:
-                if Path(tf).exists():
-                    Path(tf).unlink()
-            except:
-                pass
-
-        # 注意：花字叠加现在由 render_all_clips 统一处理（避免重复调用）
-        # 单次编码只负责生成裁剪+拼接+结尾的基础视频
-
-        return final_path
+        return _render_clip_unified_standalone(clip_index, clip_data, render_params)
 
     except Exception as e:
         print(f"  [Worker] V16.3完全单次编码失败: {e}")
@@ -3193,8 +3162,8 @@ def _render_clip_unified_standalone(
                 '-show_entries', 'stream=width,height',
                 '-of', 'csv=p=0', str(video_file)
             ]
-            probe_result = subprocess.run(probe_cmd, capture_output=True, text=True)
-            probe_output = probe_result.stdout.strip()
+            probe_result = run_command(probe_cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
+            probe_output = probe_result.stdout.strip() if probe_result else ""
             if not probe_output or ',' not in probe_output:
                 raise ValueError(f"无法获取视频分辨率: {video_file}")
             video_width, video_height = map(int, probe_output.split(','))
@@ -3234,7 +3203,12 @@ def _render_clip_unified_standalone(
                     '-c:a', 'aac', '-b:a', '128k',
                     str(temp_trim)
                 ]
-            subprocess.run(trim_cmd, capture_output=True, check=True)
+            result = run_command(
+                trim_cmd,
+                timeout=TimeoutConfig.FFMPEG_CLIP_RENDER,
+                raise_on_error=True,
+                error_msg="视频裁剪超时"
+            )
 
             clip_input = str(temp_trim)
 
@@ -3256,8 +3230,8 @@ def _render_clip_unified_standalone(
                     '-show_entries', 'stream=width,height',
                     '-of', 'csv=p=0', str(first_video_file)
                 ]
-                probe_result = subprocess.run(probe_cmd, capture_output=True, text=True)
-                probe_output = probe_result.stdout.strip()
+                probe_result = run_command(probe_cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
+                probe_output = probe_result.stdout.strip() if probe_result else ""
                 if probe_output and ',' in probe_output:
                     video_width, video_height = map(int, probe_output.split(','))
                     output_width, output_height = _get_output_resolution(video_width, video_height)
@@ -3307,7 +3281,12 @@ def _render_clip_unified_standalone(
                         '-c:a', 'aac', '-b:a', '128k',
                         str(seg_file)
                     ]
-                subprocess.run(seg_cmd, capture_output=True, check=True)
+                result = run_command(
+                    seg_cmd,
+                    timeout=TimeoutConfig.FFMPEG_CLIP_RENDER,
+                    raise_on_error=True,
+                    error_msg=f"片段{i}裁剪超时"
+                )
 
             # 拼接片段
             temp_concat = output_dir / f"temp_concat_{os.getpid()}_{clip_index}.mp4"
@@ -3398,8 +3377,8 @@ def _get_video_fps_standalone(video_path: str) -> float:
         video_path
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
+    result = run_command(cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
+    if result is None or result.returncode != 0:
         return 30.0
 
     fps_str = result.stdout.strip()
@@ -3476,9 +3455,9 @@ def main():
     parser.add_argument('--overlay-style', type=str, help='花字样式ID（默认随机选择）')
 
     # V16: 并行渲染参数
-    # V16.3: 默认值改为0，表示自动计算最优worker数
-    parser.add_argument('--parallel', type=int, default=0,
-                        help='并行渲染的worker数量（0=自动计算，1=禁用并行，默认0）')
+    # V17.6: 默认值改为1，强制串行渲染（并行模式实际更慢）
+    parser.add_argument('--parallel', type=int, default=1,
+                        help='并行渲染的worker数量（默认1=串行渲染）')
 
     # V16.2: 性能优化参数
     parser.add_argument('--hwaccel', action='store_true',
@@ -3582,6 +3561,17 @@ def main():
         print(f"渲染模式: ⚡ 并行（{parallel_workers} 个worker{source}）")
     else:
         print(f"渲染模式: 🐢 串行（调试模式）")
+
+    # V17.7: 显示硬件加速配置
+    if args.hwaccel:
+        # 检测是否真正启用了硬件加速
+        test_config = _detect_gpu_encoder()
+        if test_config:
+            print(f"硬件加速: 🎮 {test_config['name']} (启用)")
+        else:
+            print(f"硬件加速: ⚠️ 未检测到可用GPU，回退到CPU编码")
+    else:
+        print(f"硬件加速: ❌ 禁用 (使用CPU编码)")
     print(f"{'='*60}\n")
 
     # 渲染所有剪辑

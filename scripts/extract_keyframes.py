@@ -8,7 +8,8 @@ from typing import List, Optional
 import hashlib
 
 from .data_models import KeyFrame
-from .config import TrainingConfig
+from .config import TrainingConfig, TimeoutConfig
+from .utils.subprocess_utils import run_command
 
 
 def extract_keyframes(
@@ -72,17 +73,15 @@ def extract_keyframes(
         '-y'  # 覆盖输出
     ]
 
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        print(f"关键帧提取完成")
-    except subprocess.CalledProcessError as e:
-        print(f"FFmpeg错误: {e.stderr}")
-        raise
-    except FileNotFoundError:
-        raise FileNotFoundError(
-            "未找到FFmpeg命令。请确保已安装FFmpeg并添加到PATH环境变量中。"
-            "安装方法: brew install ffmpeg (macOS) 或 apt-get install ffmpeg (Linux)"
-        )
+    # 提取关键帧（重试1次，仍失败则抛出 RuntimeError → 调用方跳过该集）
+    result = run_command(
+        cmd,
+        timeout=TimeoutConfig.FFMPEG_KEYFRAME_EXTRACT,
+        retries=1,
+        raise_on_error=True,
+        error_msg=f"关键帧提取超时或失败"
+    )
+    print(f"关键帧提取完成")
 
     # 收集帧文件
     keyframes = []
@@ -204,12 +203,14 @@ def extract_ending_keyframes(
         '-y'
     ]
 
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        print(f"高密度关键帧提取完成")
-    except subprocess.CalledProcessError as e:
-        print(f"FFmpeg错误: {e.stderr}")
-        raise
+    result = run_command(
+        cmd,
+        timeout=TimeoutConfig.FFMPEG_KEYFRAME_EXTRACT,
+        retries=1,
+        raise_on_error=True,
+        error_msg="高密度关键帧提取超时"
+    )
+    print(f"高密度关键帧提取完成")
 
     # 收集帧文件
     keyframes = []
@@ -387,9 +388,13 @@ def extract_frame_at(video_path: str, second: int, output_dir: str, quality: int
         '-y'                      # 覆盖输出
     ]
 
-    try:
-        subprocess.run(cmd, capture_output=True, text=True, check=True)
-        return output_path
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        print(f"警告: 提取第{second}秒的帧失败: {e}")
+    result = run_command(
+        cmd,
+        timeout=TimeoutConfig.FFMPEG_FRAME_SINGLE,
+        retries=1,
+        error_msg=f"提取第{second}秒帧超时"
+    )
+    if result is None or result.returncode != 0:
+        print(f"警告: 提取第{second}秒的帧失败（含超时）")
         return None
+    return output_path

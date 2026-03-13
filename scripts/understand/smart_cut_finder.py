@@ -1,21 +1,31 @@
 """
-智能切割点查找模块 (V15.7)
+智能切割点查找模块 (V18)
 
-V15.7 核心理念 - 时间戳优化是"二次确认"，不是重新计算：
-1. AI 分析阶段（V15.5）：让 AI 看到带时间戳的 ASR，返回精确时间
-2. 时间戳优化阶段（V15.7）：确认 AI 返回的时间是否正好是 segment 边界
-   - 如果是 → 保持不变
-   - 如果不是 → 修正为 segment 边界
+V18 核心改进 - 保守句子粘合逻辑：
+解决 Whisper 在呼吸停顿处切割导致一句完整话被分成多个片段的问题。
 
-修复 V15.2 的"串联句子"问题：
-- V15.2 错误：相邻 ASR 片段间隔 < 0.5 秒会全部合并，导致钩子点跳跃过大
-- V15.7 修复：直接返回包含时间戳的 segment 边界，不做串联
+V15.7 基础逻辑（已被 V18 扩展）：
+- 时间戳优化是"二次确认"，不是重新计算
+- 找到包含时间戳的 segment 边界，不做串联
+
+V18 新增：保守句子粘合（双重信号判断）
+问题场景：
+  完整台词："你这辈子（换气0.2s）完了"
+  Whisper切割：[42.0-44.5s: "你这辈子"] [44.7s-45.5s: "完了"]
+  钩子点44.0s → 只返回44.5s → "完了"被截断
+
+双重信号判断（gap + 文本长度）：
+  - gap ≤ 0.25s 且当前片段 ≤ 5字 → 碎片，粘合
+  - gap ≤ 0.15s 且当前片段 ≤ 10字 → 中等，粘合
+  - 最多粘合1个额外片段，总延伸不超过1.5s
 
 综合考虑：
 - 时间维度：ASR segment 边界
 - 帧级精度：基于实际视频帧率转换时间戳
 """
 import subprocess
+from scripts.utils.subprocess_utils import run_command
+from scripts.config import TimeoutConfig
 import math
 from typing import List, Tuple, Optional, Dict, Any, Union
 from dataclasses import dataclass
@@ -66,10 +76,13 @@ class SmartCutFinder:
         """
         找到包含钩子点的 ASR 片段的结束时间
 
-        V15.6 简化逻辑：
-        - 找到包含钩子点的 segment
-        - 直接返回该 segment 的结束时间
-        - 不再做"串联句子"的复杂逻辑
+        V18 保守句子粘合逻辑：
+        - 找到包含钩子点的 segment（目标片段）
+        - 检查下一个片段是否是被 Whisper 切割出来的碎片
+        - 双重信号判断：gap 时长 + 文本长度
+          * gap ≤ 0.25s 且当前 ≤ 5字 → 明显碎片，粘合
+          * gap ≤ 0.15s 且当前 ≤ 10字 → 中等长度，粘合
+        - 硬上限：最多粘合1个片段，延伸不超过1.5s
 
         Args:
             hook_timestamp: 钩子点时间戳（秒）
@@ -81,29 +94,60 @@ class SmartCutFinder:
         if not asr_segments:
             return hook_timestamp
 
-        # 找到包含钩子点的 ASR 片段
+        # 找到包含钩子点的 ASR 片段（记录索引）
+        target_idx = -1
         target_segment = None
-        for seg in asr_segments:
+        for i, seg in enumerate(asr_segments):
             if seg.start <= hook_timestamp <= seg.end:
+                target_idx = i
                 target_segment = seg
                 break
 
-        if target_segment:
-            print(f"    📝 钩子点{hook_timestamp}秒 → 找到ASR片段: {target_segment.start:.2f}-{target_segment.end:.2f}秒, 文本: '{target_segment.text[:30]}...'")
-            return target_segment.end
+        if target_segment is None:
+            # 钩子点不在任何 segment 内（gap 情况），返回原始时间戳
+            print(f"    ⚠️ 钩子点{hook_timestamp}秒未落在任何ASR片段内，保持原时间戳")
+            return hook_timestamp
 
-        # 如果钩子点不在任何 segment 内，返回原始时间戳
-        print(f"    ⚠️ 钩子点{hook_timestamp}秒未落在任何ASR片段内，保持原时间戳")
-        return hook_timestamp
+        result_end = target_segment.end
+        # 去除标点后计算汉字数（中文每字1个字符）
+        text_stripped = target_segment.text.strip().rstrip('，。！？,.!?')
+        text_len = len(text_stripped)
+        print(f"    📝 钩子点{hook_timestamp}秒 → 找到ASR片段: {target_segment.start:.2f}-{target_segment.end:.2f}秒, 文本: '{target_segment.text[:30]}' ({text_len}字)")
+
+        # V18: 保守句子粘合 - 最多检查1个后续片段
+        if target_idx + 1 < len(asr_segments):
+            next_seg = asr_segments[target_idx + 1]
+            gap = next_seg.start - result_end
+            extension = next_seg.end - target_segment.end  # 粘合后的总延伸时长
+
+            should_extend = False
+            reason = ""
+            if gap <= 0.25 and text_len <= 5:
+                should_extend = True
+                reason = f"碎片({text_len}字) + gap={gap:.3f}s≤0.25s"
+            elif gap <= 0.15 and text_len <= 10:
+                should_extend = True
+                reason = f"中等({text_len}字) + gap={gap:.3f}s≤0.15s"
+
+            if should_extend and extension <= 1.5:
+                print(f"    🔗 V18粘合(钩子): {reason} → 延伸至{next_seg.end:.2f}s ('{next_seg.text[:20]}')")
+                result_end = next_seg.end
+            elif should_extend:
+                print(f"    ⛔ 粘合被拦截: {reason} 但延伸={extension:.3f}s>1.5s")
+
+        return result_end
 
     def find_sentence_start(self, highlight_timestamp: float, asr_segments: List[ASRSegment]) -> float:
         """
         找到包含高光点的 ASR 片段的开始时间
 
-        V15.6 简化逻辑：
-        - 找到包含高光点的 segment
-        - 直接返回该 segment 的开始时间
-        - 不再做"串联句子"的复杂逻辑
+        V18 保守句子粘合逻辑（镜像 find_sentence_end，方向向前）：
+        - 找到包含高光点的 segment（目标片段）
+        - 检查前一个片段是否是被 Whisper 切割出来的碎片
+        - 双重信号判断：gap 时长 + 前续片段文本长度
+          * 前续片段 ≤ 5字 且 gap ≤ 0.25s → 前续是碎片，向前粘合
+          * 前续片段 ≤ 10字 且 gap ≤ 0.15s → 中等长度，向前粘合
+        - 硬上限：最多粘合1个片段，前移不超过1.5s
 
         Args:
             highlight_timestamp: 高光点时间戳（秒）
@@ -115,20 +159,47 @@ class SmartCutFinder:
         if not asr_segments:
             return highlight_timestamp
 
-        # 找到包含高光点的 ASR 片段
+        # 找到包含高光点的 ASR 片段（记录索引）
+        target_idx = -1
         target_segment = None
-        for seg in asr_segments:
+        for i, seg in enumerate(asr_segments):
             if seg.start <= highlight_timestamp <= seg.end:
+                target_idx = i
                 target_segment = seg
                 break
 
-        if target_segment:
-            print(f"    📝 高光点{highlight_timestamp}秒 → 找到ASR片段: {target_segment.start:.2f}-{target_segment.end:.2f}秒, 文本: '{target_segment.text[:30]}...'")
-            return target_segment.start
+        if target_segment is None:
+            # 高光点不在任何 segment 内（gap 情况），返回原始时间戳
+            print(f"    ⚠️ 高光点{highlight_timestamp}秒未落在任何ASR片段内，保持原时间戳")
+            return highlight_timestamp
 
-        # 如果高光点不在任何 segment 内，返回原始时间戳
-        print(f"    ⚠️ 高光点{highlight_timestamp}秒未落在任何ASR片段内，保持原时间戳")
-        return highlight_timestamp
+        result_start = target_segment.start
+        print(f"    📝 高光点{highlight_timestamp}秒 → 找到ASR片段: {target_segment.start:.2f}-{target_segment.end:.2f}秒, 文本: '{target_segment.text[:30]}'")
+
+        # V18: 保守句子粘合 - 最多检查1个前续片段
+        if target_idx > 0:
+            prev_seg = asr_segments[target_idx - 1]
+            gap = result_start - prev_seg.end
+            extension = target_segment.start - prev_seg.start  # 向前粘合的总延伸时长
+            prev_text_stripped = prev_seg.text.strip().rstrip('，。！？,.!?')
+            prev_text_len = len(prev_text_stripped)
+
+            should_extend = False
+            reason = ""
+            if gap <= 0.25 and prev_text_len <= 5:
+                should_extend = True
+                reason = f"前续碎片({prev_text_len}字) + gap={gap:.3f}s≤0.25s"
+            elif gap <= 0.15 and prev_text_len <= 10:
+                should_extend = True
+                reason = f"前续中等({prev_text_len}字) + gap={gap:.3f}s≤0.15s"
+
+            if should_extend and extension <= 1.5:
+                print(f"    🔗 V18粘合(高光): {reason} → 前移至{prev_seg.start:.2f}s ('{prev_seg.text[:20]}')")
+                result_start = prev_seg.start
+            elif should_extend:
+                print(f"    ⛔ 粘合被拦截: {reason} 但延伸={extension:.3f}s>1.5s")
+
+        return result_start
 
     def detect_silence_regions(self, start_time: float, end_time: float, threshold_db: float = -40.0) -> List[Tuple[float, float]]:
         """
@@ -153,9 +224,11 @@ class SmartCutFinder:
                 '-'
             ]
 
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            result = run_command(cmd, timeout=TimeoutConfig.FFMPEG_ENDING_DETECT)
 
             silence_regions = []
+            if result is None:
+                return silence_regions  # 超时返回空静音区域
             lines = result.stderr.split('\n')
 
             silence_start = None

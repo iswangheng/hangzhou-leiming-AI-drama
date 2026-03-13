@@ -11,6 +11,9 @@ from pathlib import Path
 from typing import List, Dict, Optional, Any
 import json
 
+from scripts.utils.subprocess_utils import run_command
+from scripts.config import TimeoutConfig
+
 
 class ASRTranscriber:
     """ASR转录器"""
@@ -81,10 +84,15 @@ class ASRTranscriber:
                 temp_audio
             ]
 
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-
-            if result.returncode != 0:
-                print(f"  [ASR] 音频提取失败: {result.stderr}")
+            result = run_command(
+                cmd,
+                timeout=TimeoutConfig.FFMPEG_AUDIO_EXTRACT,
+                retries=1,
+                error_msg="asr音频提取超时"
+            )
+            if result is None or result.returncode != 0:
+                err = result.stderr if result is not None else "超时"
+                print(f"  [ASR] 音频提取失败: {err}")
                 return []
 
             # 使用Whisper转录音频片段
@@ -161,12 +169,14 @@ class ASRTranscriber:
             video_path
         ]
 
-        result = subprocess.run(
+        result = run_command(
             cmd,
-            capture_output=True,
-            text=True,
-            check=True
+            timeout=TimeoutConfig.FFPROBE_QUICK,
+            retries=1,
+            error_msg="ffprobe获取视频时长超时"
         )
+        if result is None or result.returncode != 0:
+            raise RuntimeError(f"无法获取视频时长: {video_path}")
 
         return float(result.stdout.strip())
 

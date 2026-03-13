@@ -30,6 +30,8 @@ from datetime import datetime
 
 from .sensitive_detector import SensitiveSegment
 from .subtitle_detector import SubtitleRegion
+from scripts.utils.subprocess_utils import run_command
+from scripts.config import TimeoutConfig
 
 
 def get_video_info(video_path: str) -> dict:
@@ -51,8 +53,14 @@ def get_video_info(video_path: str) -> dict:
         video_path
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
-
+    result = run_command(
+        cmd,
+        timeout=TimeoutConfig.FFPROBE_QUICK,
+        retries=2,
+        error_msg=f"ffprobe获取视频信息超时: {video_path}"
+    )
+    if result is None:
+        raise RuntimeError(f"无法获取视频信息（超时）: {video_path}")
     if result.returncode != 0:
         raise RuntimeError(f"无法获取视频信息: {video_path}")
 
@@ -275,17 +283,16 @@ def clean_video(
         print(f"\n  执行FFmpeg命令...")
         # print(f"  滤镜: {filter_complex}")  # 可能很长，可选打印
 
-    # 执行命令
-    result = subprocess.run(
+    # 执行命令（区域遮罩，超时重试 1 次后向上传播）
+    result = run_command(
         cmd,
-        capture_output=True,
-        text=True
+        timeout=TimeoutConfig.FFMPEG_MASK_APPLY,
+        retries=1,
+        error_msg=f"马赛克遮罩超时（视频: {video_path}）"
     )
-
-    if result.returncode != 0:
-        print(f"❌ FFmpeg执行失败:")
-        print(result.stderr)
-        raise RuntimeError(f"视频处理失败: {result.stderr[:500]}")
+    if result is None or result.returncode != 0:
+        err = result.stderr[:500] if result is not None else "超时"
+        raise RuntimeError(f"视频遮罩处理失败（含超时）: {err}")
 
     if verbose:
         print(f"✅ 视频清洗完成: {output_path}")
@@ -456,12 +463,18 @@ def clean_video_precise(
     if verbose:
         print(f"\n  执行FFmpeg命令...")
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
-
-    if result.returncode != 0:
-        print(f"❌ FFmpeg执行失败:")
-        print(result.stderr)
-        # 如果精确遮罩失败，回退到区域遮罩
+    # 精确遮罩执行（超时重试 1 次；仍失败则回退到区域遮罩）
+    result = run_command(
+        cmd,
+        timeout=TimeoutConfig.FFMPEG_MASK_APPLY,
+        retries=1,
+        error_msg="精确遮罩超时"
+    )
+    if result is None or result.returncode != 0:
+        if result is not None:
+            print(f"❌ FFmpeg执行失败:")
+            print(result.stderr)
+        # 精确失败/超时 → 回退到区域遮罩
         if verbose:
             print(f"  回退到区域遮罩模式...")
         return clean_video(video_path, sensitive_segments, subtitle_region, output_path, verbose, time_buffer)

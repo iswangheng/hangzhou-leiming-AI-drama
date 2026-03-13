@@ -33,6 +33,9 @@ from pathlib import Path
 from typing import Optional, Dict, List
 from dataclasses import dataclass
 
+from scripts.utils.subprocess_utils import run_command, run_popen_with_timeout
+from scripts.config import TimeoutConfig
+
 from .overlay_styles import (
     OverlayStyle,
     TextLayer,
@@ -346,8 +349,8 @@ class VideoOverlayRenderer:
             '-show_entries', 'stream=width,height',
             '-of', 'csv=p=0', input_video
         ]
-        result = subprocess.run(probe_cmd, capture_output=True, text=True)
-        video_width, video_height = map(int, result.stdout.strip().split(','))
+        result = run_command(probe_cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
+        video_width, video_height = map(int, result.stdout.strip().split(',')) if result else (360, 640)
 
         # 使用视频宽度计算缩放比例（基准：竖屏360宽度）
         base_width = 360  # 基准：竖屏视频的宽度
@@ -421,8 +424,8 @@ class VideoOverlayRenderer:
             '-show_entries', 'stream=width,height',
             '-of', 'csv=p=0', input_video
         ]
-        result = subprocess.run(probe_cmd, capture_output=True, text=True)
-        video_width, video_height = map(int, result.stdout.strip().split(','))
+        result = run_command(probe_cmd, timeout=TimeoutConfig.FFPROBE_QUICK, retries=1)
+        video_width, video_height = map(int, result.stdout.strip().split(',')) if result else (360, 640)
 
         # 完全复制tilted_label.py的apply_label缩放逻辑（V4.9版本）
         smaller_dimension = min(video_width, video_height)
@@ -601,32 +604,25 @@ class VideoOverlayRenderer:
         print(f"  3. {self.style.disclaimer.text}")
         print(f"\n🔄 正在处理...\n")
 
-        # 执行命令
+        # 执行命令（带超时，超时 returncode=-1 → raise RuntimeError → 外层跳过该 clip）
         try:
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                universal_newlines=True
-            )
-
-            # 实时输出日志
-            for line in process.stdout:
-                # 解析进度（FFmpeg的time=字段）
+            def _on_line(line: str):
                 if "time=" in line and on_progress:
                     try:
-                        time_str = line.split("time=")[1].split()[0]
-                        # 简单的进度估计
-                        if on_progress:
-                            on_progress(0.5)  # 简化处理
+                        on_progress(0.5)  # 简化处理
                     except:
                         pass
 
-            process.wait()
+            returncode = run_popen_with_timeout(
+                cmd,
+                timeout=TimeoutConfig.FFMPEG_CLIP_RENDER,
+                on_line=_on_line,
+                log_prefix="花字叠加"
+            )
 
-            if process.returncode != 0:
+            if returncode != 0:
                 raise RuntimeError(
-                    f"FFmpeg花字叠加失败 (返回码: {process.returncode})\n"
+                    f"FFmpeg花字叠加失败 (返回码: {returncode})\n"
                     f"命令: {' '.join(cmd)}\n"
                 )
 
