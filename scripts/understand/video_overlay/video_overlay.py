@@ -425,8 +425,8 @@ class VideoOverlayRenderer:
             disclaimer_x_override = "w-tw-8"   # 右对齐
             use_single_row = True
             print(f"📍 单行左右布局（字幕下方空间不足 {available_space}px < {required_space}px）:")
-        elif subtitle_bottom_y is not None and subtitle_bottom_y < video_height:
-            # 字幕过于靠底（>= 95%），但坐标有效（< video_height）
+        elif subtitle_bottom_y is not None and subtitle_bottom_y <= video_height:
+            # 字幕过于靠底（>= 95%），坐标有效（<= video_height，含边界等于情况）
             # 空间不足以放置任何布局 → 贴着字幕下方单行左右布局
             # 即使可能轻微溢出，也比放在字幕上方更符合设计意图
             common_y_val = min(subtitle_bottom_y + TITLE_GAP, video_height - drama_title_font_size - 2)

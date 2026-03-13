@@ -706,8 +706,9 @@ def get_subtitle_bottom_y(video_path: str, sample_frame_count: int = 5) -> Optio
         if not bottom_values:
             return None
 
-        # 取中位数
+        # 取中位数，并确保不超出视频底边（避免 apply_overlay 误判为越界）
         result = int(statistics.median(bottom_values))
+        result = min(result, video_height - 1)
         return result
 
     except Exception as e:

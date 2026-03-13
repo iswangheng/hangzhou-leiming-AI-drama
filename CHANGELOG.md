@@ -33,15 +33,62 @@
   - `test/refilter_result_clips.py` 是临时工具，应考虑在 video_understand.py 里加保护
   - 方案：如果 clips 数量 > 20，自动调用 `sort_and_filter_clips`
 
-- [ ] **`unhashable type: 'KeyFrame'` bug**
-  - 在 AI 分析时多次出现，未深入调查
-  - 猜测：某处用 KeyFrame 对象作为 set/dict key
-
 ### 低优先级
 
 - [ ] **临时文件清理机制加强**
   - 渲染被强制 kill 时会留下 `temp_overlay_*.mp4` / `temp_concat_*.mp4`
   - 可在渲染开始时扫描并清理同项目的残留临时文件
+
+---
+
+## [V18.2] - 2026-03-13
+
+### 修复 (Fixed)
+
+#### 1. 单次编码支持片尾视频（完全去掉分步回退）
+
+**问题**：`_render_clip_single_pass` 遇到 `add_ending=True` 时，无论如何都回退到分步处理（4 次 FFmpeg 调用），无法受益于单次编码。
+
+**根本原因**：
+- 旧音频方案使用 `apad=pad_dur + concat`，存在兼容性问题
+- 结尾视频使用 `force_original_aspect_ratio=decrease,pad` 可能产生非整数中间尺寸，导致 FFmpeg concat filter 报 `Input link parameters do not match`
+- 主体视频缺少显式 `setsar=1`，与结尾视频的 SAR=1 不一致，concat 失败
+
+**修复**：
+- 音频改为直接 `concat`：`[main_audio][a_ending]concat=n=2:v=0:a=1[a_out]`（测试验证：音视频差 < 0.1s ✅）
+- 结尾视频改为简单 `scale=W:H:flags=lanczos,setsar=1`（与 `_preprocess_ending_video_standalone` 保持一致）
+- 主体视频 scale 滤镜添加 `setsar=1`；不需要 scale 但有结尾视频时，额外加 `setsar=1[v_sar]` 过渡节点
+- 删除无条件 `return fallback()` 分支，有无片尾均执行单次编码
+
+**实测效果**（烈日重生 20 个 clip）：
+- 全部 `[单次编码] 串行模式单次编码成功` ✅
+- 不再产生多余临时文件（分步模式会产生 temp_overlay + temp_concat 各一份）
+
+#### 2. 花字字幕检测改用源视频（修复跨集 clip 误判单行布局）
+
+**问题**：跨集 clip（如第1集0秒→第2集53秒）的花字布局误触发单行模式。
+
+**根本原因**：`_apply_video_overlay_standalone` 缺少字幕缓存时，对 temp clip 做实时检测。跨集 clip 长达 120s+，采样帧落在第2集内容（如第 4 秒），第2集片头字幕 bottom_y≈717（96% 视频高度），可用空间仅 3px < 所需 54px，误判为空间不足并触发单行布局。
+
+**修复**：优先用 `video_dir` + `episode` 定位到第一个 episode 的源视频文件检测（`sample_frame_count=5`），
+仅当无法定位源视频时才 fallback 到 temp clip。
+
+#### 3. KeyFrame unhashable type 修复（analyze_segment.py）
+
+**问题**：`set(selected_keyframes + additional)` 报 `unhashable type: 'KeyFrame'`，`KeyFrame` 是 dataclass 但未实现 `__hash__`。
+
+**修复**：改用 `frame_path` 字符串去重（`seen_paths: set[str]`），手动排除重复帧。
+
+#### 4. subtitle_detector 防御性边界修复
+
+- `get_subtitle_bottom_y` 返回值限制 `min(result, video_height - 1)`，防止边界情况下返回值 ≥ video_height
+- `video_overlay.py` 判断条件 `< video_height` 改为 `<= video_height`，包含边界等于情况
+
+**影响文件**：
+- `scripts/understand/render_clips.py` - 单次编码片尾支持、字幕检测改用源视频
+- `scripts/understand/analyze_segment.py` - KeyFrame 去重修复
+- `scripts/preprocess/subtitle_detector.py` - 边界防御
+- `scripts/understand/video_overlay/video_overlay.py` - <= 边界修复
 
 ---
 

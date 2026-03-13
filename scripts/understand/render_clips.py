@@ -2515,15 +2515,31 @@ def _apply_video_overlay_standalone(clip_path: str, render_params: dict, episode
                 except Exception as e:
                     print(f"  [字幕定位] standalone 换算失败: {e}")
 
-        # 没缓存时，从视频本身检测（兜底逻辑）
+        # 没缓存时，优先从源视频（第 episode 集）检测，避免 temp clip 包含片尾或跨集内容干扰
         if subtitle_bottom_y is None:
             try:
                 from scripts.preprocess.subtitle_detector import get_subtitle_bottom_y
-                pixel_value = get_subtitle_bottom_y(clip_path, sample_frame_count=3)
+                source_video_path = None
+
+                # 尝试找到源视频（用 video_dir 和 episode 定位）
+                if episode is not None:
+                    video_dir = render_params.get('video_dir')
+                    if video_dir:
+                        import glob as _glob
+                        candidates = _glob.glob(str(Path(video_dir) / "*.mp4"))
+                        for c in sorted(candidates):
+                            ep_num = _extract_episode_number_standalone(Path(c).name)
+                            if ep_num == episode:
+                                source_video_path = c
+                                break
+
+                detect_path = source_video_path if source_video_path else clip_path
+                detect_label = f"源视频(ep{episode})" if source_video_path else "rendered clip"
+
+                pixel_value = get_subtitle_bottom_y(detect_path, sample_frame_count=5)
                 if pixel_value is not None:
-                    # 实时检测直接在 clip 上运行，坐标系一致，直接使用
                     subtitle_bottom_y = pixel_value
-                    print(f"  [字幕检测] standalone 实时检测: subtitle_bottom_y={subtitle_bottom_y}")
+                    print(f"  [字幕检测] 实时检测({detect_label}): subtitle_bottom_y={subtitle_bottom_y}")
             except Exception:
                 pass
 
@@ -2921,9 +2937,14 @@ def _render_clip_single_pass(
 
         # 3. V16.3: 分辨率缩放（如果需要）
         if need_scale:
-            scale_filter = f"{current_v_stream}scale={output_width}:{output_height}:flags=lanczos[v_scale]"
+            # setsar=1 确保与结尾视频 SAR 一致，避免 concat 失败
+            scale_filter = f"{current_v_stream}scale={output_width}:{output_height}:flags=lanczos,setsar=1[v_scale]"
             filter_parts.append(scale_filter)
             current_v_stream = "[v_scale]"
+        elif add_ending:
+            # 不需要 scale 但有结尾视频时，显式 setsar=1 确保 concat 参数一致
+            filter_parts.append(f"{current_v_stream}setsar=1[v_sar]")
+            current_v_stream = "[v_sar]"
 
         # 4. 添加花字（drawtext）- V17.5修复：跳过drawtext
         # 单次编码时不添加drawtext（剧名+免责声明）
@@ -2947,52 +2968,29 @@ def _render_clip_single_pass(
             ending_video_path = random.choice(render_params['ending_videos'])
             input_files.append(ending_video_path)
 
-            # V17.1: main_duration已经在前面计算过了，这里直接使用
-
-            # V17.5: 获取结尾视频时长，用于限制只取前几秒
-            ending_duration = 5.0  # 默认使用5秒作为结尾视频
-
-            # V17.5修复: 使用正确的结尾视频输入索引
+            # V18.2: main_duration已经在前面计算过了
+            # 结尾视频输入索引
             ending_input_idx = len(input_files) - 1
+            ending_duration = 5.0  # 取片尾前5秒
 
-            # 预处理结尾视频：缩放到相同分辨率 + 帧率转换 + 限制时长
-            # scale滤镜确保分辨率一致，fps滤镜确保帧率一致
-            # 添加trim滤镜限制结尾视频只取前ending_duration秒
-            ending_v_filter = f"[{ending_input_idx}:v]trim=duration={ending_duration},scale={output_width}:{output_height}:force_original_aspect_ratio=decrease,pad={output_width}:{output_height}:(ow-iw)/2:(oh-ih)/2,fps={video_fps},setsar=1[v_ending]"
+            # 结尾视频滤镜：直接 scale 到目标分辨率（与 _preprocess_ending_video_standalone 一致）
+            # 使用简单 scale 而非 force_original_aspect_ratio+pad，避免非整数尺寸导致 concat 失败
+            ending_v_filter = (
+                f"[{ending_input_idx}:v]trim=duration={ending_duration},setpts=PTS-STARTPTS,"
+                f"scale={output_width}:{output_height}:flags=lanczos,"
+                f"fps={video_fps:.3f},setsar=1[v_ending]"
+            )
             filter_parts.append(ending_v_filter)
 
-            # V17.5修复：正确的音频延迟逻辑
-            # 主体音频从0开始正常播放
-            # 结尾音频需要延迟main_duration秒后才开始播放
-
-            # V17.5修复: 结尾视频的输入索引是 len(input_files) - 1（因为刚添加了结尾视频）
-            # 非跨集时：原视频是输入0，结尾视频是输入1
-            ending_input_idx = len(input_files) - 1
-
-            # V17.5修复: 使用apad滤镜添加静音填充来实现延迟
-            # 主体音频后面填充静音到main_duration秒，然后拼接结尾音频
-            # 这样比adelay更可靠
-            delay_ms = int(main_duration * 1000)
-
-            # V17.5修复: 跨集场景下使用current_a_stream，单集场景使用current_a_stream
-            # 单集场景：current_a_stream已经是裁剪后的[a_trim]
-            if is_cross_episode:
-                main_audio_filter = f"{current_a_stream}apad=pad_dur={main_duration}[a_padded]"
-            else:
-                # 单集场景：使用已经裁剪过的音频（current_a_stream = [a_trim]）
-                main_audio_filter = f"{current_a_stream}apad=pad_dur={main_duration}[a_padded]"
-            audio_filter_parts.append(main_audio_filter)
-
-            # 结尾音频直接使用（不需要延迟）
-            ending_a_filter = f"[{ending_input_idx}:a]atrim=start=0:duration={ending_duration}[a_ending_raw]"
+            # V18.2: 直接 concat 音频（无需 apad）
+            # 测试验证：[main_audio][ending_audio]concat 音视频差 < 0.1s
+            # 结尾音频截取并重置时间戳
+            ending_a_filter = f"[{ending_input_idx}:a]atrim=start=0:duration={ending_duration},asetpts=PTS-STARTPTS[a_ending]"
             audio_filter_parts.append(ending_a_filter)
 
-            # 拼接主体（已填充静音）和结尾音频
-            concat_audio_filter = f"[a_padded][a_ending_raw]concat=n=2:v=0:a=1[a_out]"
+            # 直接拼接主体音频 + 结尾音频
+            concat_audio_filter = f"{current_a_stream}[a_ending]concat=n=2:v=0:a=1[a_out]"
             audio_filter_parts.append(concat_audio_filter)
-
-            # V17.5修复: 在跨集+有结尾场景下，音频已经在前面拼接好了
-            # 不需要再做第二次concat，直接使用已拼接的音频[current_a_stream]
 
             # 拼接主体视频和结尾视频
             concat_final_v = f"{current_v_stream}[v_ending]concat=n=2:v=1:a=0[v_out]"
@@ -3024,26 +3022,52 @@ def _render_clip_single_pass(
         map_outputs = ['-map', final_v_stream]  # 保持方括号，如 '[v_scale]'
         # 音频处理
         if final_a_stream:
-            # V17.5修复: 无论是否跨集，只要有结尾视频，都必须使用经过concat处理的音频
-            # 因为结尾视频的音频需要延迟播放，只有通过filter处理才能正确延迟
-            if add_ending:
-                # 有结尾视频：使用经过concat处理的音频（已包含延迟逻辑）
-                map_outputs.extend(['-map', final_a_stream])
-            elif is_cross_episode:
+            # V18.2: 有结尾视频时音频已经过 concat filter（[a_out]）
+            # V17.1: 跨集时音频已经过 concat filter（[a_concat]）
+            if add_ending or is_cross_episode:
                 # 无结尾视频 + 跨集：使用经过concat处理的音频
                 map_outputs.extend(['-map', final_a_stream])
             else:
                 # 无结尾视频 + 单集：直接使用原始音频，不经过filter
                 map_outputs.extend(['-map', '0:a'])
 
-        # V17.1: 单次编码日志
+        # V18.2: 有无片尾均执行单次 FFmpeg 编码（测试验证音视频差 < 0.1s）
+        # 执行单次 FFmpeg 编码
+        # 构建临时输出文件路径（避免与 final_path 冲突）
+        temp_output = str(output_dir / f"temp_single_{os.getpid()}_{clip_index}.mp4")
+        temp_files.append(temp_output)
+
+        crf = render_params.get('crf', 23)
+        preset = render_params.get('preset', 'fast')
+
+        cmd = (
+            ['ffmpeg', '-y']
+            + inputs
+            + (['-filter_complex', filter_complex] if filter_complex else [])
+            + map_outputs
+            + ['-c:v', 'libx264', '-crf', str(crf), '-preset', preset,
+               '-c:a', 'aac', '-b:a', '128k',
+               temp_output]
+        )
+
+        returncode = run_popen_with_timeout(cmd, timeout=TimeoutConfig.FFMPEG_CLIP_RENDER)
+        if returncode != 0:
+            print(f"  [单次编码] FFmpeg 失败(returncode={returncode})，回退到分步处理")
+            return _render_clip_unified_standalone(clip_index, clip_data, render_params)
+
         print(f"  [单次编码] 成功（裁剪+拼接+缩放，1次FFmpeg调用）")
 
-        # V17.5: 由于单次编码的音频处理复杂（apad/adelay兼容性问题），
-        # 暂时跳过单次编码中的结尾音频处理，让分步处理来处理结尾
-        # 回退到分步处理
-        print(f"  [单次编码] 跳过结尾音频处理，回退到分步处理")
-        return _render_clip_unified_standalone(clip_index, clip_data, render_params)
+        # 单独应用花字叠加（单次编码不含 overlay PNG，需后处理）
+        clip_input = temp_output
+        if add_overlay:
+            result = _apply_video_overlay_standalone(clip_input, render_params, episode=clip.episode)
+            if result and result != clip_input:
+                # 原 temp_output 已被 overlay 函数删除，更新路径
+                clip_input = result
+
+        import shutil
+        shutil.move(clip_input, final_path)
+        return final_path
 
     except Exception as e:
         print(f"  [Worker] V16.3完全单次编码失败: {e}")

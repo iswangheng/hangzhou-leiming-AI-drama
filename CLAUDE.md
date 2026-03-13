@@ -477,6 +477,11 @@ data/
 
 ### Version History Context
 
+- **V18.2** (2026-03-13): 单次编码完全支持片尾视频 & 多项稳定性修复
+  - 单次编码去掉 `add_ending` 无条件回退，音频 apad→直接 concat，SAR 对齐修复（20/20 验证通过）
+  - 花字字幕检测改用源视频（跨集 clip 不再误判单行布局）
+  - KeyFrame unhashable type 修复（frame_path 字符串去重）
+  - subtitle_detector 防御性边界修复（min/<=）
 - **V18.1** (2026-03-13): 横屏花字布局 & 花字双重渲染修复
   - 横屏（640×360）字幕下方空间不足时，剧名左对齐+免责声明右对齐同行显示
   - standalone 渲染路径预加载字幕区域缓存，无缓存时自动实时检测

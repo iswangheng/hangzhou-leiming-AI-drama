@@ -591,7 +591,12 @@ def build_analyze_prompt(segment: VideoSegment, skill_framework: dict) -> dict:
         need_more = MIN_KEYFRAMES - len(selected_keyframes)
         step = max(1, len(all_keyframes) // need_more)
         additional = [all_keyframes[i * step] for i in range(need_more) if i * step < len(all_keyframes)]
-        selected_keyframes = list(set(selected_keyframes + additional))
+        # 用 frame_path 去重，避免 KeyFrame 不可哈希导致 set() 报错
+        seen_paths = {kf.frame_path for kf in selected_keyframes}
+        for kf in additional:
+            if kf.frame_path not in seen_paths:
+                selected_keyframes.append(kf)
+                seen_paths.add(kf.frame_path)
     elif len(selected_keyframes) > MAX_KEYFRAMES:
         # 智能过滤结果太多，均匀采样到 MAX_KEYFRAMES
         step = len(selected_keyframes) // MAX_KEYFRAMES
