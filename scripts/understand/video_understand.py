@@ -19,7 +19,7 @@ import time
 from scripts.understand.understand_skill import understand_skill
 from scripts.understand.extract_segments import extract_all_segments, VideoSegment
 from scripts.understand.analyze_segment import analyze_all_segments, SegmentAnalysis
-from scripts.understand.generate_clips import generate_clips, save_clips
+from scripts.understand.generate_clips import generate_clips, save_clips, sort_and_filter_clips
 from scripts.understand.quality_filter import apply_quality_pipeline
 
 # 导入数据类和工具函数
@@ -674,7 +674,10 @@ def video_understand(
     print(f"\n筛选后: {len(highlights)} 个高光点, {len(hooks)} 个钩子点")
 
     # 5.5. 添加固定的开篇高光点(第1集0秒)
+    # V17.2: 修复第1集第0秒重复高光点问题
     print("\n[5.5/6] 添加固定的开篇高光点...")
+
+    # 检查第1集第0秒附近是否已有开篇高光
     episode1_has_opening = any(
         h.episode == 1 and h.highlight_type == "开篇高光" and h.highlight_timestamp <= 5
         for h in highlights
@@ -682,6 +685,19 @@ def video_understand(
 
     if not episode1_has_opening:
         print("  第1集没有开篇高光,自动添加固定开篇高光点(第1集0秒)")
+
+        # V17.2修复: 先移除第1集第0秒附近的AI检测高光点（避免重复）
+        opening_conflict_highlights = [
+            h for h in highlights
+            if h.episode == 1 and h.highlight_timestamp <= 5
+        ]
+        if opening_conflict_highlights:
+            print(f"  ⚠️  发现第1集开头有{len(opening_conflict_highlights)}个AI检测高光点，将被固定开篇高光替换")
+            for h in opening_conflict_highlights:
+                print(f"     - 移除: {h.highlight_type} @ {h.highlight_timestamp}s (置信度: {h.highlight_confidence})")
+                highlights.remove(h)
+                analyses.remove(h)
+
         # 创建一个固定的高光点对象
         from scripts.understand.analyze_segment import SegmentAnalysis
         opening_highlight = SegmentAnalysis(
@@ -744,6 +760,20 @@ def video_understand(
         enable_timestamp_optimization=True,  # V13: 启用时间戳优化
         video_path=video_path,  # V15.2: 传入视频路径
         video_fps=video_fps  # V15.2: 传入视频帧率
+    )
+
+    # 6. V17: 剪辑组合排序与智能筛选（Top N 精选）
+    print("\n[6/7] 剪辑组合排序与智能筛选...")
+    clips = sort_and_filter_clips(
+        highlights=highlights,
+        hooks=hooks,
+        episode_durations=episode_durations,
+        max_output=20,
+        min_output=10,
+        top_highlights=10,
+        top_hooks=10,
+        max_same_type=2,
+        max_same_episode=2
     )
 
     # 7. 保存结果
