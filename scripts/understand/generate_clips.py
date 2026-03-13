@@ -185,8 +185,9 @@ def generate_clips(
     dedup_window: int = DEDUP_WINDOW,
     episode_asr: Dict[int, List[ASRSegment]] = None,  # V13时间戳修复: 按集分组的ASR字典
     enable_timestamp_optimization: bool = True,
-    video_path: str = None,
-    video_fps: float = 30.0
+    video_path: str = None,  # 兼容旧调用，仅在 episode_video_paths 未提供时使用
+    video_fps: float = 30.0,
+    episode_video_paths: Dict[int, str] = None,  # BugFix: 每集对应视频路径
 ) -> List[Clip]:
     """生成剪辑组合（笛卡尔积）
 
@@ -204,8 +205,9 @@ def generate_clips(
         dedup_window: 去重时间窗口（秒）
         episode_asr: 按集分组的ASR数据字典 {集数: [ASRSegment...]}（V13时间戳修复）
         enable_timestamp_optimization: 是否启用时间戳优化（默认True）
-        video_path: 视频文件路径（用于V15.2智能切割）
+        video_path: 视频文件路径（旧接口，兼容用，优先使用 episode_video_paths）
         video_fps: 视频帧率（用于V15.2智能切割）
+        episode_video_paths: BugFix - 每集对应视频路径 {集数: 路径}，用于正确的静音检测
 
     Returns:
         剪辑组合列表
@@ -220,8 +222,11 @@ def generate_clips(
     # V15.2: 支持智能多维度切割（需要传入视频路径和帧率）
     # V13时间戳修复: 传入episode_asr字典而不是平铺的asr_segments
     # V15.4: 传入episode_durations限制钩子点最大时长
+    # BugFix: 优先使用 episode_video_paths；若未提供，降级为单路径兼容模式
+    effective_video_paths = episode_video_paths or ({1: video_path} if video_path else None)
+
     if enable_timestamp_optimization and episode_asr and TIMESTAMP_OPTIMIZATION_ENABLED:
-        if video_path:
+        if effective_video_paths:
             print("\n[V15.4时间戳优化] 启用智能多维度切割点优化（帧级精度 + 时长限制）...")
         else:
             print("\n[时间戳优化] 启用ASR辅助的毫秒级精度优化...")
@@ -230,7 +235,7 @@ def generate_clips(
             hooks=hooks,
             episode_asr_dict=episode_asr,  # V13时间戳修复: 传入按集分组的ASR字典
             buffer_ms=100.0,  # 100ms缓冲
-            video_path=video_path,
+            episode_video_paths=effective_video_paths,  # BugFix: 每集对应视频路径
             video_fps=video_fps,
             episode_durations=episode_durations  # V15.4: 传入各集时长限制
         )

@@ -183,9 +183,10 @@ def optimize_clips_timestamps(
     hooks: List[SegmentAnalysis],
     episode_asr_dict: Dict[int, List[ASRSegment]],  # 新增参数：按集分组的ASR字典
     buffer_ms: float = 100.0,
-    video_path: Optional[str] = None,
+    video_path: Optional[str] = None,  # 兼容旧接口，优先使用 episode_video_paths
     video_fps: float = 30.0,
-    episode_durations: Optional[Dict[int, Union[int, float]]] = None  # V15.4: 新增各集时长限制
+    episode_durations: Optional[Dict[int, Union[int, float]]] = None,  # V15.4: 新增各集时长限制
+    episode_video_paths: Optional[Dict[int, str]] = None,  # BugFix: 每集对应视频路径
 ) -> Tuple[List[SegmentAnalysis], List[SegmentAnalysis]]:
     """
     使用ASR数据优化所有时间戳
@@ -201,16 +202,23 @@ def optimize_clips_timestamps(
         hooks: 钩子点列表
         episode_asr_dict: 按集分组的ASR数据字典 {episode: [ASRSegment]}
         buffer_ms: 缓冲时间（毫秒），默认100ms
-        video_path: 视频文件路径（可选，用于智能切割）
+        video_path: 视频文件路径（旧接口兼容，优先使用 episode_video_paths）
         video_fps: 视频帧率（可选，默认30fps）
         episode_durations: V15.4新增 - 各集时长字典 {集数: 时长秒数}，用于限制钩子点最大时间
+        episode_video_paths: BugFix - 每集对应视频路径 {集数: 路径}，静音检测使用正确视频
 
     Returns:
         优化后的高光点和钩子点列表
     """
+    # BugFix: 合并 episode_video_paths 与旧接口 video_path（兼容）
+    effective_video_paths: Optional[Dict[int, str]] = episode_video_paths
+    if effective_video_paths is None and video_path:
+        # 旧接口兼容：单路径视为第1集
+        effective_video_paths = {1: video_path}
+
     print("\n" + "=" * 80)
-    if SMART_CUT_ENABLED and video_path:
-        print(f"开始V15.4智能时间戳优化（帧级精度 + 时长限制）")
+    if SMART_CUT_ENABLED and effective_video_paths:
+        print(f"开始V15.4智能时间戳优化（帧级精度 + 时长限制）[{len(effective_video_paths)}集独立视频路径]")
     else:
         print("开始ASR辅助时间戳优化（毫秒级精度）")
     print("=" * 80)
@@ -222,8 +230,8 @@ def optimize_clips_timestamps(
     for ep, asr_list in sorted(episode_asr_dict.items()):
         print(f"  - 第{ep}集: {len(asr_list)}个片段")
 
-    if video_path:
-        print(f"视频路径: {video_path}")
+    if effective_video_paths:
+        print(f"视频路径: {len(effective_video_paths)}集独立路径")
         print(f"视频帧率: {video_fps}fps")
 
     # V15.4: 打印时长限制信息
@@ -247,12 +255,14 @@ def optimize_clips_timestamps(
             if max_duration > 0:
                 print(f"  📏 第{hook.episode}集最大时长限制: {max_duration:.3f}秒")
 
+        # BugFix: 按集数查找正确视频路径，而非统一使用第1集视频
+        hook_video_path = effective_video_paths.get(hook.episode) if effective_video_paths else None
         hook.hook_timestamp = adjust_hook_point(
             hook.hook_timestamp,
             episode_asr,  # 传入所有ASR，函数内部会筛选
             hook.episode,  # 传入集数
             buffer_ms,
-            video_path,
+            hook_video_path,  # BugFix: 使用该集对应的视频路径
             video_fps,
             max_duration=max_duration  # V15.4: 传入该集的最大时长限制
         )
@@ -267,12 +277,14 @@ def optimize_clips_timestamps(
             print(f"  ⚠️ 高光点(第{hl.episode}集)无ASR数据，跳过优化")
             continue
 
+        # BugFix: 按集数查找正确视频路径
+        hl_video_path = effective_video_paths.get(hl.episode) if effective_video_paths else None
         hl.highlight_timestamp = adjust_highlight_point(
             hl.highlight_timestamp,
             episode_asr,  # 传入所有ASR，函数内部会筛选
             hl.episode,  # 传入集数
             buffer_ms,
-            video_path,
+            hl_video_path,  # BugFix: 使用该集对应的视频路径
             video_fps
         )
 

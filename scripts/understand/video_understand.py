@@ -742,10 +742,12 @@ def video_understand(
     # 不再需要收集为平铺列表，保留集数信息用于精确匹配
     print(f"已准备 {len(episode_asr)} 集的ASR数据，用于时间戳精度优化")
 
-    # V15.2: 获取第一个视频的路径和帧率（用于智能切割）
-    video_dir = Path(project_path)
-    mp4_files = sorted(video_dir.glob("*.mp4"))
-    video_path = str(mp4_files[0]) if mp4_files else None
+    # V15.2: 获取视频路径和帧率（用于智能切割）
+    # BugFix: 使用已构建的 episode_video_files 映射，确保每集使用正确视频路径
+    # 不再使用 mp4_files[0] 一刀切，而是传递 {集数: 视频路径} 字典
+    episode_video_paths = {ep: str(fp) for ep, fp in episode_video_files.items()}
+    # 用最小集数的视频路径来探测帧率（各集帧率通常一致）
+    video_path = str(episode_video_files[min(episode_video_files)]) if episode_video_files else None
 
     # 获取视频帧率
     video_fps = 30.0
@@ -774,7 +776,7 @@ def video_understand(
         episode_durations,
         episode_asr=episode_asr,  # V13时间戳修复: 传入按集分组的ASR字典
         enable_timestamp_optimization=True,  # V13: 启用时间戳优化
-        video_path=video_path,  # V15.2: 传入视频路径
+        episode_video_paths=episode_video_paths,  # BugFix: 传入每集对应视频路径字典
         video_fps=video_fps  # V15.2: 传入视频帧率
     )
 
