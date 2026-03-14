@@ -11,6 +11,22 @@ from typing import Dict, List, Optional, Tuple
 import random
 
 
+# ==================== BadgeStyle（放在此处以避免循环导入）====================
+
+@dataclass
+class BadgeStyle:
+    """角标样式定义（20种多形态角标）"""
+    id: str
+    name: str
+    shape: str          # tilted_banner / horizontal_banner / square_icon / triangle_corner / text_only / ink_stamp
+    bg_color: str       # 背景色（HEX 或 "transparent"）
+    text_color: str     # 文字色（HEX）
+    border_color: str = ""
+    border_width: int = 0
+    position: str = ""   # "top-left" / "top-right" 固定；"" 表示每次随机
+    extra: dict = field(default_factory=dict)
+
+
 @dataclass
 class TextLayer:
     """单行文本配置
@@ -506,3 +522,224 @@ def get_random_style() -> OverlayStyle:
 def get_random_disclaimer() -> str:
     """随机选择一条免责声明"""
     return random.choice(DISCLAIMER_TEXTS)
+
+
+# ==================== 20种角标样式（BadgeStyle） ====================
+# 需要 badge_renderer.py 中的 BadgeStyle dataclass
+# 延迟导入避免循环
+
+def _get_badge_styles():
+    """返回15种 BadgeStyle 实例列表（删除了 ink/triangle 系列）
+
+    位置规则：
+    - banner 系列：固定 top-left（横幅形状只适合左上角）
+    - square/text/tilted 系列：position 字段留空，由调用方随机选左/右
+    """
+    return [
+        # ── A类：横向标签 (horizontal_banner) — 固定左上角 ─────────────────
+        BadgeStyle(
+            id="banner_red",
+            name="红色横幅",
+            shape="horizontal_banner",
+            bg_color="#E84040",
+            text_color="#FFFFFF",
+            border_color="#FFFFFF",
+            border_width=1,
+            position="top-left",
+        ),
+        BadgeStyle(
+            id="banner_orange",
+            name="橙色横幅",
+            shape="horizontal_banner",
+            bg_color="#FF6B35",
+            text_color="#FFFFFF",
+            position="top-left",
+        ),
+        BadgeStyle(
+            id="banner_gold",
+            name="金色横幅",
+            shape="horizontal_banner",
+            bg_color="#FFD700",
+            text_color="#1A1A1A",
+            border_color="#1A1A1A",
+            border_width=1,
+            position="top-left",
+        ),
+        BadgeStyle(
+            id="banner_dark",
+            name="黑金横幅",
+            shape="horizontal_banner",
+            bg_color="#1A1A1A",
+            text_color="#FFD700",
+            border_color="#FFD700",
+            border_width=1,
+            position="top-left",
+        ),
+        BadgeStyle(
+            id="banner_crimson",
+            name="深红横幅",
+            shape="horizontal_banner",
+            bg_color="#CC0022",
+            text_color="#FFFFFF",
+            border_color="#FFFFFF",
+            border_width=1,
+            position="top-left",
+        ),
+
+        # ── B类：圆角方形 (square_icon) — 左右随机 ─────────────────────────
+        BadgeStyle(
+            id="square_redorange",
+            name="橙红方块",
+            shape="square_icon",
+            bg_color="#E84040",
+            text_color="#FFFFFF",
+            border_color="#000000",
+            border_width=2,
+        ),
+        BadgeStyle(
+            id="square_darkred",
+            name="深红方块",
+            shape="square_icon",
+            bg_color="#8B0000",
+            text_color="#FFFFFF",
+            border_color="#FFFFFF",
+            border_width=2,
+        ),
+        BadgeStyle(
+            id="square_gold",
+            name="金色方块",
+            shape="square_icon",
+            bg_color="#FFD700",
+            text_color="#1A1A1A",
+            border_color="#000000",
+            border_width=2,
+        ),
+        BadgeStyle(
+            id="square_black",
+            name="黑红方块",
+            shape="square_icon",
+            bg_color="#1A1A1A",
+            text_color="#FF6666",   # 亮红色（更亮，提升对比度）
+            border_color="#FF4444",
+            border_width=2,
+        ),
+
+        # ── C类：纯文字描边 (text_only) — 左右随机 ─────────────────────────
+        BadgeStyle(
+            id="text_white_red",
+            name="白字红边",
+            shape="text_only",
+            bg_color="transparent",
+            text_color="#FFFFFF",
+            border_color="#CC0000",
+            border_width=4,
+        ),
+        BadgeStyle(
+            id="text_red_black",
+            name="红字黑边",
+            shape="text_only",
+            bg_color="transparent",
+            text_color="#FF2222",
+            border_color="#000000",
+            border_width=4,
+        ),
+        BadgeStyle(
+            id="text_gold_black",
+            name="金字黑边",
+            shape="text_only",
+            bg_color="transparent",
+            text_color="#FFD700",
+            border_color="#000000",
+            border_width=4,
+        ),
+
+        # ── D类：倾斜条幅有背景 (tilted_banner) — 固定左上角 ──────────────
+        # 45度旋转方向决定只适合左上角；字体对齐原始 tilted_label.py（base 28px/60px）
+        BadgeStyle(
+            id="tilted_red",
+            name="红色斜幅",
+            shape="tilted_banner",
+            bg_color="#CC0000",
+            text_color="#FFFFFF",
+            position="top-left",
+        ),
+        BadgeStyle(
+            id="tilted_gold",
+            name="金色斜幅",
+            shape="tilted_banner",
+            bg_color="#FFD700",
+            text_color="#1A1A1A",
+            position="top-left",
+        ),
+        BadgeStyle(
+            id="tilted_black",
+            name="黑橙斜幅",
+            shape="tilted_banner",
+            bg_color="#1A1A1A",
+            text_color="#FF8C00",
+            position="top-left",
+        ),
+
+        # ── E类：透明背景倾斜文字 (tilted_text) — 固定左上角 ──────────────
+        # 无背景色条，只有文字＋厚描边斜45度；固定左上角
+        BadgeStyle(
+            id="tilted_text_white_red",
+            name="白字红边斜字",
+            shape="tilted_text",
+            bg_color="transparent",
+            text_color="#FFFFFF",
+            border_color="#CC0000",
+            border_width=6,
+            position="top-left",
+        ),
+        BadgeStyle(
+            id="tilted_text_red_black",
+            name="红字黑边斜字",
+            shape="tilted_text",
+            bg_color="transparent",
+            text_color="#FF2222",
+            border_color="#000000",
+            border_width=6,
+            position="top-left",
+        ),
+        BadgeStyle(
+            id="tilted_text_gold_black",
+            name="金字黑边斜字",
+            shape="tilted_text",
+            bg_color="transparent",
+            text_color="#FFD700",
+            border_color="#000000",
+            border_width=6,
+            position="top-left",
+        ),
+        BadgeStyle(
+            id="tilted_text_orange_dark",
+            name="橙字深边斜字",
+            shape="tilted_text",
+            bg_color="transparent",
+            text_color="#FF8C00",
+            border_color="#1A1A1A",
+            border_width=6,
+            position="top-left",
+        ),
+    ]
+
+
+# 角标文字候选
+BADGE_TEXT_OPTIONS = ["热门短剧", "爆款短剧", "必看短剧"]
+
+
+def get_all_badge_styles():
+    """返回所有角标样式"""
+    return _get_badge_styles()
+
+
+def get_random_badge_style():
+    """随机选择一种角标样式"""
+    styles = _get_badge_styles()
+    return random.choice(styles)
+
+
+def get_random_badge_text() -> str:
+    """随机选择角标文字"""
+    return random.choice(BADGE_TEXT_OPTIONS)

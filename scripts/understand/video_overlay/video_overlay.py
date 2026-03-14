@@ -39,9 +39,12 @@ from .overlay_styles import (
     get_style,
     get_random_style,
     get_random_disclaimer,
+    get_random_badge_style,
+    get_random_badge_text,
     DISCLAIMER_TEXTS
 )
 from .tilted_label import TiltedLabelConfig, TiltedLabelRenderer
+from .badge_renderer import BadgeRenderer, get_badge_overlay_position
 
 
 @dataclass
@@ -413,80 +416,79 @@ class VideoOverlayRenderer:
         # 查找字体
         font_path = self._find_font_file()
 
-        # ===== V15.6 集成V4.9修复投影计算逻辑 =====
-        # 获取视频尺寸
-        probe_cmd = [
-            'ffprobe', '-v', 'error',
-            '-select_streams', 'v:0',
-            '-show_entries', 'stream=width,height',
-            '-of', 'csv=p=0', input_video
-        ]
-        result = subprocess.run(probe_cmd, capture_output=True, text=True)
-        video_width, video_height = map(int, result.stdout.strip().split(','))
+        # ===== V18: 随机20种角标样式，每clip独立随机 =====
+        import random as _random
 
-        # 完全复制tilted_label.py的apply_label缩放逻辑（V4.9版本）
+        badge_style   = get_random_badge_style()
+        # tilted_text 系列只用「热门短剧」「爆款短剧」两种文案
+        if badge_style.shape == "tilted_text":
+            badge_text = _random.choice(["热门短剧", "爆款短剧"])
+        else:
+            badge_text = get_random_badge_text()
+        # position 为 "top-left"/"top-right" 时固定；"" 时随机
+        if badge_style.position in ("top-left", "top-right"):
+            badge_position = badge_style.position
+        else:
+            badge_position = _random.choice(["top-left", "top-right"])
+
         smaller_dimension = min(video_width, video_height)
         resolution_ratio = smaller_dimension / 360.0
 
-        # 基准值（360p）
-        original_font_size = 28
-        original_box_height = 60
-        original_box_y = 170  # (400-60)/2
-        original_corner_offset = 70
-
-        # V4.9: 使用0.8缩放系数
-        scale_factor = resolution_ratio * 0.8
-
-        # 计算缩放后的值（完全复制tilted_label的逻辑）
-        scaled_font_size = int(original_font_size * scale_factor)
-        scaled_box_height = int(original_box_height * scale_factor)
-        scaled_corner_offset = int(original_corner_offset * scale_factor)
-        scaled_box_y = int((400 - scaled_box_height) / 2)  # 保持居中
-
-        # 确保字体大小为偶数（FFmpeg渲染更稳定）
-        scaled_font_size = scaled_font_size if scaled_font_size % 2 == 0 else scaled_font_size + 1
-        scaled_corner_offset = scaled_corner_offset if scaled_corner_offset % 2 == 0 else scaled_corner_offset + 1
-
-        print(f"\n🖼️  步骤1：生成倾斜角标PNG...")
-        print(f"📹 视频分辨率: {video_width}x{video_height}")
-        print(f"📐 V4.9定位算法: 修复投影计算 (canvas_half=200px)")
-        print(f"📐 缩放系数: ratio={resolution_ratio:.2f}x, scale={scale_factor:.2f}x")
-        print(f"📐 字体: {original_font_size}px -> {scaled_font_size}px")
-        print(f"📐 条幅: {original_box_height}px -> {scaled_box_height}px")
-        print(f"📐 留白: {original_corner_offset}px -> {scaled_corner_offset}px")
+        print(f"\n🖼️  步骤1：生成角标PNG（V18随机样式）...")
+        print(f"🎲 角标样式: {badge_style.name} ({badge_style.id})")
+        print(f"🎲 角标文字: {badge_text}")
+        print(f"🎲 角标位置: {badge_position}")
 
         tilted_png_path = None
+        x, y = 0, 0
 
         try:
-            # 创建倾斜角标配置（传递已缩放的值，因为_generate_png不会自动缩放）
-            tilted_config = TiltedLabelConfig(
-                label_text=self.style.hot_drama.text,
-                font_size=scaled_font_size,  # 已缩放
-                label_color="red@0.95",
-                text_color="white",
-                position=self.config.hot_drama_position,  # 使用配置的位置
-                box_height=scaled_box_height,  # 已缩放
-                box_y=scaled_box_y,  # 已缩放
-                corner_offset=scaled_corner_offset  # 已缩放
-            )
+            badge_renderer = BadgeRenderer()
 
-            tilted_renderer = TiltedLabelRenderer(tilted_config)
-
-            # 生成临时PNG
             with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
                 tilted_png_path = tmp.name
 
-            # 预渲染PNG
-            tilted_renderer._generate_png(tilted_png_path)
-            print(f"✅ 倾斜角标PNG生成完成")
+            badge_renderer.render(
+                badge_style, badge_text, video_width, video_height,
+                output_path=tilted_png_path
+            )
+            print(f"✅ 角标PNG生成完成: {badge_style.name}")
 
-            # 计算overlay位置
+            x, y = get_badge_overlay_position(
+                tilted_png_path, video_width, video_height,
+                badge_position, badge_style.shape, resolution_ratio
+            )
+            print(f"📍 角标位置: x={x}, y={y}")
+
+        except ImportError as e:
+            # Pillow 未安装，回退到旧的 tilted_label 方案
+            print(f"⚠️  PIL 未安装，回退到旧倾斜角标: {e}")
+            scale_factor = resolution_ratio * 0.8
+            original_font_size, original_box_height, original_corner_offset = 28, 60, 70
+            scaled_font_size = int(original_font_size * scale_factor)
+            scaled_box_height = int(original_box_height * scale_factor)
+            scaled_corner_offset = int(original_corner_offset * scale_factor)
+            scaled_box_y = (400 - scaled_box_height) // 2
+            scaled_font_size = scaled_font_size if scaled_font_size % 2 == 0 else scaled_font_size + 1
+            scaled_corner_offset = scaled_corner_offset if scaled_corner_offset % 2 == 0 else scaled_corner_offset + 1
+            tilted_config = TiltedLabelConfig(
+                label_text=self.style.hot_drama.text,
+                font_size=scaled_font_size,
+                label_color="red@0.95",
+                text_color="white",
+                position=self.config.hot_drama_position,
+                box_height=scaled_box_height,
+                box_y=scaled_box_y,
+                corner_offset=scaled_corner_offset
+            )
+            tilted_renderer = TiltedLabelRenderer(tilted_config)
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
+                tilted_png_path = tmp.name
+            tilted_renderer._generate_png(tilted_png_path)
             x, y = tilted_renderer._get_overlay_position(video_width, video_height)
-            print(f"📍 倾斜角标位置: x={x}, y={y}")
 
         except Exception as e:
-            print(f"⚠️  倾斜角标生成失败: {e}")
-            print(f"   将使用传统drawtext方式渲染热门短剧")
+            print(f"⚠️  角标生成失败: {e}，跳过角标")
             tilted_png_path = None
 
         # ===== 构建滤镜链 =====
@@ -594,7 +596,11 @@ class VideoOverlayRenderer:
 
         print(f"📝 叠加内容:")
         if tilted_png_path and Path(tilted_png_path).exists():
-            print(f"  1. 热门短剧（倾斜角标，右上角）- PNG预渲染，位置({x}, {y})")
+            try:
+                _badge_name = badge_style.name
+            except NameError:
+                _badge_name = "倾斜角标"
+            print(f"  1. 角标：{_badge_name}，位置({x}, {y})")
         else:
             print(f"  1. 热门短剧（跳过，PNG生成失败或未启用）")
         print(f"  2. {self.style.drama_title.text}")

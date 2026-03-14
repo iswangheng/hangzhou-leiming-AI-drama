@@ -5,6 +5,46 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V18.0] - 2026-03-14
+
+### 新增 (Added)
+
+#### 角标模块重构：19种多形态随机样式
+
+**背景**：原角标系统只有1种形态（红色45度倾斜条幅，固定"热门短剧"），样式单一。
+
+**新增19种角标样式，分5类**：
+
+| 类别 | 形态 | 数量 | 位置规则 | 文案 |
+|------|------|------|----------|------|
+| A. banner | 横向箭头标签（带斜切尖角） | 5种 | 固定左上角 | 3选1随机 |
+| B. square | 圆角方形（类App图标，上下两行文字） | 4种 | 随机左/右 | 3选1随机 |
+| C. text_only | 透明背景纯描边文字（厚边轮廓） | 3种 | 随机左/右 | 3选1随机 |
+| D. tilted_banner | 45度倾斜色条（原样式扩展，3种配色） | 3种 | 固定左上角 | 3选1随机 |
+| E. tilted_text | **透明背景倾斜文字**（无色条，纯文字斜45度） | 4种 | 固定左上角 | 仅「热门短剧」「爆款短剧」 |
+
+**每次渲染独立随机**：
+- 从19种样式中随机选1种
+- 文字随机（"热门短剧" / "爆款短剧" / "必看短剧"，tilted_text 仅前两种）
+- 位置随机（左上/右上，固定类自动锁定左上）
+- 不再按项目缓存固定样式，每个 clip 都不同
+
+**位置固定规则**：
+- 固定左上角：所有 tilted 系列（tilted_banner × 3 + tilted_text × 4）、banner 系列（× 5）
+- 随机左/右：square × 4、text_only × 3
+
+**技术实现**：
+- 新建 `scripts/understand/video_overlay/badge_renderer.py`：PIL 渲染引擎，支持6种形态
+- `overlay_styles.py` 新增 `BadgeStyle` dataclass 和 `BADGE_STYLES` 注册表
+- `video_overlay.py` 去掉项目级样式缓存，改为每次调用时随机
+- Pillow 未安装时自动回退到旧的 FFmpeg tilted_label 方案
+
+**新增文件**：
+- `scripts/understand/video_overlay/badge_renderer.py`
+- `test/test_all_badge_styles.py`（批量生成预览 PNG，含总览拼图）
+
+---
+
 ## [V17.9] - 2026-03-13
 
 ### 修复 (Fixed)
