@@ -79,26 +79,29 @@ python -m scripts.understand.render_clips \
     漫剧素材/项目名 \
     --no-overlay
 
-# Enable video compression (V17)
-# Compress to 100MB (default)
+# Video compression (V18.5: enabled by default, target 100MB)
+# Default rendering already includes compression
 python -m scripts.understand.render_clips \
     data/analysis/项目名 \
-    漫剧素材/项目名 \
-    --compress
+    漫剧素材/项目名
 
 # Compress to 50MB (for social media)
 python -m scripts.understand.render_clips \
     data/analysis/项目名 \
     漫剧素材/项目名 \
-    --compress \
     --compress-target 50
 
 # Compress to 200MB (higher quality)
 python -m scripts.understand.render_clips \
     data/analysis/项目名 \
     漫剧素材/项目名 \
-    --compress \
     --compress-target 200
+
+# Disable compression (not recommended)
+python -m scripts.understand.render_clips \
+    data/analysis/项目名 \
+    漫剧素材/项目名 \
+    --no-compress
 ```
 
 ### Training Pipeline
