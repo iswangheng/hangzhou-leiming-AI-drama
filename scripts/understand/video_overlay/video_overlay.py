@@ -350,6 +350,10 @@ class VideoOverlayRenderer:
             print("⚠️  花字叠加未启用，跳过处理")
             return input_video
 
+        # 每次 apply_overlay 独立随机角标样式（支持同一渲染器实例复用）
+        self.badge_style = get_random_badge_style()
+        print(f"🎲 本次角标样式: {self.badge_style.name} (shape={self.badge_style.shape})")
+
         # ===== V2.0: 动态分辨率自适应 =====
         # 获取视频分辨率，用于动态计算字体大小和位置
         probe_cmd = [
@@ -517,15 +521,18 @@ class VideoOverlayRenderer:
             )
             print(f"✅ 角标PNG生成完成: {self.badge_style.name}")
 
+            # 优先用 BadgeStyle 自带的 position；留空则随机左/右
+            import random as _random
+            badge_position = self.badge_style.position or _random.choice(["top-left", "top-right"])
             badge_x, badge_y = get_badge_overlay_position(
                 png_path=tilted_png_path,
                 video_width=video_width,
                 video_height=video_height,
-                position=self.config.hot_drama_position,
+                position=badge_position,
                 shape=self.badge_style.shape,
                 ratio=resolution_ratio,
             )
-            print(f"📍 角标位置: x={badge_x}, y={badge_y}")
+            print(f"📍 角标位置: {badge_position} → x={badge_x}, y={badge_y}")
 
         except Exception as e:
             import traceback
