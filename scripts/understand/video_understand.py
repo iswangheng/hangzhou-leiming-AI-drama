@@ -762,7 +762,7 @@ def video_understand(
         video_fps=video_fps  # V15.2: 传入视频帧率
     )
 
-    # 6. V17: 剪辑组合排序与智能筛选（Top N 精选）
+    # 6. V17.1: 剪辑组合排序与智能筛选（Top N 精选）
     print("\n[6/7] 剪辑组合排序与智能筛选...")
     clips = sort_and_filter_clips(
         highlights=highlights,

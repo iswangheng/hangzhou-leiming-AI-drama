@@ -310,6 +310,163 @@ def generate_clips(
     return clips
 
 
+def sort_and_filter_clips(
+    highlights: List,
+    hooks: List,
+    episode_durations: Dict,
+    max_output: int = 20,
+    min_output: int = 10,
+    top_highlights: int = 10,
+    top_hooks: int = 10,
+    max_same_type: int = 2,
+    max_same_episode: int = 2,
+) -> List[Clip]:
+    """对高光×钩子组合进行多维度评分排序，取 Top N 精选剪辑
+
+    评分维度（CHANGELOG V17.1）：
+    - 置信度 × 0.4
+    - 类型强度 × 0.3
+    - 时机得分 × 0.2
+    - 描述丰富度 × 0.1
+
+    组合分数 = 高光分数×0.4 + 钩子分数×0.6（钩子权重更高）
+
+    Args:
+        highlights: 高光点列表（SegmentAnalysis）
+        hooks: 钩子点列表（SegmentAnalysis）
+        episode_durations: 每集时长字典
+        max_output: 最多输出剪辑数
+        min_output: 最少输出剪辑数（多样性不足时放宽限制）
+        top_highlights: 参与组合的高光候选数
+        top_hooks: 参与组合的钩子候选数
+        max_same_type: 同类型组合最多保留数
+        max_same_episode: 同集数组合最多保留数
+
+    Returns:
+        排序后的 Clip 列表
+    """
+    # 类型强度权重表
+    HIGHLIGHT_TYPE_SCORE = {
+        "反转": 1.0, "打脸": 0.9, "冲突": 0.8, "爽点": 0.7,
+        "情感": 0.6, "搞笑": 0.5, "悬念": 0.4, "日常": 0.2,
+    }
+    HOOK_TYPE_SCORE = {
+        "反转": 1.0, "悬念": 0.9, "冲突": 0.8, "危机": 0.7,
+        "情感": 0.6, "搞笑": 0.5, "日常": 0.2,
+    }
+
+    def _highlight_score(h) -> float:
+        conf = (getattr(h, 'highlight_confidence', 7.0) or 7.0) / 10.0
+        type_s = HIGHLIGHT_TYPE_SCORE.get(getattr(h, 'highlight_type', '') or '', 0.3)
+        # 时机：越靠近集首越好（开篇更容易吸引人）
+        ep_dur = episode_durations.get(h.episode, 600)
+        ts = getattr(h, 'highlight_timestamp', 0) or 0
+        timing_s = max(0.0, 1.0 - ts / ep_dur) if ep_dur > 0 else 0.5
+        # 描述丰富度：有描述得满分，否则 0
+        desc_s = 1.0 if getattr(h, 'highlight_description', '') else 0.0
+        return conf * 0.4 + type_s * 0.3 + timing_s * 0.2 + desc_s * 0.1
+
+    def _hook_score(h) -> float:
+        conf = (getattr(h, 'hook_confidence', 7.0) or 7.0) / 10.0
+        type_s = HOOK_TYPE_SCORE.get(getattr(h, 'hook_type', '') or '', 0.3)
+        ep_dur = episode_durations.get(h.episode, 600)
+        ts = getattr(h, 'hook_timestamp', 0) or 0
+        # 时机：越靠近集尾越好（结尾留悬念）
+        timing_s = (ts / ep_dur) if ep_dur > 0 else 0.5
+        timing_s = max(0.0, min(1.0, timing_s))
+        desc_s = 1.0 if getattr(h, 'hook_description', '') else 0.0
+        return conf * 0.4 + type_s * 0.3 + timing_s * 0.2 + desc_s * 0.1
+
+    # 按分数选出 top_highlights 和 top_hooks
+    scored_hl = sorted(highlights, key=_highlight_score, reverse=True)[:top_highlights]
+    scored_hk = sorted(hooks, key=_hook_score, reverse=True)[:top_hooks]
+
+    # 生成候选组合并打分
+    candidates = []
+    for hl in scored_hl:
+        for hk in scored_hk:
+            clip = _try_make_clip(hl, hk, episode_durations)
+            if clip is None:
+                continue
+            combo_score = _highlight_score(hl) * 0.4 + _hook_score(hk) * 0.6
+            candidates.append((combo_score, clip, hl, hk))
+
+    # 按分数降序
+    candidates.sort(key=lambda x: x[0], reverse=True)
+
+    # 多样性筛选：同类型/同集数最多保留 max_same_type / max_same_episode 个
+    type_count: Dict[str, int] = {}
+    episode_count: Dict[int, int] = {}
+    result_clips: List[Clip] = []
+
+    for score, clip, hl, hk in candidates:
+        if len(result_clips) >= max_output:
+            break
+        combo_type = f"{getattr(hl,'highlight_type','?')}_{getattr(hk,'hook_type','?')}"
+        ep_key = (hl.episode, hk.episode)
+
+        if type_count.get(combo_type, 0) >= max_same_type:
+            continue
+        if episode_count.get(ep_key, 0) >= max_same_episode:
+            continue
+
+        result_clips.append(clip)
+        type_count[combo_type] = type_count.get(combo_type, 0) + 1
+        episode_count[ep_key] = episode_count.get(ep_key, 0) + 1
+
+    # 若多样性限制导致结果不足 min_output，放宽限制补充
+    if len(result_clips) < min_output:
+        for score, clip, hl, hk in candidates:
+            if clip not in result_clips:
+                result_clips.append(clip)
+            if len(result_clips) >= min_output:
+                break
+
+    print(f"剪辑排序筛选: 候选{len(candidates)}个 → 精选{len(result_clips)}个 (上限{max_output})")
+    return result_clips
+
+
+def _try_make_clip(hl, hk, episode_durations: Dict):
+    """尝试从高光+钩子生成一个 Clip，不满足时长约束则返回 None"""
+    from dataclasses import fields as dc_fields
+    # 复用 generate_clips 里的时长约束
+    hl_ep, hl_ts = hl.episode, getattr(hl, 'highlight_timestamp', hl.start_time)
+    hk_ep, hk_ts = hk.episode, getattr(hk, 'hook_timestamp', hk.end_time)
+
+    # 计算累积时间
+    def cum_time(ep, ts):
+        total = 0.0
+        for e in sorted(episode_durations.keys()):
+            if e < ep:
+                total += episode_durations[e]
+            else:
+                break
+        return total + ts
+
+    start_cum = cum_time(hl_ep, hl_ts)
+    end_cum = cum_time(hk_ep, hk_ts)
+
+    if end_cum <= start_cum:
+        return None
+    duration = end_cum - start_cum
+    if duration < MIN_CLIP_DURATION or duration > MAX_CLIP_DURATION:
+        return None
+
+    return Clip(
+        start=hl_ts,
+        end=hk_ts,
+        episode=hl_ep,
+        end_episode=hk_ep,
+        duration=duration,
+        highlight_type=getattr(hl, 'highlight_type', None),
+        hook_type=getattr(hk, 'hook_type', None),
+        highlight_confidence=getattr(hl, 'highlight_confidence', 0),
+        hook_confidence=getattr(hk, 'hook_confidence', 0),
+        highlight_description=getattr(hl, 'highlight_description', ''),
+        hook_description=getattr(hk, 'hook_description', ''),
+    )
+
+
 def save_clips(clips: List[Clip], output_path: str):
     """保存剪辑组合到文件
 
