@@ -46,6 +46,7 @@ from .overlay_styles import (
     DISCLAIMER_TEXTS
 )
 from .tilted_label import TiltedLabelConfig, TiltedLabelRenderer
+from .badge_renderer import BadgeRenderer, get_badge_overlay_position
 
 
 @dataclass
@@ -494,49 +495,42 @@ class VideoOverlayRenderer:
         scaled_font_size = scaled_font_size if scaled_font_size % 2 == 0 else scaled_font_size + 1
         scaled_corner_offset = scaled_corner_offset if scaled_corner_offset % 2 == 0 else scaled_corner_offset + 1
 
-        print(f"\n🖼️  步骤1：生成倾斜角标PNG...")
+        print(f"\n🖼️  步骤1：生成角标PNG (shape={self.badge_style.shape})...")
         print(f"📹 视频分辨率: {video_width}x{video_height}")
-        print(f"📐 V4.9定位算法: 修复投影计算 (canvas_half=200px)")
-        print(f"📐 缩放系数: ratio={resolution_ratio:.2f}x, scale={scale_factor:.2f}x")
-        print(f"📐 字体: {original_font_size}px -> {scaled_font_size}px")
-        print(f"📐 条幅: {original_box_height}px -> {scaled_box_height}px")
-        print(f"📐 留白: {original_corner_offset}px -> {scaled_corner_offset}px")
 
         tilted_png_path = None
+        badge_x, badge_y = 0, 0
 
         try:
-            # 创建倾斜角标配置（传递已缩放的值，因为_generate_png不会自动缩放）
-            # 使用 badge_style 的颜色（每条剪辑独立随机）
-            badge_bg = self.badge_style.bg_color if self.badge_style.bg_color else "#E84040"
-            badge_text_color = self.badge_style.text_color if self.badge_style.text_color else "white"
-            tilted_config = TiltedLabelConfig(
-                label_text=self.style.hot_drama.text,
-                font_size=scaled_font_size,  # 已缩放
-                label_color=badge_bg,
-                text_color=badge_text_color,
-                position=self.config.hot_drama_position,  # 使用配置的位置
-                box_height=scaled_box_height,  # 已缩放
-                box_y=scaled_box_y,  # 已缩放
-                corner_offset=scaled_corner_offset  # 已缩放
-            )
+            badge_renderer = BadgeRenderer()
+            badge_text = self.style.hot_drama.text
 
-            tilted_renderer = TiltedLabelRenderer(tilted_config)
-
-            # 生成临时PNG
             with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
                 tilted_png_path = tmp.name
 
-            # 预渲染PNG
-            tilted_renderer._generate_png(tilted_png_path)
-            print(f"✅ 倾斜角标PNG生成完成")
+            tilted_png_path = badge_renderer.render(
+                style=self.badge_style,
+                text=badge_text,
+                video_width=video_width,
+                video_height=video_height,
+                output_path=tilted_png_path,
+            )
+            print(f"✅ 角标PNG生成完成: {self.badge_style.name}")
 
-            # 计算overlay位置
-            x, y = tilted_renderer._get_overlay_position(video_width, video_height)
-            print(f"📍 倾斜角标位置: x={x}, y={y}")
+            badge_x, badge_y = get_badge_overlay_position(
+                png_path=tilted_png_path,
+                video_width=video_width,
+                video_height=video_height,
+                position=self.config.hot_drama_position,
+                shape=self.badge_style.shape,
+                ratio=resolution_ratio,
+            )
+            print(f"📍 角标位置: x={badge_x}, y={badge_y}")
 
         except Exception as e:
-            print(f"⚠️  倾斜角标生成失败: {e}")
-            print(f"   将使用传统drawtext方式渲染热门短剧")
+            import traceback
+            print(f"⚠️  角标生成失败: {e}")
+            traceback.print_exc()
             tilted_png_path = None
 
         # ===== 构建滤镜链 =====
@@ -592,7 +586,7 @@ class VideoOverlayRenderer:
             # 阶段2：应用drawtext滤镜（剧名、免责声明）
             if drawtext_filter_complex:
                 # 先overlay PNG，再应用drawtext滤镜
-                filter_complex = f"[0:v][1:v]overlay=x={x}:y={y}[v1];[v1]{drawtext_filter_complex}"
+                filter_complex = f"[0:v][1:v]overlay=x={badge_x}:y={badge_y}[v1];[v1]{drawtext_filter_complex}"
                 cmd = [
                     'ffmpeg',
                     '-y',  # 覆盖输出文件
@@ -606,7 +600,7 @@ class VideoOverlayRenderer:
                 ]
             else:
                 # 只有overlay PNG
-                filter_complex = f"[0:v][1:v]overlay=x={x}:y={y}"
+                filter_complex = f"[0:v][1:v]overlay=x={badge_x}:y={badge_y}"
                 cmd = [
                     'ffmpeg',
                     '-y',
