@@ -30,8 +30,19 @@ import subprocess
 import hashlib
 import tempfile
 from pathlib import Path
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple
 from dataclasses import dataclass
+
+try:
+    import sys as _sys
+    _sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+    from scripts.preprocess.subtitle_detector import (
+        load_subtitle_config,
+        detect_subtitle_region_pixel_variance,
+    )
+    _SUBTITLE_DETECTOR_AVAILABLE = True
+except Exception:
+    _SUBTITLE_DETECTOR_AVAILABLE = False
 
 from .overlay_styles import (
     OverlayStyle,
@@ -252,6 +263,103 @@ class VideoOverlayRenderer:
         print("⚠️  未找到中文字体，将使用FFmpeg默认字体")
         return ""
 
+    def _get_subtitle_region(self, video_path: str, project_name: Optional[str]):
+        """获取字幕区域（优先读缓存，否则实时检测）"""
+        if not _SUBTITLE_DETECTOR_AVAILABLE:
+            return None
+        if project_name:
+            try:
+                region = load_subtitle_config(project_name)
+                if region:
+                    return region
+            except Exception:
+                pass
+        try:
+            return detect_subtitle_region_pixel_variance(video_path)
+        except Exception:
+            return None
+
+    def _calculate_text_layout(
+        self,
+        subtitle_region,
+        video_width: int,
+        video_height: int,
+        drama_font_size: int,
+        disclaimer_font_size: int,
+    ) -> Tuple[str, str, str, str, str]:
+        """计算剧名和免责声明的布局位置
+
+        Returns:
+            (layout, drama_x, drama_y, disclaimer_x, disclaimer_y)
+            layout: "two_line" 或 "one_line"
+        """
+        if subtitle_region is None:
+            # 兜底：固定百分比，居中
+            drama_y = f"h-{int(video_height * 0.15)}"
+            disclaimer_y = f"h-{int(video_height * 0.06)}"
+            return "two_line", "(w-tw)/2", drama_y, "(w-tw)/2", disclaimer_y
+
+        try:
+            subtitle_y_px, height_px = subtitle_region.get_pixel_coords(video_height)
+            subtitle_bottom_y = subtitle_y_px + height_px
+
+            gap = max(8, int(video_height * 0.01))
+            line_gap = max(4, int(video_height * 0.005))
+            two_line_height = drama_font_size + line_gap + disclaimer_font_size
+
+            # 字幕离底部的距离比例
+            bottom_distance_ratio = (video_height - subtitle_bottom_y) / video_height
+
+            # 只有字幕底部在视频底部 20% 范围内，才跟随字幕定位
+            # 否则字幕位置太靠中间，强制用固定底部位置（兜底策略）
+            BOTTOM_PROXIMITY_THRESHOLD = 0.20
+
+            if bottom_distance_ratio > BOTTOM_PROXIMITY_THRESHOLD:
+                # 字幕太靠上，不跟随 → 固定底部
+                drama_y = f"h-{int(video_height * 0.15)}"
+                disclaimer_y = f"h-{int(video_height * 0.06)}"
+                print(f"   (字幕距底部 {bottom_distance_ratio:.0%}＞20%，回落到固定底部位置)")
+                return "two_line", "(w-tw)/2", drama_y, "(w-tw)/2", disclaimer_y
+
+            available_below = video_height - subtitle_bottom_y
+
+            if available_below - gap >= two_line_height:
+                # 字幕下方有足够空间 → 两行居中，紧跟字幕下方
+                text_start_y = subtitle_bottom_y + gap
+                drama_x = "(w-tw)/2"
+                drama_y = str(text_start_y)
+                disclaimer_x = "(w-tw)/2"
+                disclaimer_y = str(text_start_y + drama_font_size + line_gap)
+                return "two_line", drama_x, drama_y, disclaimer_x, disclaimer_y
+
+            # 字幕紧贴底部（available_below 不足） → 放字幕上方
+            available_above = subtitle_y_px
+            if available_above >= two_line_height + gap:
+                disclaimer_y_px = subtitle_y_px - gap - disclaimer_font_size
+                drama_y_px = disclaimer_y_px - line_gap - drama_font_size
+                drama_y_px = max(0, drama_y_px)
+                drama_x = "(w-tw)/2"
+                drama_y = str(drama_y_px)
+                disclaimer_x = "(w-tw)/2"
+                disclaimer_y = str(disclaimer_y_px)
+                return "two_line", drama_x, drama_y, disclaimer_x, disclaimer_y
+
+            # 上下都塞不下两行 → 同一行贴字幕上方
+            text_y_px = max(0, subtitle_y_px - gap - drama_font_size)
+            text_y_px = min(text_y_px, video_height - drama_font_size - gap)
+            margin = max(12, int(video_width * 0.03))
+            drama_x = str(margin)
+            drama_y = str(text_y_px)
+            disclaimer_x = f"w-tw-{margin}"
+            disclaimer_y = str(text_y_px)
+            return "one_line", drama_x, drama_y, disclaimer_x, disclaimer_y
+
+        except Exception:
+            # 任何异常都兜底
+            drama_y = f"h-{int(video_height * 0.15)}"
+            disclaimer_y = f"h-{int(video_height * 0.06)}"
+            return "two_line", "(w-tw)/2", drama_y, "(w-tw)/2", disclaimer_y
+
     def _build_drawtext_filter(self, layer: TextLayer, font_path: str, custom_enable: str = None) -> str:
         """构建FFmpeg drawtext滤镜字符串
 
@@ -326,7 +434,8 @@ class VideoOverlayRenderer:
         input_video: str,
         output_video: str,
         on_progress: Optional[callable] = None,
-        force_badge_style=None
+        force_badge_style=None,
+        project_name: Optional[str] = None,
     ) -> str:
         """在视频上应用花字叠加
 
@@ -392,15 +501,20 @@ class VideoOverlayRenderer:
         print(f"   剧名: {drama_title_font_size}px (原始×0.95, 略小于字幕)")
         print(f"   免责声明: {disclaimer_font_size}px (原始×0.85, 精简)")
 
-        # 动态计算位置（使用视频高度的百分比）
-        # 剧名：底部往上 15% 处
-        drama_title_y = f"h-{int(video_height * 0.15)}"
-        # 免责声明：底部往上 6% 处（剧名下方）
-        disclaimer_y = f"h-{int(video_height * 0.06)}"
+        # 智能定位：根据字幕区域自动计算剧名/免责声明位置
+        _effective_project = project_name or self.config.project_name or None
+        subtitle_region = self._get_subtitle_region(input_video, _effective_project)
 
-        print(f"📍 动态位置:")
-        print(f"   剧名: y={drama_title_y}")
-        print(f"   免责声明: y={disclaimer_y}")
+        layout_mode, drama_title_x, drama_title_y, disclaimer_x, disclaimer_y = \
+            self._calculate_text_layout(
+                subtitle_region, video_width, video_height,
+                drama_title_font_size, disclaimer_font_size
+            )
+
+        print(f"📍 智能定位 (字幕检测{'成功' if subtitle_region else '失败→兜底'}):")
+        print(f"   布局模式: {layout_mode}")
+        print(f"   剧名: x={drama_title_x}, y={drama_title_y}")
+        print(f"   免责声明: x={disclaimer_x}, y={disclaimer_y}")
         print(f"   热门短剧: 由tilted_label模块自动计算（倾斜角标）")
         # ===== 动态分辨率自适应结束 =====
 
@@ -511,8 +625,8 @@ class VideoOverlayRenderer:
             shadow_color=self.style.drama_title.shadow_color,
             shadow_x=self.style.drama_title.shadow_x,
             shadow_y=self.style.drama_title.shadow_y,
-            x="(w-tw)/2",  # 居中
-            y=drama_title_y  # 动态Y位置
+            x=drama_title_x,
+            y=drama_title_y
         )
         drawtext_filters.append(self._build_drawtext_filter(drama_title_layer, font_path))
 
@@ -527,8 +641,8 @@ class VideoOverlayRenderer:
             shadow_color=self.style.disclaimer.shadow_color,
             shadow_x=self.style.disclaimer.shadow_x,
             shadow_y=self.style.disclaimer.shadow_y,
-            x="(w-tw)/2",  # 居中
-            y=disclaimer_y  # 动态Y位置
+            x=disclaimer_x,
+            y=disclaimer_y
         )
         drawtext_filters.append(self._build_drawtext_filter(disclaimer_layer, font_path))
 
@@ -694,7 +808,11 @@ def apply_overlay_to_video(
     )
 
     renderer = VideoOverlayRenderer(config)
-    return renderer.apply_overlay(input_video, output_video, on_progress, force_badge_style=force_badge_style)
+    return renderer.apply_overlay(
+        input_video, output_video, on_progress,
+        force_badge_style=force_badge_style,
+        project_name=project_name,
+    )
 
 
 def batch_apply_overlay(

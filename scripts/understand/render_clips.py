@@ -1060,11 +1060,15 @@ class ClipRenderer:
             universal_newlines=True
         )
 
-        # 实时输出日志
-        for line in process.stdout:
-            print(f"\r  {line.strip()[:100]}", end='', flush=True)
-
-        process.wait()
+        # 等待完成（超时600秒，防止FFmpeg卡死）
+        try:
+            stdout, _ = process.communicate(timeout=600)
+            for line in stdout.splitlines():
+                print(f"\r  {line.strip()[:100]}", end='', flush=True)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.communicate()
+            raise RuntimeError(f"FFmpeg裁剪超时（>600s），已强制终止\n命令: {' '.join(cmd)}")
 
         if process.returncode != 0:
             raise RuntimeError(
@@ -1152,7 +1156,13 @@ class ClipRenderer:
         if on_progress:
             on_progress(0.5)
 
-        process.wait()
+        # 等待完成（超时300秒，防止FFmpeg卡死）
+        try:
+            process.wait(timeout=300)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.communicate()
+            raise RuntimeError("FFmpeg花字拼接超时（>300s），已强制终止")
 
         if on_progress:
             on_progress(1.0)
@@ -1320,8 +1330,13 @@ class ClipRenderer:
                 universal_newlines=True
             )
 
-            # 等待完成并获取输出
-            stdout, stderr = process.communicate()
+            # 等待完成并获取输出（超时300秒，防止FFmpeg卡死）
+            try:
+                stdout, stderr = process.communicate(timeout=300)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.communicate()
+                raise RuntimeError("FFmpeg结尾视频预处理超时（>300s），已强制终止")
 
             if process.returncode != 0:
                 print(f"  ❌ FFmpeg错误输出:")
@@ -1413,8 +1428,13 @@ class ClipRenderer:
                 universal_newlines=True
             )
 
-            # 等待完成
-            process.wait()
+            # 等待完成（超时300秒，片尾拼接通常在1分钟内）
+            try:
+                process.wait(timeout=300)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.communicate()
+                raise RuntimeError("FFmpeg片尾拼接超时（>300s），已强制终止")
 
             if process.returncode != 0:
                 error_output = process.stderr.read()
@@ -1460,7 +1480,8 @@ class ClipRenderer:
             # 应用花字叠加
             result_path = self._overlay_renderer_instance.apply_overlay(
                 input_video=clip_path,
-                output_video=new_output_path
+                output_video=new_output_path,
+                project_name=self.overlay_config.project_name
             )
 
             # 删除原视频文件
@@ -2386,7 +2407,7 @@ def _apply_video_overlay_standalone(clip_path: str, render_params: dict) -> str:
         overlay_path = str(clip_path_obj.parent / overlay_filename)
 
         # 应用花字
-        renderer.apply_overlay(clip_path, overlay_path)
+        renderer.apply_overlay(clip_path, overlay_path, project_name=render_params['project_name'])
 
         # 删除原文件
         Path(clip_path).unlink()

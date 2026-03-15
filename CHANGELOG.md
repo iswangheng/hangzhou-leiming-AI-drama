@@ -5,6 +5,30 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V18.4] - 2026-03-15
+
+### 优化 (Changed)
+
+#### 花字叠加：剧名/免责声明智能定位
+
+**问题**：原版剧名和免责声明位置为固定百分比（底部15%/6%），不考虑字幕区域，可能压住原始字幕，或在字幕靠画面中间时显示在奇怪位置。
+
+**新逻辑**：根据字幕检测结果自动计算最佳放置位置：
+1. **字幕距底部 ≤ 20%**：跟随字幕定位
+   - 字幕下方有足够空间 → 两行居中，紧跟字幕下方
+   - 字幕紧贴底部（下方空间不足）→ 两行居中，放字幕上方
+   - 上下均不足 → 同一行，剧名靠左、免责声明靠右
+2. **字幕距底部 ＞ 20%**（字幕太靠上，跟随会遮挡画面）→ 回落到固定底部位置
+3. **字幕检测失败** → 兜底使用原固定百分比
+
+**字幕来源**：优先读 `data/analysis/{project_name}/subtitle_config.json` 缓存，缓存不存在则实时调用像素变化法检测。
+
+**修改文件**：
+- `scripts/understand/video_overlay/video_overlay.py`：新增 `_get_subtitle_region()`、`_calculate_text_layout()`，`apply_overlay()` 增加 `project_name` 参数
+- `scripts/understand/render_clips.py`：三处 `apply_overlay` 调用补传 `project_name`
+
+---
+
 ## [V18.3] - 2026-03-15
 
 ### 新增 (Added)
