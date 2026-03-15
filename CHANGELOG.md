@@ -5,6 +5,23 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V18.5] - 2026-03-15
+
+### 优化 (Changed)
+
+#### 渲染默认启用视频压缩
+
+**问题**：渲染出来的视频文件过大（50-250MB），不适合直接发布。
+
+**变更**：
+- `--compress` 参数默认值改为 `True`（原来需要手动指定）
+- 新增 `--no-compress` 参数用于禁用压缩
+- 默认压缩目标：100MB
+
+**修改文件**：`scripts/understand/render_clips.py`
+
+---
+
 ## [V18.4] - 2026-03-15
 
 ### 优化 (Changed)

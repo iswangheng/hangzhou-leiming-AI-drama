@@ -3517,13 +3517,18 @@ def main():
     parser.add_argument('--max-clips', type=int, default=0, help='最多渲染的剪辑数量（0=全部渲染）')
     parser.add_argument('--clip-indices', type=str, default='', help='指定要渲染的剪辑索引（逗号分隔，如：0,2,7）')
 
-    # V17: 视频压缩参数
-    parser.add_argument('--compress', action='store_true', help='启用视频压缩（将视频压缩到目标大小以内）')
+    # V17: 视频压缩参数（V18.5: 默认启用）
+    parser.add_argument('--compress', action='store_true', default=True, help='启用视频压缩（默认启用，将视频压缩到目标大小以内）')
+    parser.add_argument('--no-compress', action='store_true', help='禁用视频压缩')
     parser.add_argument('--compress-target', type=int, default=100,
                        choices=[50, 100, 150, 200],
                        help='压缩目标大小（MB，默认100MB，可选50/100/150/200）')
 
     args = parser.parse_args()
+
+    # V18.5: 确定是否启用压缩
+    if args.no_compress:
+        args.compress = False
 
     # 确定是否添加结尾视频
     add_ending = args.add_ending
