@@ -428,12 +428,12 @@ def sort_and_filter_clips(
 
 def _try_make_clip(hl, hk, episode_durations: Dict):
     """尝试从高光+钩子生成一个 Clip，不满足时长约束则返回 None"""
-    from dataclasses import fields as dc_fields
-    # 复用 generate_clips 里的时长约束
-    hl_ep, hl_ts = hl.episode, getattr(hl, 'highlight_timestamp', hl.start_time)
-    hk_ep, hk_ts = hk.episode, getattr(hk, 'hook_timestamp', hk.end_time)
+    hl_ep = hl.episode
+    hk_ep = hk.episode
+    hl_ts = getattr(hl, 'highlight_timestamp', None) or hl.start_time
+    hk_ts = getattr(hk, 'hook_timestamp', None) or hk.end_time
 
-    # 计算累积时间
+    # 计算累积时间（与 generate_clips 内部逻辑一致）
     def cum_time(ep, ts):
         total = 0.0
         for e in sorted(episode_durations.keys()):
@@ -453,17 +453,15 @@ def _try_make_clip(hl, hk, episode_durations: Dict):
         return None
 
     return Clip(
-        start=hl_ts,
-        end=hk_ts,
+        start=start_cum,
+        end=end_cum,
         episode=hl_ep,
-        end_episode=hk_ep,
+        hook_episode=hk_ep,
         duration=duration,
-        highlight_type=getattr(hl, 'highlight_type', None),
-        hook_type=getattr(hk, 'hook_type', None),
-        highlight_confidence=getattr(hl, 'highlight_confidence', 0),
-        hook_confidence=getattr(hk, 'hook_confidence', 0),
-        highlight_description=getattr(hl, 'highlight_description', ''),
-        hook_description=getattr(hk, 'hook_description', ''),
+        highlight_type=getattr(hl, 'highlight_type', '') or '',
+        hook_type=getattr(hk, 'hook_type', '') or '',
+        highlight_desc=getattr(hl, 'highlight_description', '') or '',
+        hook_desc=getattr(hk, 'hook_description', '') or '',
     )
 
 
