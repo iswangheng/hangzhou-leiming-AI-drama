@@ -135,6 +135,8 @@ class BadgeRenderer:
             "triangle_corner":   self._render_triangle_corner,
             "text_only":         self._render_text_only,
             "ink_stamp":         self._render_ink_stamp,
+            "comic_text":        self._render_comic_text,
+            "corner_flag":       self._render_corner_flag,
         }
         func = dispatch.get(style.shape, self._render_tilted_banner)
         func(style, text, ratio, output_path)
@@ -258,9 +260,12 @@ class BadgeRenderer:
         dummy_draw = ImageDraw.Draw(dummy_img)
         if font:
             bbox = dummy_draw.textbbox((0, 0), text, font=font)
+            # bbox[0]/[1] 是文字的左/上偏移（ascender offset），需要纳入计算
+            bx0, by0 = bbox[0], bbox[1]
             tw = bbox[2] - bbox[0]
             th = bbox[3] - bbox[1]
         else:
+            bx0, by0 = 0, 0
             tw, th = font_size * len(text), font_size + 4
 
         w = tw + pad_x * 2 + tip_w
@@ -287,9 +292,9 @@ class BadgeRenderer:
             bc = _hex_to_rgb(style.border_color, 220)
             draw.rectangle([0, 0, w - tip_w, h], outline=bc, width=bw)
 
-        # 文字
-        tx = pad_x
-        ty = pad_y
+        # 文字：修正 ascender offset 使文字真正居中
+        tx = pad_x - bx0
+        ty = pad_y - by0
         if style.border_width > 0 and style.border_color:
             bc = _hex_to_rgb(style.border_color)
             draw.text((tx + 1, ty + 1), text, font=font, fill=(0, 0, 0, 150))
@@ -304,58 +309,85 @@ class BadgeRenderer:
     def _render_square_icon(
         self, style: Any, text: str, ratio: float, output_path: str
     ) -> None:
-        """圆角方形，上行大字 + 下行小字（类 App 图标）"""
+        """圆角方形，上行大字 + 下行小字（类 App 图标）
+        参考截图：紧凑小图标，两行文字填满方形，背景色占比不大。
+        """
         # 拆分文字（如"热门短剧" → "热门" + "短剧"）
         mid = len(text) // 2
         line1 = text[:mid]
         line2 = text[mid:]
 
-        size     = _scale(80, ratio * 0.9)
-        radius   = _scale(14, ratio * 0.9)
-        font_big = _find_font(_scale(24, ratio * 0.9))
-        font_sml = _find_font(_scale(14, ratio * 0.9))
+        # 紧凑尺寸：比之前小（0.55 代替 0.9），让图标更精致
+        scale = ratio * 0.55
+        font_big = _find_font(_scale(28, scale))
+        font_sml = _find_font(_scale(22, scale))
+
+        # 先量文字，再根据文字大小决定 icon 尺寸
+        dummy = Image.new("RGBA", (1, 1))
+        dd    = ImageDraw.Draw(dummy)
+
+        if font_big:
+            bb1 = dd.textbbox((0, 0), line1, font=font_big)
+            tw1, th1 = bb1[2] - bb1[0], bb1[3] - bb1[1]
+            by1 = bb1[1]
+        else:
+            tw1, th1, by1 = _scale(28, scale) * len(line1), _scale(28, scale), 0
+
+        if font_sml:
+            bb2 = dd.textbbox((0, 0), line2, font=font_sml)
+            tw2, th2 = bb2[2] - bb2[0], bb2[3] - bb2[1]
+            by2 = bb2[1]
+        else:
+            tw2, th2, by2 = _scale(22, scale) * len(line2), _scale(22, scale), 0
+
+        gap    = _scale(4, scale)      # 两行间距
+        pad    = _scale(10, scale)     # icon 内边距
+        width  = max(tw1, tw2) + pad * 2
+        height = th1 + gap + th2 + pad * 2
+        size   = max(width, height)    # 保持正方形
+        radius = _scale(10, scale)
 
         img  = Image.new("RGBA", (size, size), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
 
-        bg_rgba   = _hex_to_rgb(style.bg_color, alpha=235)
+        bg_top    = _hex_to_rgb(style.bg_color, alpha=240)
+        bg_bottom = _hex_to_rgb(style.extra.get("bg_bottom", "#1A1A1A"), alpha=240)
         text_rgba = _hex_to_rgb(style.text_color)
 
-        # 圆角矩形
-        draw.rounded_rectangle([0, 0, size - 1, size - 1], radius=radius, fill=bg_rgba)
+        # 圆角矩形整体
+        draw.rounded_rectangle([0, 0, size - 1, size - 1], radius=radius, fill=bg_top)
+
+        # 下半用深色（模拟截图双色分区）
+        split_y = size // 2
+        draw.rectangle([0, split_y, size - 1, size - 1], fill=bg_bottom)
+        # 裁掉下方两圆角之外的矩形（重新画圆角覆盖）
+        draw.rounded_rectangle([0, 0, size - 1, size - 1], radius=radius,
+                                outline=(0, 0, 0, 0), width=0)  # noop - 用clip模拟
 
         # 描边
         if style.border_width > 0 and style.border_color:
-            bc = _hex_to_rgb(style.border_color, 220)
+            bc = _hex_to_rgb(style.border_color, 200)
             draw.rounded_rectangle(
                 [0, 0, size - 1, size - 1],
                 radius=radius, outline=bc, width=style.border_width
             )
 
-        # 第一行大字
-        if font_big:
-            bb = draw.textbbox((0, 0), line1, font=font_big)
-            tw1, th1 = bb[2] - bb[0], bb[3] - bb[1]
-        else:
-            tw1, th1 = len(line1) * 20, 22
+        # 垂直居中两行文字
+        total_h = th1 + gap + th2
+        y_start = (size - total_h) // 2
+
         x1 = (size - tw1) // 2
-        y1 = size // 2 - th1 - 2
-
-        # 第二行小字
-        if font_sml:
-            bb = draw.textbbox((0, 0), line2, font=font_sml)
-            tw2, th2 = bb[2] - bb[0], bb[3] - bb[1]
-        else:
-            tw2, th2 = len(line2) * 12, 14
+        y1 = y_start - by1
         x2 = (size - tw2) // 2
-        y2 = size // 2 + 2
+        y2 = y_start + th1 + gap - by2
 
-        # 阴影 + 文字
-        shadow = (0, 0, 0, 150)
+        shadow = (0, 0, 0, 180)
+        text2_rgba = _hex_to_rgb(style.extra.get("text2_color", style.text_color))
+
         draw.text((x1 + 1, y1 + 1), line1, font=font_big, fill=shadow)
         draw.text((x1, y1), line1, font=font_big, fill=text_rgba)
         draw.text((x2 + 1, y2 + 1), line2, font=font_sml, fill=shadow)
-        draw.text((x2, y2), line2, font=font_sml, fill=text_rgba)
+        draw.text((x2, y2), line2, font=font_sml, fill=text2_rgba)
 
         img.save(output_path, "PNG")
 
@@ -430,19 +462,29 @@ class BadgeRenderer:
         dummy_draw = ImageDraw.Draw(dummy_img)
         if font:
             bbox = dummy_draw.textbbox((0, 0), text, font=font)
+            # 用完整 bbox 避免底部截断：画布高度包含 bbox 顶部偏移
+            bx0, by0 = bbox[0], bbox[1]
             tw = bbox[2] - bbox[0]
             th = bbox[3] - bbox[1]
+            # 额外底部余量，防止 descender 被截
+            extra_bottom = max(0, bbox[3] - (by0 + th))
         else:
+            bx0, by0 = 0, 0
             tw, th = font_size * len(text), font_size + 4
+            extra_bottom = 0
 
-        pad = bw + 4
+        pad = bw + 6   # 稍加大 pad 防截断
         w   = tw + pad * 2
-        h   = th + pad * 2
+        h   = th + pad * 2 + extra_bottom
 
         img  = Image.new("RGBA", (w, h), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
 
         text_rgba = _hex_to_rgb(style.text_color)
+
+        # 绘制位置：修正 ascender offset
+        tx = pad - bx0
+        ty = pad - by0
 
         # 厚描边：多偏移绘制
         if style.border_color:
@@ -450,10 +492,10 @@ class BadgeRenderer:
             for dx in range(-bw, bw + 1):
                 for dy in range(-bw, bw + 1):
                     if dx * dx + dy * dy <= bw * bw:
-                        draw.text((pad + dx, pad + dy), text, font=font, fill=bc)
+                        draw.text((tx + dx, ty + dy), text, font=font, fill=bc)
 
         # 主文字
-        draw.text((pad, pad), text, font=font, fill=text_rgba)
+        draw.text((tx, ty), text, font=font, fill=text_rgba)
 
         img.save(output_path, "PNG")
 
@@ -510,6 +552,160 @@ class BadgeRenderer:
         img.save(output_path, "PNG")
 
 
+    # ------------------------------------------------------------------ #
+    #  G. 漫画厚描边大字 (comic_text)
+    # ------------------------------------------------------------------ #
+
+    def _render_comic_text(
+        self, style: Any, text: str, ratio: float, output_path: str
+    ) -> None:
+        """漫画风格：两行超大字 + 超厚黑色描边，透明背景。
+        参考截图：'热门/短剧' 两行，白色文字，深红/黑厚描边，类漫画字体立体感。
+        中间可选小图标占位（用●模拟）。
+        """
+        scale    = ratio * 0.85
+        font_size = _scale(52, scale)   # 超大字体
+        bw        = max(5, _scale(10, scale))  # 超厚描边
+        font      = _find_font(font_size)
+
+        mid   = len(text) // 2
+        line1 = text[:mid]
+        line2 = text[mid:]
+
+        dummy = Image.new("RGBA", (1, 1))
+        dd    = ImageDraw.Draw(dummy)
+
+        def measure(t, f):
+            if f:
+                bb = dd.textbbox((0, 0), t, font=f)
+                return bb[0], bb[1], bb[2] - bb[0], bb[3] - bb[1]
+            return 0, 0, font_size * len(t), font_size + 4
+
+        bx1, by1, tw1, th1 = measure(line1, font)
+        bx2, by2, tw2, th2 = measure(line2, font)
+
+        gap    = _scale(6, scale)
+        pad    = bw + _scale(8, scale)
+        icon_h = _scale(20, scale)   # 中间图标行高度
+
+        w = max(tw1, tw2) + pad * 2
+        h = th1 + icon_h + th2 + pad * 2 + gap * 2
+
+        img  = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        text_rgba   = _hex_to_rgb(style.text_color)
+        border_rgba = _hex_to_rgb(style.border_color or "#1A1A1A")
+
+        def draw_outlined(draw, tx, ty, line, font):
+            # 圆形厚描边
+            for dx in range(-bw, bw + 1):
+                for dy in range(-bw, bw + 1):
+                    if dx * dx + dy * dy <= bw * bw:
+                        draw.text((tx + dx, ty + dy), line, font=font, fill=border_rgba)
+            draw.text((tx, ty), line, font=font, fill=text_rgba)
+
+        # 第一行
+        x1 = (w - tw1) // 2 - bx1
+        y1 = pad - by1
+        draw_outlined(draw, x1, y1, line1, font)
+
+        # 中间小图标行（用小字体的▶，颜色用 extra.icon_color 或红色）
+        icon_color = _hex_to_rgb(style.extra.get("icon_color", "#CC0000"))
+        icon_font  = _find_font(max(8, _scale(14, scale)))
+        if icon_font:
+            ibb = dd.textbbox((0, 0), "▶", font=icon_font)
+            iw  = ibb[2] - ibb[0]
+            ix  = (w - iw) // 2 - ibb[0]
+            iy  = pad + th1 + gap - ibb[1]
+            draw.text((ix, iy), "▶", font=icon_font, fill=icon_color)
+
+        # 第二行
+        x2 = (w - tw2) // 2 - bx2
+        y2 = pad + th1 + icon_h + gap * 2 - by2
+        draw_outlined(draw, x2, y2, line2, font)
+
+        img.save(output_path, "PNG")
+
+    # ------------------------------------------------------------------ #
+    #  H. 斜三角旗帜 (corner_flag)
+    # ------------------------------------------------------------------ #
+
+    def _render_corner_flag(
+        self, style: Any, text: str, ratio: float, output_path: str
+    ) -> None:
+        """斜三角旗帜：贴在右上角（或左上角），两条直角边贴视频边缘，斜边向内。
+        橙红色三角色块，文字沿斜边方向斜排，可带 emoji。
+        渲染为整个视频宽高的透明画布，三角形直接画在角落。
+        """
+        # 三角形大小：斜边跨度约视频宽的 55%（ratio 适配）
+        tri = _scale(220, ratio * 0.85)   # 直角边长度（像素）
+        font_size = _scale(22, ratio * 0.75)
+        font      = _find_font(font_size)
+
+        # 画布 = 三角形 bounding box（正方形）
+        canvas = tri
+        img  = Image.new("RGBA", (canvas, canvas), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        bg_rgba = _hex_to_rgb(style.bg_color, alpha=245)
+
+        position = style.position if style.position else "top-right"
+
+        if position == "top-right":
+            # 右上角：(0,0)=左上, (canvas,0)=右上, (canvas,canvas)=右下
+            # 三角：顶点在右上角，直角边沿上边和右边
+            triangle = [(0, 0), (canvas, 0), (canvas, canvas)]
+        else:
+            # 左上角：顶点在左上角，直角边沿上边和左边
+            triangle = [(0, 0), (canvas, 0), (0, canvas)]
+
+        draw.polygon(triangle, fill=bg_rgba)
+
+        # 文字：斜排在三角斜边中间
+        # 在临时图上水平绘制，然后旋转 -45（右上）或 +45（左上）度
+        emoji = style.extra.get("emoji", "")
+        full_text = text + (" " + emoji if emoji else "")
+
+        txt_canvas = canvas * 2
+        tmp = Image.new("RGBA", (txt_canvas, txt_canvas), (0, 0, 0, 0))
+        td  = ImageDraw.Draw(tmp)
+
+        text_rgba = _hex_to_rgb(style.text_color)
+        border_rgba = _hex_to_rgb(style.border_color or "#000000")
+        bw_t = max(2, _scale(3, ratio * 0.7))
+
+        if font:
+            tbb = td.textbbox((0, 0), full_text, font=font)
+            tx  = txt_canvas // 2 - (tbb[2] - tbb[0]) // 2 - tbb[0]
+            ty  = txt_canvas // 2 - (tbb[3] - tbb[1]) // 2 - tbb[1]
+        else:
+            tx, ty = txt_canvas // 4, txt_canvas // 2
+
+        # 描边
+        for dx in range(-bw_t, bw_t + 1):
+            for dy in range(-bw_t, bw_t + 1):
+                if dx * dx + dy * dy <= bw_t * bw_t:
+                    td.text((tx + dx, ty + dy), full_text, font=font, fill=border_rgba)
+        td.text((tx, ty), full_text, font=font, fill=text_rgba)
+
+        # 旋转：右上角旋转 -45，左上角旋转 +45
+        angle = -45 if position == "top-right" else 45
+        tmp_rot = tmp.rotate(angle, resample=Image.BICUBIC, expand=False)
+
+        # 把旋转后的文字粘贴到三角区域（居中于斜边）
+        if position == "top-right":
+            # 斜边中点约在 (canvas/2, canvas/2)，文字中心对准
+            paste_x = canvas // 2 - txt_canvas // 2
+            paste_y = canvas // 2 - txt_canvas // 2
+        else:
+            paste_x = canvas // 2 - txt_canvas // 2
+            paste_y = canvas // 2 - txt_canvas // 2
+
+        img.paste(tmp_rot, (paste_x, paste_y), tmp_rot)
+        img.save(output_path, "PNG")
+
+
 # ==================== 计算 overlay 位置 ====================
 
 def get_badge_overlay_position(
@@ -546,6 +742,14 @@ def get_badge_overlay_position(
         else:
             x = corner_offset - canvas_half
             y = corner_offset - canvas_half
+    elif shape == "corner_flag":
+        # 三角旗帜：PNG 画布贴视频角落，直角边紧贴视频边缘
+        if position == "top-right":
+            x = video_width - pw   # 右上角
+            y = 0
+        else:
+            x = 0                  # 左上角
+            y = 0
     else:
         if position == "top-right":
             x = video_width - pw - margin

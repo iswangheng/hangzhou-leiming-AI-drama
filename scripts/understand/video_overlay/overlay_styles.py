@@ -587,41 +587,46 @@ def _get_badge_styles():
         ),
 
         # ── B类：圆角方形 (square_icon) — 左右随机 ─────────────────────────
+        # 参考截图：上半橙红+下半黑，上行大字+下行小字，紧凑精致
         BadgeStyle(
             id="square_redorange",
             name="橙红方块",
             shape="square_icon",
-            bg_color="#E84040",
+            bg_color="#E84040",        # 上半橙红
             text_color="#FFFFFF",
             border_color="#000000",
             border_width=2,
+            extra={"bg_bottom": "#1A1A1A", "text2_color": "#FFFFFF"},
         ),
         BadgeStyle(
             id="square_darkred",
             name="深红方块",
             shape="square_icon",
-            bg_color="#8B0000",
+            bg_color="#CC0022",        # 上半深红
             text_color="#FFFFFF",
             border_color="#FFFFFF",
-            border_width=2,
+            border_width=1,
+            extra={"bg_bottom": "#1A1A1A", "text2_color": "#FFFFFF"},
         ),
         BadgeStyle(
             id="square_gold",
             name="金色方块",
             shape="square_icon",
-            bg_color="#FFD700",
+            bg_color="#FFD700",        # 上半金黄
             text_color="#1A1A1A",
-            border_color="#000000",
+            border_color="#1A1A1A",
             border_width=2,
+            extra={"bg_bottom": "#8B5E00", "text2_color": "#FFFFFF"},
         ),
         BadgeStyle(
             id="square_black",
             name="黑红方块",
             shape="square_icon",
-            bg_color="#1A1A1A",
-            text_color="#FF6666",   # 亮红色（更亮，提升对比度）
+            bg_color="#1A1A1A",        # 上半黑
+            text_color="#FF5555",
             border_color="#FF4444",
             border_width=2,
+            extra={"bg_bottom": "#CC0000", "text2_color": "#FFFFFF"},
         ),
 
         # ── C类：纯文字描边 (text_only) — 左右随机 ─────────────────────────
@@ -653,30 +658,36 @@ def _get_badge_styles():
             border_width=4,
         ),
 
-        # ── D类：倾斜条幅有背景 (tilted_banner) — 固定左上角 ──────────────
-        # 45度旋转方向决定只适合左上角；字体对齐原始 tilted_label.py（base 28px/60px）
+        # ── D类：透明背景倾斜文字变体 (tilted_text) — 固定左上角 ──────────────
+        # 原 tilted_banner 系列改为无背景透明风格，与 E 类统一
         BadgeStyle(
             id="tilted_red",
-            name="红色斜幅",
-            shape="tilted_banner",
-            bg_color="#CC0000",
-            text_color="#FFFFFF",
+            name="红字白边斜字",
+            shape="tilted_text",
+            bg_color="transparent",
+            text_color="#FF2222",
+            border_color="#FFFFFF",
+            border_width=6,
             position="top-left",
         ),
         BadgeStyle(
             id="tilted_gold",
-            name="金色斜幅",
-            shape="tilted_banner",
-            bg_color="#FFD700",
-            text_color="#1A1A1A",
+            name="金字红边斜字",
+            shape="tilted_text",
+            bg_color="transparent",
+            text_color="#FFD700",
+            border_color="#CC0000",
+            border_width=6,
             position="top-left",
         ),
         BadgeStyle(
             id="tilted_black",
-            name="黑橙斜幅",
-            shape="tilted_banner",
-            bg_color="#1A1A1A",
-            text_color="#FF8C00",
+            name="白字黑边斜字",
+            shape="tilted_text",
+            bg_color="transparent",
+            text_color="#FFFFFF",
+            border_color="#1A1A1A",
+            border_width=7,
             position="top-left",
         ),
 
@@ -721,6 +732,75 @@ def _get_badge_styles():
             border_color="#1A1A1A",
             border_width=6,
             position="top-left",
+        ),
+
+        # ── F类：漫画厚描边大字 (comic_text) — 左右随机 ──────────────────────
+        # 参考截图：两行超大字，白色文字+深红/黑超厚描边，透明背景，中间▶图标
+        BadgeStyle(
+            id="comic_white_darkred",
+            name="漫画白字深红边",
+            shape="comic_text",
+            bg_color="transparent",
+            text_color="#FFFFFF",
+            border_color="#8B0000",
+            border_width=10,
+            extra={"icon_color": "#CC0000"},
+        ),
+        BadgeStyle(
+            id="comic_white_black",
+            name="漫画白字黑边",
+            shape="comic_text",
+            bg_color="transparent",
+            text_color="#FFFFFF",
+            border_color="#1A1A1A",
+            border_width=10,
+            extra={"icon_color": "#FF2222"},
+        ),
+        BadgeStyle(
+            id="comic_gold_black",
+            name="漫画金字黑边",
+            shape="comic_text",
+            bg_color="transparent",
+            text_color="#FFD700",
+            border_color="#1A1A1A",
+            border_width=10,
+            extra={"icon_color": "#CC0000"},
+        ),
+
+        # ── G类：斜三角旗帜 (corner_flag) — 固定右上角 ───────────────────────
+        # 参考截图：右上角橙红三角，文字斜排+🔥，直角边贴视频边缘
+        BadgeStyle(
+            id="flag_red",
+            name="红色三角旗",
+            shape="corner_flag",
+            bg_color="#E84040",
+            text_color="#FFFFFF",
+            border_color="#1A1A1A",
+            border_width=3,
+            position="top-right",
+            extra={"emoji": "🔥"},
+        ),
+        BadgeStyle(
+            id="flag_orange",
+            name="橙色三角旗",
+            shape="corner_flag",
+            bg_color="#FF6B35",
+            text_color="#FFFFFF",
+            border_color="#1A1A1A",
+            border_width=3,
+            position="top-right",
+            extra={"emoji": "🔥"},
+        ),
+        BadgeStyle(
+            id="flag_dark",
+            name="黑金三角旗",
+            shape="corner_flag",
+            bg_color="#1A1A1A",
+            text_color="#FFD700",
+            border_color="#8B5E00",
+            border_width=2,
+            position="top-right",
+            extra={"emoji": "⭐"},
         ),
     ]
 
