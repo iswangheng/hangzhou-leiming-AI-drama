@@ -1,53 +1,29 @@
-# dependencies
-node_modules/
-.pnp/
-.pnp.js
+# ========================
+# Python
+# ========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
 
-# build
-.next/
-out/
-dist/
-build/
-
-# misc
+# ========================
+# 环境 & IDE
+# ========================
+.env
+.env*.local
+.venv/
+venv/
+.idea/
+.vscode/
 .DS_Store
 *.pem
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# local env files
-.env*.local
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# IDE
-.idea/
-.vscode/
-
-# Project-specific
-# 数据和缓存文件（不应提交到Git）
-data/hangzhou-leiming/cache/
-data/hangzhou-leiming/projects/
-data/hangzhou-leiming/analysis/  # 分析结果和剪辑数据
-
-# 剪辑输出（不应提交到Git）
-clips/  # 渲染后的视频剪辑文件
-
-# 媒体文件（训练和测试素材，不应提交到Git）
-
-# 视频文件（例外：标准结尾帧视频素材文件夹）
+# ========================
+# 媒体文件（视频/音频/图片）
+# ========================
 *.mp4
 *.MP4
-!标准结尾帧视频素材/*.mp4
-!标准结尾帧视频素材/*.MP4
 *.avi
 *.AVI
 *.mov
@@ -58,8 +34,6 @@ clips/  # 渲染后的视频剪辑文件
 *.FLV
 *.wmv
 *.WMV
-
-# 音频文件
 *.wav
 *.WAV
 *.mp3
@@ -68,8 +42,6 @@ clips/  # 渲染后的视频剪辑文件
 *.AAC
 *.m4a
 *.M4A
-
-# 图片文件（关键帧、截图等）
 *.jpg
 *.JPG
 *.jpeg
@@ -83,40 +55,35 @@ clips/  # 渲染后的视频剪辑文件
 *.bmp
 *.BMP
 
-# 训练和测试素材文件夹
+# 例外：结尾视频素材需要提交
+!标准结尾帧视频素材/*.mp4
+!标准结尾帧视频素材/*.MP4
+
+# ========================
+# 项目数据 & 缓存（不提交）
+# ========================
+# 原始素材
 漫剧素材/
 漫剧参考/
 新的漫剧素材/
+待剪辑项目/
 
-# 标准结尾帧视频素材（需要提交到Git，供系统使用）
-!标准结尾帧视频素材/
+# 数据缓存（关键帧、ASR、音频、分析结果）
+data/cache/
+data/ending_credits/
+data/analysis/
 
-# data目录中的媒体文件
-data/**/*.mp4
-data/**/*.MP4
-data/**/*.avi
-data/**/*.AVI
-data/**/*.mov
-data/**/*.MOV
-data/**/*.wav
-data/**/*.WAV
-data/**/*.mp3
-data/**/*.MP3
-data/**/*.jpg
-data/**/*.JPG
-data/**/*.jpeg
-data/**/*.JPEG
-data/**/*.png
-data/**/*.PNG
+# 渲染输出
+clips/
 
-# 技能文件（v0.6及以后的版本需要提交，旧版本不提交）
-data/hangzhou-leiming/skills/v0.6.*
-data/hangzhou-leiming/skills/v0.6.2.*
-data/hangzhou-leiming/skills/v0.7.*
-data/hangzhou-leiming/skills/v0.*
-!data/hangzhou-leiming/skills/v0.5.*
-!data/hangzhou-leiming/skills/v0.4.*
+# 花字样式缓存
+.overlay_style_cache/
 
-# Archive目录内容（归档文件不需要跟踪）
-archive/*/
-!archive/.gitkeep
+# ========================
+# 日志 & 临时文件
+# ========================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tsbuildinfo
