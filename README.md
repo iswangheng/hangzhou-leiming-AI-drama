@@ -6,6 +6,15 @@
 
 ## 最新更新 ✨
 
+### V18.3 - 角标展示脚本 + 依赖补全 (2026-03-15)
+
+- 新增 `test/test_badge_showcase.py`：一键生成全部22种角标样式截图 + 4列汇总大图
+- `apply_overlay_to_video()` 新增 `force_badge_style` 参数，支持外部指定角标样式
+- `requirements.txt` 补全 numpy / paddlepaddle / paddleocr / requests，删除重复的 `scripts/requirements.txt`
+- 新增 `install.sh` 一键安装脚本（自动处理 FFmpeg、PyTorch GPU/CPU 分路、PaddlePaddle、中文字体检测）
+
+---
+
 ### V15.6 - 视频花字叠加优化 (2026-03-08) 🎨
 
 **核心改进**：
@@ -328,6 +337,9 @@ hangzhou-leiming-ai-drama/
 ## 快速开始
 
 ```bash
+# 0. 安装依赖（首次运行）
+bash install.sh
+
 # 1. 检查数据提取进度
 python -m scripts.check_progress
 
@@ -351,6 +363,10 @@ python -m scripts.understand.video_understand "漫剧素材/项目名" --skill-f
 
 ## 版本历史
 
+- **v18.3** (2026-03-15): 角标展示脚本 + 依赖补全 + install.sh
+- **v18.2** (2026-03-14): 修复 comic_text 过大问题
+- **v18.1** (2026-03-14): 新增漫画厚描边 + 斜三角旗帜角标
+- **v18.0** (2026-03-14): 角标模块重构，22种多形态随机样式
 - **v17** (2026-03-11): 跨集单次编码 - 启用V16.3优化，跨集剪辑速度提升~66%
 - **v16.4** (2026-03-11): 片尾缓存格式统一 + 临时目录清理修复
 - **v16.3** (2026-03-11): 渲染性能优化 - 单次编码、智能Worker、结尾预缓存、分辨率自适应

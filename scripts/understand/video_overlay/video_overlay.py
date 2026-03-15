@@ -325,7 +325,8 @@ class VideoOverlayRenderer:
         self,
         input_video: str,
         output_video: str,
-        on_progress: Optional[callable] = None
+        on_progress: Optional[callable] = None,
+        force_badge_style=None
     ) -> str:
         """在视频上应用花字叠加
 
@@ -419,7 +420,7 @@ class VideoOverlayRenderer:
         # ===== V18: 随机20种角标样式，每clip独立随机 =====
         import random as _random
 
-        badge_style   = get_random_badge_style()
+        badge_style = force_badge_style if force_badge_style is not None else get_random_badge_style()
         # tilted_text 系列只用「热门短剧」「爆款短剧」两种文案
         if badge_style.shape == "tilted_text":
             badge_text = _random.choice(["热门短剧", "爆款短剧"])
@@ -663,7 +664,8 @@ def apply_overlay_to_video(
     disclaimer: Optional[str] = None,
     enabled: bool = True,
     hot_drama_position: str = "top-right",
-    on_progress: Optional[callable] = None
+    on_progress: Optional[callable] = None,
+    force_badge_style=None
 ) -> str:
     """便捷函数：为单个视频应用花字叠加
 
@@ -677,6 +679,7 @@ def apply_overlay_to_video(
         enabled: 是否启用花字叠加
         hot_drama_position: 热门短剧角标位置（"top-left" 或 "top-right"）
         on_progress: 进度回调函数
+        force_badge_style: 强制指定角标样式（BadgeStyle对象，None表示随机选择）
 
     Returns:
         输出视频路径
@@ -691,7 +694,7 @@ def apply_overlay_to_video(
     )
 
     renderer = VideoOverlayRenderer(config)
-    return renderer.apply_overlay(input_video, output_video, on_progress)
+    return renderer.apply_overlay(input_video, output_video, on_progress, force_badge_style=force_badge_style)
 
 
 def batch_apply_overlay(

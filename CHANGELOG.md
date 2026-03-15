@@ -5,6 +5,34 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [V18.3] - 2026-03-15
+
+### 新增 (Added)
+
+#### 角标样式汇总展示脚本
+
+- 新增 `test/test_badge_showcase.py`：一键遍历全部22种角标样式，分别渲染完整三层花字（角标 + 剧名 + 免责声明），截取第3秒帧并拼成4列汇总大图
+- 输出：`test/output/showcase/<style_id>.jpg`（22张单独截图）+ `test/output/showcase/_all_styles.jpg`（汇总大图）
+
+#### force_badge_style 参数
+
+- `apply_overlay_to_video()` 和 `VideoOverlayRenderer.apply_overlay()` 新增可选参数 `force_badge_style=None`
+- 传入 `BadgeStyle` 对象时跳过随机逻辑，直接使用指定样式（供测试/展示脚本使用）
+
+#### 依赖文档补全
+
+- `requirements.txt` 补全缺失依赖：`numpy>=1.24.0`、`paddlepaddle>=2.6.0`、`paddleocr>=2.7.0`、`requests>=2.31.0`，每条加注释说明用途
+- 删除重复的 `scripts/requirements.txt`，统一由根目录 `requirements.txt` 管理
+- 新增 `install.sh` 一键安装脚本，自动处理：
+  - Python 版本检查（要求 3.8+）
+  - FFmpeg 安装（macOS/Linux）及 drawtext 滤镜验证
+  - PyTorch CPU/CUDA 版本自动分路
+  - PaddlePaddle CPU/GPU 版本自动分路（清华镜像加速）
+  - 中文字体检测与提示
+  - `.env` / `GEMINI_API_KEY` 配置引导
+
+---
+
 ## [V18.0] - 2026-03-14
 
 ### 新增 (Added)
