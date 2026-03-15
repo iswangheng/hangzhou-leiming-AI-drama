@@ -586,13 +586,15 @@ class VideoOverlayRenderer:
             # 阶段2：应用drawtext滤镜（剧名、免责声明）
             if drawtext_filter_complex:
                 # 先overlay PNG，再应用drawtext滤镜
-                filter_complex = f"[0:v][1:v]overlay=x={badge_x}:y={badge_y}[v1];[v1]{drawtext_filter_complex}"
+                filter_complex = f"[0:v][1:v]overlay=x={badge_x}:y={badge_y}[v1];[v1]{drawtext_filter_complex}[vout]"
                 cmd = [
                     'ffmpeg',
                     '-y',  # 覆盖输出文件
                     '-i', input_video,
                     '-i', tilted_png_path,  # 第二个输入：PNG
                     '-filter_complex', filter_complex,
+                    '-map', '[vout]',
+                    '-map', '0:a?',
                     '-shortest',  # V17.5修复：确保输出时长以视频为准
                     '-c:a', 'copy',  # 音频直接复制，不重新编码
                     '-movflags', '+faststart',  # 优化Web播放
@@ -600,13 +602,15 @@ class VideoOverlayRenderer:
                 ]
             else:
                 # 只有overlay PNG
-                filter_complex = f"[0:v][1:v]overlay=x={badge_x}:y={badge_y}"
+                filter_complex = f"[0:v][1:v]overlay=x={badge_x}:y={badge_y}[vout]"
                 cmd = [
                     'ffmpeg',
                     '-y',
                     '-i', input_video,
                     '-i', tilted_png_path,
                     '-filter_complex', filter_complex,
+                    '-map', '[vout]',
+                    '-map', '0:a?',
                     '-shortest',  # V17.5修复
                     '-c:a', 'copy',
                     '-movflags', '+faststart',
@@ -638,7 +642,7 @@ class VideoOverlayRenderer:
 
         print(f"📝 叠加内容:")
         if tilted_png_path and Path(tilted_png_path).exists():
-            print(f"  1. 热门短剧（倾斜角标，右上角）- PNG预渲染，位置({x}, {y})")
+            print(f"  1. 热门短剧（倾斜角标，右上角）- PNG预渲染，位置({badge_x}, {badge_y})")
         else:
             print(f"  1. 热门短剧（跳过，PNG生成失败或未启用）")
         print(f"  2. {self.style.drama_title.text}")
