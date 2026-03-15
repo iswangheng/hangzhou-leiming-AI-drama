@@ -767,41 +767,6 @@ def _get_badge_styles():
             extra={"icon_color": "#CC0000"},
         ),
 
-        # ── G类：斜三角旗帜 (corner_flag) — 固定右上角 ───────────────────────
-        # 参考截图：右上角橙红三角，文字斜排+🔥，直角边贴视频边缘
-        BadgeStyle(
-            id="flag_red",
-            name="红色三角旗",
-            shape="corner_flag",
-            bg_color="#E84040",
-            text_color="#FFFFFF",
-            border_color="#1A1A1A",
-            border_width=3,
-            position="top-right",
-            extra={"emoji": "🔥"},
-        ),
-        BadgeStyle(
-            id="flag_orange",
-            name="橙色三角旗",
-            shape="corner_flag",
-            bg_color="#FF6B35",
-            text_color="#FFFFFF",
-            border_color="#1A1A1A",
-            border_width=3,
-            position="top-right",
-            extra={"emoji": "🔥"},
-        ),
-        BadgeStyle(
-            id="flag_dark",
-            name="黑金三角旗",
-            shape="corner_flag",
-            bg_color="#1A1A1A",
-            text_color="#FFD700",
-            border_color="#8B5E00",
-            border_width=2,
-            position="top-right",
-            extra={"emoji": "⭐"},
-        ),
     ]
 
 

@@ -136,7 +136,6 @@ class BadgeRenderer:
             "text_only":         self._render_text_only,
             "ink_stamp":         self._render_ink_stamp,
             "comic_text":        self._render_comic_text,
-            "corner_flag":       self._render_corner_flag,
         }
         func = dispatch.get(style.shape, self._render_tilted_banner)
         func(style, text, ratio, output_path)
@@ -559,13 +558,14 @@ class BadgeRenderer:
     def _render_comic_text(
         self, style: Any, text: str, ratio: float, output_path: str
     ) -> None:
-        """漫画风格：两行超大字 + 超厚黑色描边，透明背景。
+        """漫画风格：两行大字 + 超厚描边，透明背景。
         参考截图：'热门/短剧' 两行，白色文字，深红/黑厚描边，类漫画字体立体感。
-        中间可选小图标占位（用●模拟）。
+        尺寸对齐 tilted_text：scale_factor = ratio * 0.8，base 32px。
         """
-        scale    = ratio * 0.85
-        font_size = _scale(52, scale)   # 超大字体
-        bw        = max(5, _scale(10, scale))  # 超厚描边
+        scale_factor = ratio * 0.8      # 与 tilted_text 保持一致
+        font_size = int(32 * scale_factor)
+        font_size = font_size if font_size % 2 == 0 else font_size + 1
+        bw        = max(3, int(7 * scale_factor))   # 厚描边，随分辨率缩放
         font      = _find_font(font_size)
 
         mid   = len(text) // 2
@@ -584,9 +584,9 @@ class BadgeRenderer:
         bx1, by1, tw1, th1 = measure(line1, font)
         bx2, by2, tw2, th2 = measure(line2, font)
 
-        gap    = _scale(6, scale)
-        pad    = bw + _scale(8, scale)
-        icon_h = _scale(20, scale)   # 中间图标行高度
+        gap    = _scale(4, scale_factor)
+        pad    = bw + _scale(6, scale_factor)
+        icon_h = _scale(14, scale_factor)   # 中间图标行高度
 
         w = max(tw1, tw2) + pad * 2
         h = th1 + icon_h + th2 + pad * 2 + gap * 2
@@ -610,9 +610,9 @@ class BadgeRenderer:
         y1 = pad - by1
         draw_outlined(draw, x1, y1, line1, font)
 
-        # 中间小图标行（用小字体的▶，颜色用 extra.icon_color 或红色）
+        # 中间小图标行（用小字体的▶）
         icon_color = _hex_to_rgb(style.extra.get("icon_color", "#CC0000"))
-        icon_font  = _find_font(max(8, _scale(14, scale)))
+        icon_font  = _find_font(max(8, int(12 * scale_factor)))
         if icon_font:
             ibb = dd.textbbox((0, 0), "▶", font=icon_font)
             iw  = ibb[2] - ibb[0]
@@ -627,83 +627,6 @@ class BadgeRenderer:
 
         img.save(output_path, "PNG")
 
-    # ------------------------------------------------------------------ #
-    #  H. 斜三角旗帜 (corner_flag)
-    # ------------------------------------------------------------------ #
-
-    def _render_corner_flag(
-        self, style: Any, text: str, ratio: float, output_path: str
-    ) -> None:
-        """斜三角旗帜：贴在右上角（或左上角），两条直角边贴视频边缘，斜边向内。
-        橙红色三角色块，文字沿斜边方向斜排，可带 emoji。
-        渲染为整个视频宽高的透明画布，三角形直接画在角落。
-        """
-        # 三角形大小：斜边跨度约视频宽的 55%（ratio 适配）
-        tri = _scale(220, ratio * 0.85)   # 直角边长度（像素）
-        font_size = _scale(22, ratio * 0.75)
-        font      = _find_font(font_size)
-
-        # 画布 = 三角形 bounding box（正方形）
-        canvas = tri
-        img  = Image.new("RGBA", (canvas, canvas), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(img)
-
-        bg_rgba = _hex_to_rgb(style.bg_color, alpha=245)
-
-        position = style.position if style.position else "top-right"
-
-        if position == "top-right":
-            # 右上角：(0,0)=左上, (canvas,0)=右上, (canvas,canvas)=右下
-            # 三角：顶点在右上角，直角边沿上边和右边
-            triangle = [(0, 0), (canvas, 0), (canvas, canvas)]
-        else:
-            # 左上角：顶点在左上角，直角边沿上边和左边
-            triangle = [(0, 0), (canvas, 0), (0, canvas)]
-
-        draw.polygon(triangle, fill=bg_rgba)
-
-        # 文字：斜排在三角斜边中间
-        # 在临时图上水平绘制，然后旋转 -45（右上）或 +45（左上）度
-        emoji = style.extra.get("emoji", "")
-        full_text = text + (" " + emoji if emoji else "")
-
-        txt_canvas = canvas * 2
-        tmp = Image.new("RGBA", (txt_canvas, txt_canvas), (0, 0, 0, 0))
-        td  = ImageDraw.Draw(tmp)
-
-        text_rgba = _hex_to_rgb(style.text_color)
-        border_rgba = _hex_to_rgb(style.border_color or "#000000")
-        bw_t = max(2, _scale(3, ratio * 0.7))
-
-        if font:
-            tbb = td.textbbox((0, 0), full_text, font=font)
-            tx  = txt_canvas // 2 - (tbb[2] - tbb[0]) // 2 - tbb[0]
-            ty  = txt_canvas // 2 - (tbb[3] - tbb[1]) // 2 - tbb[1]
-        else:
-            tx, ty = txt_canvas // 4, txt_canvas // 2
-
-        # 描边
-        for dx in range(-bw_t, bw_t + 1):
-            for dy in range(-bw_t, bw_t + 1):
-                if dx * dx + dy * dy <= bw_t * bw_t:
-                    td.text((tx + dx, ty + dy), full_text, font=font, fill=border_rgba)
-        td.text((tx, ty), full_text, font=font, fill=text_rgba)
-
-        # 旋转：右上角旋转 -45，左上角旋转 +45
-        angle = -45 if position == "top-right" else 45
-        tmp_rot = tmp.rotate(angle, resample=Image.BICUBIC, expand=False)
-
-        # 把旋转后的文字粘贴到三角区域（居中于斜边）
-        if position == "top-right":
-            # 斜边中点约在 (canvas/2, canvas/2)，文字中心对准
-            paste_x = canvas // 2 - txt_canvas // 2
-            paste_y = canvas // 2 - txt_canvas // 2
-        else:
-            paste_x = canvas // 2 - txt_canvas // 2
-            paste_y = canvas // 2 - txt_canvas // 2
-
-        img.paste(tmp_rot, (paste_x, paste_y), tmp_rot)
-        img.save(output_path, "PNG")
 
 
 # ==================== 计算 overlay 位置 ====================
@@ -742,14 +665,6 @@ def get_badge_overlay_position(
         else:
             x = corner_offset - canvas_half
             y = corner_offset - canvas_half
-    elif shape == "corner_flag":
-        # 三角旗帜：PNG 画布贴视频角落，直角边紧贴视频边缘
-        if position == "top-right":
-            x = video_width - pw   # 右上角
-            y = 0
-        else:
-            x = 0                  # 左上角
-            y = 0
     else:
         if position == "top-right":
             x = video_width - pw - margin
