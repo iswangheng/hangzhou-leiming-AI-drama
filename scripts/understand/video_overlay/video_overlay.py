@@ -42,6 +42,7 @@ from .overlay_styles import (
     get_style,
     get_random_style,
     get_random_disclaimer,
+    get_random_badge_style,
     DISCLAIMER_TEXTS
 )
 from .tilted_label import TiltedLabelConfig, TiltedLabelRenderer
@@ -77,6 +78,10 @@ class VideoOverlayRenderer:
 
         # 获取或选择样式
         self.style = self._get_or_select_style()
+
+        # 每次独立随机选择角标样式（不缓存，每条剪辑不同）
+        self.badge_style = get_random_badge_style()
+        print(f"🎲 随机角标样式: {self.badge_style.name} (shape={self.badge_style.shape})")
 
         # 替换文本内容
         self._prepare_text_layers()
@@ -501,11 +506,14 @@ class VideoOverlayRenderer:
 
         try:
             # 创建倾斜角标配置（传递已缩放的值，因为_generate_png不会自动缩放）
+            # 使用 badge_style 的颜色（每条剪辑独立随机）
+            badge_bg = self.badge_style.bg_color if self.badge_style.bg_color else "#E84040"
+            badge_text_color = self.badge_style.text_color if self.badge_style.text_color else "white"
             tilted_config = TiltedLabelConfig(
                 label_text=self.style.hot_drama.text,
                 font_size=scaled_font_size,  # 已缩放
-                label_color="red@0.95",
-                text_color="white",
+                label_color=badge_bg,
+                text_color=badge_text_color,
                 position=self.config.hot_drama_position,  # 使用配置的位置
                 box_height=scaled_box_height,  # 已缩放
                 box_y=scaled_box_y,  # 已缩放

@@ -264,7 +264,7 @@ class ClipRenderer:
         hwaccel: bool = False,
         fast_preset: bool = False,
         force_recache: bool = False,
-        compress: bool = False,
+        compress: bool = True,
         compress_target_mb: int = 100
     ):
         """初始化剪辑渲染器
@@ -3637,8 +3637,9 @@ def main():
     parser.add_argument('--max-clips', type=int, default=0, help='最多渲染的剪辑数量（0=全部渲染）')
     parser.add_argument('--clip-indices', type=str, default='', help='指定要渲染的剪辑索引（逗号分隔，如：0,2,7）')
 
-    # V17: 视频压缩参数
-    parser.add_argument('--compress', action='store_true', help='启用视频压缩（将视频压缩到目标大小以内）')
+    # V17: 视频压缩参数（V18.5: 默认启用）
+    parser.add_argument('--compress', action='store_true', default=True, help='启用视频压缩（默认启用）')
+    parser.add_argument('--no-compress', dest='compress', action='store_false', help='禁用视频压缩')
     parser.add_argument('--compress-target', type=int, default=100,
                        choices=[50, 100, 150, 200],
                        help='压缩目标大小（MB，默认100MB，可选50/100/150/200）')

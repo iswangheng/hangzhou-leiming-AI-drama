@@ -618,6 +618,14 @@ def video_understand(
     episode_keyframes = {k: v for k, v in episode_keyframes.items() if v is not None}
     episode_asr = {k: v for k, v in episode_asr.items() if v is not None}
 
+    # 构建 episode_video_files（用于时间戳优化和智能切割）
+    video_dir_path = Path(project_path)
+    episode_video_files = {}
+    for mp4_file in sorted(video_dir_path.glob("*.mp4")):
+        ep = parse_episode_number(mp4_file.name)
+        if ep is not None:
+            episode_video_files[ep] = mp4_file
+
     total_keyframes = sum(len(v) for v in episode_keyframes.values())
     total_asr = sum(len(v) for v in episode_asr.values())
     print(f"\n数据加载完成: {len(episode_keyframes)}集, {total_keyframes}关键帧, {total_asr}ASR片段\n")
