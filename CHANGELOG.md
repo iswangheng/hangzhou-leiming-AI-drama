@@ -11,7 +11,7 @@
 
 ### 高优先级
 
-- [ ] **渲染命令默认附加片尾视频**
+- [x] **渲染命令默认附加片尾视频**
   - 现状：`--add-ending` 默认关闭，需手动加参数
   - 期望：片尾是正常成品的必要组成部分，应默认开启
   - 影响文件：`scripts/understand/render_clips.py` 中 `add_ending_clip` 默认值 + argparse 文档
