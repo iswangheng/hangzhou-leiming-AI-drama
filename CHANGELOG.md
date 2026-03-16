@@ -16,10 +16,10 @@
   - 期望：片尾是正常成品的必要组成部分，应默认开启
   - 影响文件：`scripts/understand/render_clips.py` 中 `add_ending_clip` 默认值 + argparse 文档
 
-- [ ] **烈日重生 V18 效果验证**
-  - 需完成带片尾渲染，人工核查高光/钩子是否还有截断感
-  - result.json 已更新为 top-20（77 → 20）
-  - 等 Gemini API 恢复后可考虑重跑分析
+- [x] **烈日重生 V18 效果验证**
+  - 现状：已用机器探针验证并人工复核，截断感已被完全修复
+  - 影响文件：`render_clips.py` 单次编码已完全支持 `concat` 片尾音频
+  - result.json 自动保留并筛选 Top-20
 
 - [ ] **yunwu.ai Gemini 代理不稳定问题**
   - 上次跑 video_understand.py 时全部 30 个 AI 分析片段失败（ProxyError/SSLEOFError）
