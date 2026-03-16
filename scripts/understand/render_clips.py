@@ -3603,7 +3603,7 @@ def main():
     parser.add_argument('video_dir', nargs='?', help='视频文件目录（可选，默认为项目路径）')
 
     # V14: 结尾视频参数
-    parser.add_argument('--add-ending', action='store_true', help='添加随机结尾视频')
+    parser.add_argument('--add-ending', action='store_true', help='添加随机结尾视频（默认启用）')
     parser.add_argument('--no-ending', action='store_true', help='不添加结尾视频')
 
     # V14.1: 片尾检测参数
@@ -3646,10 +3646,12 @@ def main():
 
     args = parser.parse_args()
 
-    # 确定是否添加结尾视频
-    add_ending = args.add_ending
+    # 确定是否添加结尾视频 (V18: 默认启用)
+    add_ending = True
     if args.no_ending:
         add_ending = False
+    elif args.add_ending:
+        add_ending = True
 
     # 确定片尾检测参数
     auto_detect_ending = args.auto_detect_ending
